@@ -29,6 +29,10 @@ Add `-liluslow` to enable legacy user patcher.
 Add `-lilulowmem` to disable kernel unpack (disables Lilu in recovery mode).  
 Add `-lilubeta` to enable Lilu on unsupported os versions.
 
+#### Discussion
+[InsanelyMac topic](http://www.insanelymac.com/forum/topic/321371-lilu-—-kext-and-process-patcher/) in English  
+[AppleLife topic](https://applelife.ru/threads/lilu-patcher-kekstov-i-processov.1964133/) in Russian
+
 #### Contribution
 For the contributors with programming skills the headers are filled with AppleDOC comments.  
 Earlier code changes could be tracked in [AppleALC](https://github.com/vit9696/AppleALC) project.   
