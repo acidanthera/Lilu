@@ -20,7 +20,7 @@ An open source kernel extension bringing a platform for arbitrary kext, library,
 #### Installation
 You should install this kext along with the plugin kexts depending on it.  
 The prebuilt binaries are available on [releases](https://github.com/vit9696/Lilu/releases) page.  
-Several existing plugins possibly with code samples are available on [Known plugins](https://github.com/vit9696/Lilu/KnownPlugins.md) page.
+Several existing plugins possibly with code samples are available on [known plugins](https://github.com/vit9696/Lilu/blob/master/KnownPlugins.md) page.
 
 #### Configuration
 Add `-liludbg` to enable debug printing (available in DEBUG binaries).  
