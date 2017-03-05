@@ -3,7 +3,7 @@ project(capstone)
 
 set(VERSION_MAJOR 3)
 set(VERSION_MINOR 0)
-set(VERSION_PATCH 4)
+set(VERSION_PATCH 5)
 
 # to configure the options specify them in in the command line or change them in the cmake UI.
 # Don't edit the makefile!
@@ -317,8 +317,10 @@ if (CAPSTONE_BUILD_STATIC_RUNTIME)
         CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_DEBUG_INIT
         CMAKE_CXX_FLAGS_RELEASE  CMAKE_CXX_FLAGS_RELWITHDEBINFO
         CMAKE_CXX_FLAGS_DEBUG  CMAKE_CXX_FLAGS_DEBUG_INIT)
-        STRING(REPLACE "/MD"  "/MT" "${flag}" "${${flag}}")
-        SET("${flag}" "${${flag}} /EHsc")
+        if (MSVC)
+            STRING(REPLACE "/MD"  "/MT" "${flag}" "${${flag}}")
+            SET("${flag}" "${${flag}} /EHsc")
+        endif (MSVC)
     ENDFOREACH()
 endif ()
 
@@ -387,4 +389,12 @@ if (CAPSTONE_BUILD_SHARED)
             RUNTIME DESTINATION bin
             LIBRARY DESTINATION lib
             ARCHIVE DESTINATION lib)
+endif ()
+
+if (CAPSTONE_BUILD_SHARED)
+FILE(GLOB CSTOOL_SRC cstool/*.c)
+add_executable(cstool ${CSTOOL_SRC})
+target_link_libraries(cstool ${default-target})
+
+install(TARGETS cstool DESTINATION bin)
 endif ()

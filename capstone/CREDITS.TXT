@@ -59,3 +59,6 @@ Adel Gadllah, Francisco Alonso & Stefan Cornelius: RPM package.
 Felix Gröbert (Google): fuzz testing harness.
 Xipiter LLC: Capstone logo redesigned.
 Satoshi Tanda: Support Windows kernel driver.
+Tang Yuhang: cstool.
+Andrew Dutcher: better Python setup.
+Ruben Boonen: PowerShell binding.

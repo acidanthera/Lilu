@@ -19,6 +19,10 @@ __all__ = [
     'CS_API_MAJOR',
     'CS_API_MINOR',
 
+    'CS_VERSION_MAJOR',
+    'CS_VERSION_MINOR',
+    'CS_VERSION_EXTRA',
+
     'CS_ARCH_ARM',
     'CS_ARCH_ARM64',
     'CS_ARCH_MIPS',
@@ -100,7 +104,12 @@ __all__ = [
 CS_API_MAJOR = 3
 CS_API_MINOR = 0
 
-__version__ = "%s.%s" %(CS_API_MAJOR, CS_API_MINOR)
+# Package version
+CS_VERSION_MAJOR = CS_API_MAJOR
+CS_VERSION_MINOR = CS_API_MINOR
+CS_VERSION_EXTRA = 5
+
+__version__ = "%u.%u.%u" %(CS_VERSION_MAJOR, CS_VERSION_MINOR, CS_VERSION_EXTRA)
 
 # architectures
 CS_ARCH_ARM = 0
@@ -186,66 +195,56 @@ CS_SUPPORT_DIET = CS_ARCH_ALL + 1
 CS_SUPPORT_X86_REDUCE = CS_ARCH_ALL+2
 
 
-import ctypes, ctypes.util, sys
+import ctypes, ctypes.util
 from os.path import split, join, dirname
 import distutils.sysconfig
-
+import pkg_resources
 
 import inspect
 if not hasattr(sys.modules[__name__], '__file__'):
     __file__ = inspect.getfile(inspect.currentframe())
 
-_lib_path = split(__file__)[0]
-_all_libs = ['capstone.dll', 'libcapstone.so.3', 'libcapstone.so', 'libcapstone.dylib']
+if sys.platform == 'darwin':
+    _lib = "libcapstone.dylib"
+elif sys.platform in ('win32', 'cygwin'):
+    _lib = "capstone.dll"
+else:
+    _lib = "libcapstone.so"
+
 _found = False
 
-for _lib in _all_libs:
+def _load_lib(path):
+    lib_file = join(path, _lib)
     try:
-        _lib_file = join(_lib_path, _lib)
-        # print "Trying to load:", _lib_file
-        _cs = ctypes.cdll.LoadLibrary(_lib_file)
-        _found = True
-        break
+        return ctypes.cdll.LoadLibrary(lib_file)
     except OSError:
-        pass
-if _found == False:
-    # try loading from default paths
-    for _lib in _all_libs:
-        try:
-            _cs = ctypes.cdll.LoadLibrary(_lib)
-            _found = True
-            break
-        except OSError:
-            pass
+        # if we're on linux, try again with .so.3 extension
+        if lib_file.endswith('.so'):
+            try:
+                return ctypes.cdll.LoadLibrary(lib_file + '.3')
+            except OSError:
+                return None
+        return None
 
-if _found == False:
-    # last try: loading from python lib directory
-    _lib_path = distutils.sysconfig.get_python_lib()
-    for _lib in _all_libs:
-        try:
-            _lib_file = join(_lib_path, 'capstone', _lib)
-            # print "Trying to load:", _lib_file
-            _cs = ctypes.cdll.LoadLibrary(_lib_file)
-            _found = True
-            break
-        except OSError:
-            pass
+_cs = None
 
-# Attempt Darwin specific load (10.11 specific),
-# since LD_LIBRARY_PATH is not guaranteed to exist
-if (_found == False) and (system() == 'Darwin'):
-    _lib_path = '/usr/local/lib/'
-    for _lib in _all_libs:
-        try:
-            _lib_file = join(_lib_path, _lib)
-            # print "Trying to load:", _lib_file
-            _cs = ctypes.cdll.LoadLibrary(_lib_file)
-            _found = True
-            break
-        except OSError:
-            pass
+# Loading attempts, in order
+# - pkg_resources can get us the path to the local libraries
+# - we can get the path to the local libraries by parsing our filename
+# - global load
+# - python's lib directory
+# - last-gasp attempt at some hardcoded paths on darwin and linux
 
-if _found == False:
+_path_list = [pkg_resources.resource_filename(__name__, 'lib'),
+              join(split(__file__)[0], 'lib'),
+              '',
+              distutils.sysconfig.get_python_lib(),
+              "/usr/local/lib/" if sys.platform == 'darwin' else '/usr/lib64']
+
+for _path in _path_list:
+    _cs = _load_lib(_path)
+    if _cs is not None: break
+else:
     raise ImportError("ERROR: fail to load the dynamic library.")
 
 
@@ -298,7 +297,7 @@ class _cs_insn(ctypes.Structure):
     )
 
 # callback for SKIPDATA option
-CS_SKIPDATA_CALLBACK = ctypes.CFUNCTYPE(ctypes.c_size_t, ctypes.POINTER(ctypes.c_char), ctypes.c_size_t, ctypes.c_void_p)
+CS_SKIPDATA_CALLBACK = ctypes.CFUNCTYPE(ctypes.c_size_t, ctypes.POINTER(ctypes.c_char), ctypes.c_size_t, ctypes.c_size_t, ctypes.c_void_p)
 
 class _cs_opt_skipdata(ctypes.Structure):
     _fields_ = (
@@ -786,7 +785,7 @@ class Cs(object):
         _skipdata_opt = _cs_opt_skipdata()
         _mnem, _cb, _ud = opt
         _skipdata_opt.mnemonic = _mnem.encode()
-        _skipdata_opt.callback = ctypes.cast(_cb, CS_SKIPDATA_CALLBACK)
+        _skipdata_opt.callback = CS_SKIPDATA_CALLBACK(_cb)
         _skipdata_opt.user_data = ctypes.cast(_ud, ctypes.c_void_p)
         status = _cs.cs_option(self.csh, CS_OPT_SKIPDATA_SETUP, ctypes.cast(ctypes.byref(_skipdata_opt), ctypes.c_void_p))
         if status != CS_ERR_OK:
@@ -843,6 +842,10 @@ class Cs(object):
             print(code)
             code = code.encode()
             print(code)'''
+        # Hack, unicorn's memory accessors give you back bytearrays, but they
+        # cause TypeErrors when you hand them into Capstone.
+        if isinstance(code, bytearray):
+            code = bytes(code)
         res = _cs.cs_disasm(self.csh, code, len(code), offset, count, ctypes.byref(all_insn))
         if res > 0:
             try:

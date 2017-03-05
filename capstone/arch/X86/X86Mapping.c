@@ -183,14 +183,14 @@ static name_map reg_name_maps[] = {
 	{ X86_REG_R13, "r13" },
 	{ X86_REG_R14, "r14" },
 	{ X86_REG_R15, "r15" },
-	{ X86_REG_ST0, "st0" },
-	{ X86_REG_ST1, "st1" },
-	{ X86_REG_ST2, "st2" },
-	{ X86_REG_ST3, "st3" },
-	{ X86_REG_ST4, "st4" },
-	{ X86_REG_ST5, "st5" },
-	{ X86_REG_ST6, "st6" },
-	{ X86_REG_ST7, "st7" },
+	{ X86_REG_ST0, "st(0" },
+	{ X86_REG_ST1, "st(1)" },
+	{ X86_REG_ST2, "st(2)" },
+	{ X86_REG_ST3, "st(3)" },
+	{ X86_REG_ST4, "st(4)" },
+	{ X86_REG_ST5, "st(5)" },
+	{ X86_REG_ST6, "st(6)" },
+	{ X86_REG_ST7, "st(7)" },
 	{ X86_REG_XMM0, "xmm0" },
 	{ X86_REG_XMM1, "xmm1" },
 	{ X86_REG_XMM2, "xmm2" },
@@ -4040,13 +4040,13 @@ static insn_map insns[] = {	// full x86 instructions
 	{
 		X86_CLC, X86_INS_CLC,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
 		X86_CLD, X86_INS_CLD,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
@@ -4076,7 +4076,7 @@ static insn_map insns[] = {	// full x86 instructions
 	{
 		X86_CMC, X86_INS_CMC,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
@@ -17036,13 +17036,13 @@ static insn_map insns[] = {	// full x86 instructions
 	{
 		X86_STC, X86_INS_STC,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
 		X86_STD, X86_INS_STD,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
@@ -39283,13 +39283,13 @@ static insn_map insns[] = {	// reduce x86 instructions
 	{
 		X86_CLC, X86_INS_CLC,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
 		X86_CLD, X86_INS_CLD,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
@@ -39313,7 +39313,7 @@ static insn_map insns[] = {	// reduce x86 instructions
 	{
 		X86_CMC, X86_INS_CMC,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
@@ -45811,13 +45811,13 @@ static insn_map insns[] = {	// reduce x86 instructions
 	{
 		X86_STC, X86_INS_STC,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
 		X86_STD, X86_INS_STD,
 #ifndef CAPSTONE_DIET
-		{ 0 }, { 0 }, { 0 }, 0, 0
+		{ 0 }, { X86_REG_EFLAGS, 0 }, { 0 }, 0, 0
 #endif
 	},
 	{
@@ -47241,6 +47241,7 @@ static struct insn_reg insn_regs_att[] = {
 	{ X86_INSW, X86_REG_DX },
 	{ X86_INSL, X86_REG_DX },
 
+	{ X86_MOV32ao32, X86_REG_EAX },
 	{ X86_MOV64o64a, X86_REG_RAX },
 
 	{ X86_PUSHCS32, X86_REG_CS },
@@ -47356,7 +47357,6 @@ static struct insn_reg insn_regs_intel[] = {
 	{ X86_MOV64o32a, X86_REG_EAX },
 
 	{ X86_MOV16ao16, X86_REG_AX },    // 16-bit A1 1020                  // mov     ax, word ptr [0x2010]
-	{ X86_MOV32ao32, X86_REG_EAX },   // 32-bit A1 10203040              // mov     eax, dword ptr [0x40302010]
 
 	{ X86_MOV64ao32, X86_REG_RAX },   // 64-bit 48 8B04 10203040         // mov     rax, qword ptr [0x40302010]
 
