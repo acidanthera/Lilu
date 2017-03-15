@@ -52,6 +52,16 @@ extern const int version_major;
 EXPORT const char *strstr(const char *stack, const char *needle, size_t len=0);
 
 /**
+ *  @brief  Reverse character search
+ *
+ *  @param stack    String to search in
+ *  @param ch       Characted to search for
+ *
+ *  @return character address if there or stack
+ */
+EXPORT const char *strrchr(char *stack, int ch);
+
+/**
  *  @brief  C-style memory management from libkern, missing from headers
  */
 extern "C" {

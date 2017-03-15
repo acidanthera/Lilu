@@ -16,9 +16,8 @@ bool ADDPR(debugEnabled) = false;
 extern vm_map_t kernel_map;
 
 const char *strstr(const char *stack, const char *needle, size_t len) {
-	if (!len && !(len = strlen(needle))) {
+	if (!len && !(len = strlen(needle)))
 		return stack;
-	}
 	
 	const char *i = needle;
 
@@ -34,6 +33,19 @@ const char *strstr(const char *stack, const char *needle, size_t len) {
 	}
 	
 	return nullptr;
+}
+
+char *strrchr(const char *stack, int ch) {
+	if (!stack)
+		return nullptr;
+	
+	char *rtnval = nullptr;
+	do {
+		if (*stack == ch)
+			rtnval = const_cast<char *>(stack);
+	} while (*stack++);
+	
+	return rtnval;
 }
 
 extern "C" void *kern_os_calloc(size_t num, size_t size) {
