@@ -89,7 +89,7 @@ int FileIO::writeFileData(void *buffer, off_t off, size_t size, vnode_t vnode, v
 }
 
 int FileIO::performFileIO(void *buffer, off_t off, size_t size, vnode_t vnode, vfs_context_t ctxt, bool write) {
-	uio_t uio = uio_create(1, off, UIO_SYSSPACE, UIO_READ);
+	uio_t uio = uio_create(1, off, UIO_SYSSPACE, write ? UIO_WRITE : UIO_READ);
 	if (!uio) {
 		SYSLOG("file @ uio_create returned null!");
 		return EINVAL;

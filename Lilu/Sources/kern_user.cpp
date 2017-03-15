@@ -75,8 +75,6 @@ void UserPatcher::deinit() {
 }
 
 void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
-    auto &lookup = that->lookup;
-    
     for (size_t data_off = 0; data_off < data_size; data_off += PAGE_SIZE) {
         size_t sz = that->lookupStorage.size();
         size_t maybe = 0;
@@ -236,7 +234,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			struct {
 				uintptr_t off;
 				uint32_t val;
-			} prots[3] {{0},{0},{0}};
+			} prots[3] {};
 			long org_b = hdr_size + tmpHeader.sizeofcmds;
 			long new_b = org_b + sizeof(restrictSegment);
 			
@@ -372,18 +370,18 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 	}
 	
 	for (size_t i = 0, sz = lookupStorage.size(); i < sz; i++) {
-		auto &lookup = lookupStorage[i];
-		auto &mod = lookup->mod;
-		for (size_t j = 0, rsz = lookup->refs.size(); j < rsz; j++) {
-			auto &ref = lookup->refs[j];
-			auto &patch = lookup->mod->patches[ref->i];
+		auto &storageEntry = lookupStorage[i];
+		auto &mod = storageEntry->mod;
+		for (size_t j = 0, rsz = storageEntry->refs.size(); j < rsz; j++) {
+			auto &ref = storageEntry->refs[j];
+			auto &patch = storageEntry->mod->patches[ref->i];
 			size_t offNum = ref->segOffs.size();
 			if (mod->start && mod->end && offNum && patch.cpu == cpu) {
 				DBGLOG("user @ patch for %s in %lX %lX\n", mod->path, mod->start, mod->end);
 				auto tmp = Buffer::create<uint8_t>(patch.size);
 				if (tmp) {
-					for (size_t j = 0; j < offNum; j++) {
-						auto place = mod->start+ref->segOffs[j]+slide;
+					for (size_t k = 0; k < offNum; k++) {
+						auto place = mod->start+ref->segOffs[k]+slide;
 						auto r = orgVmMapReadUser(taskPort, place, tmp, patch.size);
 						if (!r) {
 							DBGLOG("user @ found %X %X %X %X", tmp[0], tmp[1], tmp[2], tmp[3]);
@@ -406,7 +404,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 							}
 						}
 						
-						DBGLOG("user @ done reading patches for %llX", ref->segOffs[j]);
+						DBGLOG("user @ done reading patches for %llX", ref->segOffs[k]);
 					}
 					Buffer::deleter(tmp);
 				}
