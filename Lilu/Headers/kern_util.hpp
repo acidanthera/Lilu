@@ -55,11 +55,11 @@ EXPORT const char *strstr(const char *stack, const char *needle, size_t len=0);
  *  @brief  Reverse character search
  *
  *  @param stack    String to search in
- *  @param ch       Characted to search for
+ *  @param ch       Character to search for
  *
- *  @return character address if there or stack
+ *  @return character address if there or null
  */
-EXPORT const char *strrchr(char *stack, int ch);
+EXPORT char *strrchr(const char *stack, int ch);
 
 /**
  *  @brief  C-style memory management from libkern, missing from headers
