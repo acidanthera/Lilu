@@ -31,7 +31,7 @@ extern const int version_major;
 #ifdef DEBUG
 #define DBGLOG(str, ...)																\
 	do {																				\
-		if (xConcat(PRODUCT_NAME, _debugEnabled))										\
+		if (ADDPR(debugEnabled))										\
 			IOLog( xStringify(PRODUCT_NAME) ": (DEBUG) " str "\n", ## __VA_ARGS__);		\
 	} while(0)
 #else
