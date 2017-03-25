@@ -9,4 +9,3 @@ Please note that improperly written immature plugins will not be listed there.
 - [IntelGraphicsFixup](https://sourceforge.net/p/intelgraphicsfixup) - Various patches necessary for certain Intel GPUs
 - [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) - Various patches necessary for certain NVIDIA GPUs
 - [Shiki](https://github.com/vit9696/Shiki) - Dynamic userspace patcher for macOS
-- [USBXHCIPCIFixup](https://github.com/PMheart/USBXHCIPCIFixup) - Remove usb port limitations on 10.11 and newer

@@ -709,7 +709,7 @@ vm_prot_t UserPatcher::getPageProtection(vm_map_t map, vm_map_address_t addr) {
 }
 
 bool UserPatcher::hookMemoryAccess() {
-	 mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page");
+	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page");
 	
 	if (patcher->getError() == KernelPatcher::Error::NoError) {
         orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
