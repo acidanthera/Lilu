@@ -41,7 +41,7 @@ extern const int version_major;
 #define EXPORT __attribute__((visibility("default")))
 
 /**
- *  @brief  Two-way substring search
+ *  Two-way substring search
  *
  *  @param stack    String to search in
  *  @param needle   Substring to search for
@@ -52,7 +52,7 @@ extern const int version_major;
 EXPORT const char *strstr(const char *stack, const char *needle, size_t len=0);
 
 /**
- *  @brief  Reverse character search
+ *  Reverse character search
  *
  *  @param stack    String to search in
  *  @param ch       Character to search for
@@ -62,7 +62,7 @@ EXPORT const char *strstr(const char *stack, const char *needle, size_t len=0);
 EXPORT char *strrchr(const char *stack, int ch);
 
 /**
- *  @brief  C-style memory management from libkern, missing from headers
+ *  C-style memory management from libkern, missing from headers
  */
 extern "C" {
 	void *kern_os_malloc(size_t size);
@@ -71,6 +71,9 @@ extern "C" {
 	void *kern_os_realloc(void *addr, size_t nsize);
 }
 
+/**
+ *  Known kernel versions
+ */
 enum KernelVersion {
 	SnowLeopard = 10,
 	Lion = 11,
@@ -81,8 +84,24 @@ enum KernelVersion {
 	Sierra = 16
 };
 
+/**
+ *  Obtain major kernel version
+ *
+ *  @return numeric kernel version
+ */
 inline KernelVersion getKernelVersion() {
 	return static_cast<KernelVersion>(version_major);
+}
+
+/**
+ *  Parse apple version at compile time
+ *
+ *  @param version string literal representing apple version (e.g. 1.1.1)
+ *
+ *  @return numeric kernel version
+ */
+constexpr size_t parseModuleVersion(const char *version) {
+	return (version[0] - '0') * 100 + (version[2] - '0') * 10 + (version[4] - '0');
 }
 
 /**

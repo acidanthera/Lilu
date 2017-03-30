@@ -75,41 +75,40 @@ void UserPatcher::deinit() {
 }
 
 void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
-    for (size_t data_off = 0; data_off < data_size; data_off += PAGE_SIZE) {
-        size_t sz = that->lookupStorage.size();
-        size_t maybe = 0;
-        auto ptr = static_cast<const uint8_t *>(data_ptr) + data_off;
-        
-        if (sz > 0) {
-            
-            for (size_t i = 0; i < Lookup::matchNum && maybe != sz; i++) {
-                uint64_t value = *reinterpret_cast<const uint64_t *>(ptr + lookup.offs[i]);
-                
-                if (i == 0) {
-                    for (maybe = 0; maybe < sz; maybe++) {
-                        if (lookup.c[i][maybe] == value) {
-                            // We have a possible match
-                            DBGLOG("user @ found a possible match for %zu of %llX\n", i, value);
-                            break;
-                        }
-                    }
-                } else {
-                    if (lookup.c[i][maybe] != value) {
-                        // We failed
-                        DBGLOG("user @ failure not matching %zu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
-                        maybe = sz;
-                    } else {
-                        DBGLOG("user @ found a possible match for %zu of %llX\n", i, value);
-                    }
-                }
-            
-            }
-            
-            if (maybe < sz) {
-                auto &storage = that->lookupStorage[maybe];
-                
-                // That's a patch
-                if (!memcmp(storage->page->p, ptr, PAGE_SIZE)) {
+	for (size_t data_off = 0; data_off < data_size; data_off += PAGE_SIZE) {
+		size_t sz = that->lookupStorage.size();
+		size_t maybe = 0;
+		auto ptr = static_cast<const uint8_t *>(data_ptr) + data_off;
+
+		if (sz > 0) {
+			for (size_t i = 0; i < Lookup::matchNum && maybe != sz; i++) {
+				uint64_t value = *reinterpret_cast<const uint64_t *>(ptr + lookup.offs[i]);
+				
+				if (i == 0) {
+					for (maybe = 0; maybe < sz; maybe++) {
+						if (lookup.c[i][maybe] == value) {
+							// We have a possible match
+							DBGLOG("user @ found a possible match for %zu of %llX\n", i, value);
+							break;
+						}
+					}
+				} else {
+					if (lookup.c[i][maybe] != value) {
+						// We failed
+						DBGLOG("user @ failure not matching %zu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
+						maybe = sz;
+					} else {
+						DBGLOG("user @ found a possible match for %zu of %llX\n", i, value);
+					}
+				}
+			
+			}
+
+			if (maybe < sz) {
+				auto &storage = that->lookupStorage[maybe];
+
+				// That's a patch
+				if (!memcmp(storage->page->p, ptr, PAGE_SIZE)) {
 					for (size_t r = 0, rsz = storage->refs.size(); r < rsz; r++) {
 						// Apply the patches
 						auto &ref = storage->refs[r];
@@ -158,12 +157,12 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 							SYSLOG("user @ failed to obtain write permssions for %zu\n", sz);
 						}
 					}
-                } else {
-                    DBGLOG("user @ failed to match a complete page with %zu\n", maybe);
-                }
-            }
-        }
-    }
+				} else {
+					DBGLOG("user @ failed to match a complete page with %zu\n", maybe);
+				}
+			}
+		}
+	}
 }
 
 boolean_t UserPatcher::codeSignValidatePageWrapper(void *blobs, memory_object_t pager, memory_object_offset_t page_offset, const void *data, unsigned *tainted) {
@@ -173,14 +172,14 @@ boolean_t UserPatcher::codeSignValidatePageWrapper(void *blobs, memory_object_t 
 }
 
 boolean_t UserPatcher::codeSignValidateRangeWrapper(void *blobs, memory_object_t pager, memory_object_offset_t range_offset, const void *data, memory_object_size_t data_size, unsigned *tainted) {
-    boolean_t res = that->orgCodeSignValidateRangeWrapper(blobs, pager, range_offset, data, data_size, tainted);
-    
-    if (res)
-        that->performPagePatch(data, data_size);
-    
-    /*DBGLOG("user @ cs_validate_range %llX %llX %llX %llX -> %llX %llX", (uint64_t)blobs, (uint64_t)pager, range_offset, (uint64_t)data, data_size, (uint64_t)tainted);*/
+	boolean_t res = that->orgCodeSignValidateRangeWrapper(blobs, pager, range_offset, data, data_size, tainted);
+	
+	if (res)
+		that->performPagePatch(data, data_size);
+	
+	/*DBGLOG("user @ cs_validate_range %llX %llX %llX %llX -> %llX %llX", (uint64_t)blobs, (uint64_t)pager, range_offset, (uint64_t)data, data_size, (uint64_t)tainted);*/
 
-    return res;
+	return res;
 }
 
 void UserPatcher::onPath(const char *path, uint32_t len) {
@@ -216,7 +215,7 @@ void UserPatcher::patchBinary(vm_map_t map, const char *path, uint32_t len) {
 
 bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	// Get task's mach-o header and determine its cpu type
-    //auto taskPort = orgCurrentMap();
+	//auto taskPort = orgCurrentMap();
 	auto baseAddr = orgGetMapMin(taskPort);
 	
 	DBGLOG("user @ get_map_min returned %llX", baseAddr);
@@ -328,28 +327,6 @@ int UserPatcher::vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_star
 	return that->orgVmSharedRegionSlide(slide, entry_start_address, entry_size, slide_start, slide_size, sr_file_control);
 }
 
-int UserPatcher::exImgact(image_params *igmp) {
-    int res = that->orgExecMachImgact(igmp);
-    
-    if (res == 0 && igmp) {
-        auto buf = Buffer::create<char>(PATH_MAX);
-        if (buf) {
-            int len = PATH_MAX;
-            vn_getpath(igmp->ip_vp, buf, &len);
-			len--; // null terminator
-			
-            if (len > 0) {
-                //DBGLOG("user @ imgact found %s (%d)", buf, len);
-                that->onPath(buf, static_cast<uint32_t>(len));
-            }
-            
-            Buffer::deleter(buf);
-        }
-    }
-    
-    return res;
-}
-
 proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread) {
 	proc_t rp = that->orgProcExecSwitchTask(p, current_task, new_task, new_thread);
 
@@ -376,12 +353,24 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 			auto &ref = storageEntry->refs[j];
 			auto &patch = storageEntry->mod->patches[ref->i];
 			size_t offNum = ref->segOffs.size();
-			if (mod->start && mod->end && offNum && patch.cpu == cpu) {
-				DBGLOG("user @ patch for %s in %lX %lX\n", mod->path, mod->start, mod->end);
+			
+			vm_address_t modStart = 0;
+			vm_address_t modEnd = 0;
+			
+			if (patch.segment >= FileSegment::SegmentsTextStart && patch.segment <= FileSegment::SegmentsTextEnd) {
+				modStart = mod->startTEXT;
+				modEnd = mod->endTEXT;
+			} else if (patch.segment >= FileSegment::SegmentsDataStart && patch.segment <= FileSegment::SegmentsDataEnd) {
+				modStart = mod->startDATA;
+				modEnd = mod->endDATA;
+			}
+			
+			if (modStart && modEnd && offNum && patch.cpu == cpu) {
+				DBGLOG("user @ patch for %s in %lX %lX\n", mod->path, modStart, modEnd);
 				auto tmp = Buffer::create<uint8_t>(patch.size);
 				if (tmp) {
 					for (size_t k = 0; k < offNum; k++) {
-						auto place = mod->start+ref->segOffs[k]+slide;
+						auto place = modStart+ref->segOffs[k]+slide;
 						auto r = orgVmMapReadUser(taskPort, place, tmp, patch.size);
 						if (!r) {
 							DBGLOG("user @ found %X %X %X %X", tmp[0], tmp[1], tmp[2], tmp[3]);
@@ -440,8 +429,19 @@ size_t UserPatcher::mapAddresses(const char *mapBuf, MapEntry *mapEntries, size_
 					i += strlen("__TEXT");
 					const char *arrow = strstr(&ptr[i], "->", strlen("->"));
 					if (arrow) {
-						currEntry->start = strtouq(text + strlen("__TEXT") + 1, nullptr, 16);
-						currEntry->end = strtouq(arrow + strlen("->") + 1, nullptr, 16);
+						currEntry->startTEXT = strtouq(text + strlen("__TEXT") + 1, nullptr, 16);
+						currEntry->endTEXT = strtouq(arrow + strlen("->") + 1, nullptr, 16);
+						
+						const char *data = strstr(&ptr[i], "__DATA", strlen("__DATA"));
+						if (data) {
+							i += strlen("__DATA");
+							arrow = strstr(&ptr[i], "->", strlen("->"));
+							if (arrow) {
+								currEntry->startDATA = strtouq(data + strlen("__DATA") + 1, nullptr, 16);
+								currEntry->endDATA = strtouq(arrow + strlen("->") + 1, nullptr, 16);
+							}
+						}
+						
 						nfound++;
 					}
 				}
@@ -469,7 +469,7 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 		for (size_t i = 0; i < binaryModSize; i++) {
 			entries[i].filename = binaryMod[i]->path;
 			entries[i].length = strlen(binaryMod[i]->path);
-			entries[i].start = entries[i].end = 0;
+			entries[i].startTEXT = entries[i].endTEXT = entries[i].startDATA = entries[i].endDATA = 0;
 		}
 		
 		size_t nEntries = mapAddresses(reinterpret_cast<char *>(buffer), entries, binaryModSize);
@@ -478,8 +478,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 			DBGLOG("user @ mapped %zu entries out of %zu", nEntries, binaryModSize);
 			
 			for (size_t i = 0; i < binaryModSize; i++) {
-				binaryMod[i]->start = entries[i].start;
-				binaryMod[i]->end = entries[i].end;
+				binaryMod[i]->startTEXT = entries[i].startTEXT;
+				binaryMod[i]->endTEXT = entries[i].endTEXT;
+				binaryMod[i]->startDATA = entries[i].startDATA;
+				binaryMod[i]->endDATA = entries[i].endDATA;
 			}
 			
 			res = true;
@@ -500,6 +502,8 @@ bool UserPatcher::loadFilesForPatching() {
 	DBGLOG("user @ loading files %zu", binaryModSize);
 
 	for (size_t i = 0; i < binaryModSize; i++) {
+		DBGLOG("user @ requesting file %s at %zu", binaryMod[i]->path, i);
+		
 		size_t fileSize;
 		auto buf = FileIO::readFileToBuffer(binaryMod[i]->path, fileSize);
 		if (buf) {
@@ -518,7 +522,13 @@ bool UserPatcher::loadFilesForPatching() {
 					continue;
 				}
 
-				MachInfo::findSectionBounds(buf, vmsegment, vmsection, sectionptr, size, "__TEXT", "__text", patch.cpu);
+				if (patch.segment >= FileSegment::SegmentTotal) {
+					SYSLOG("user @ skipping patch %s for %zu with invalid segment id %d", binaryMod[i]->path, p, patch.segment);
+					continue;
+				}
+				
+				MachInfo::findSectionBounds(buf, vmsegment, vmsection, sectionptr, size,
+											fileSegments[patch.segment], fileSections[patch.segment], patch.cpu);
 				
 				DBGLOG("user @ findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %zu", vmsegment, vmsection, sectionptr, size);
 				
@@ -712,7 +722,7 @@ bool UserPatcher::hookMemoryAccess() {
 	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page");
 	
 	if (patcher->getError() == KernelPatcher::Error::NoError) {
-        orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
+		orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
 			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true)
 		);
 		
@@ -721,20 +731,20 @@ bool UserPatcher::hookMemoryAccess() {
 			patcher->clearError();
 			return false;
 		}
-    // 10.12 and newer
+	// 10.12 and newer
 	} else if (patcher->clearError(),
-               kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range"),
-               patcher->getError() == KernelPatcher::Error::NoError) {
-        orgCodeSignValidateRangeWrapper = reinterpret_cast<t_codeSignValidateRangeWrapper>(
+			   kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range"),
+			   patcher->getError() == KernelPatcher::Error::NoError) {
+		orgCodeSignValidateRangeWrapper = reinterpret_cast<t_codeSignValidateRangeWrapper>(
 			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true)
 		);
-        
-        if (patcher->getError() != KernelPatcher::Error::NoError) {
-            SYSLOG("user @ failed to hook _cs_validate_range");
-            patcher->clearError();
-            return false;
-        }
-    } else {
+
+		if (patcher->getError() != KernelPatcher::Error::NoError) {
+			SYSLOG("user @ failed to hook _cs_validate_range");
+			patcher->clearError();
+			return false;
+		}
+	} else {
 		SYSLOG("user @ failed to resolve _cs_validate function");
 		patcher->clearError();
 		return false;

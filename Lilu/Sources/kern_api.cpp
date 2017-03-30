@@ -24,7 +24,12 @@ void LiluAPI::deinit() {
 	}
 }
 
-LiluAPI::Error LiluAPI::requestAccess(bool check) {
+LiluAPI::Error LiluAPI::requestAccess(size_t version, bool check) {
+	constexpr size_t currversion = parseModuleVersion(xStringify(MODULE_VERSION));
+	if (version > currversion) {
+		return Error::UnsupportedFeature;
+	}
+	
 	if (check) {
 		if (!IOSimpleLockTryLock(access)) {
 			return Error::LockError;
@@ -46,9 +51,9 @@ LiluAPI::Error LiluAPI::releaseAccess() {
 	return Error::NoError;
 }
 
-LiluAPI::Error LiluAPI::shouldLoad(const char *product, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug) {
+LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug) {
 	
-	DBGLOG("api @ got load request from %s", product);
+	DBGLOG("api @ got load request from %s (%zu)", product, version);
 	
 	char tmp[16];
 	printDebug = false;
@@ -69,10 +74,10 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, const char **disableArg,
 		}
 		
 		if (!beta) {
-			SYSLOG("api @ automatically disabling %s on an unsupported operating system", product);
+			SYSLOG("api @ automatically disabling %s (%zu) on an unsupported operating system", product, version);
 			return Error::IncompatibleOS;
 		} else {
-			SYSLOG("api @ force enabling %s on an unsupported operating system due to beta flag", product);
+			SYSLOG("api @ force enabling %s (%zu) on an unsupported operating system due to beta flag", product, version);
 		}
 	}
 	

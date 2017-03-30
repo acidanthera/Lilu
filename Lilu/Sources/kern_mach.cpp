@@ -30,17 +30,17 @@
 extern proc_t kernproc;
 
 kern_return_t MachInfo::init(const char * const paths[], size_t num) {
-    kern_return_t error = KERN_FAILURE;
+	kern_return_t error = KERN_FAILURE;
 	
 	allow_decompress = config.allowDecompress;
-  
-    // Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
-    // When calling kauth_cred_get() for the current_thread.
-    // This probably wants a better solution...
-    if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
-        SYSLOG("mach @ current context has no credential, it's too early");
-        return error;
-    }
+
+	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
+	// When calling kauth_cred_get() for the current_thread.
+	// This probably wants a better solution...
+	if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
+		SYSLOG("mach @ current context has no credential, it's too early");
+		return error;
+	}
 	
 	// lookup vnode for /mach_kernel
 	auto machHeader = Buffer::create<uint8_t>(HeaderSize);

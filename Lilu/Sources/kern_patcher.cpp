@@ -69,7 +69,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 		SYSLOG("patcher @ failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
 	} else if (info->init(paths, num) != KERN_SUCCESS) {
-		if ((isKernel && xConcat(PRODUCT_NAME, _debugEnabled)) || !isKernel)
+		if ((isKernel && ADDPR(debugEnabled)) || !isKernel)
 			SYSLOG("patcher @ failed to init MachInfo for %s", id);
 		code = Error::NoKinfoFound;
 	} else if (!kinfos.push_back(info)) {
@@ -128,17 +128,17 @@ bool KernelPatcher::compatibleKernel(uint32_t min, uint32_t max) {
 }
 
 mach_vm_address_t KernelPatcher::solveSymbol(size_t id, const char *symbol) {
-    if (id < kinfos.size()) {
-        auto addr = kinfos[id]->solveSymbol(symbol);
-        if (addr) {
-            return addr;
-        }
-    } else {
-        SYSLOG("patcher @ invalid kinfo id %zu for %s symbol lookup", id, symbol);
-    }
-    
-    code = Error::NoSymbolFound;
-    return 0;
+	if (id < kinfos.size()) {
+		auto addr = kinfos[id]->solveSymbol(symbol);
+		if (addr) {
+			return addr;
+		}
+	} else {
+		SYSLOG("patcher @ invalid kinfo id %zu for %s symbol lookup", id, symbol);
+	}
+
+	code = Error::NoSymbolFound;
+	return 0;
 }
 
 #ifdef KEXTPATCH_SUPPORT
