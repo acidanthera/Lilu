@@ -432,7 +432,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0820;
+				LastUpgradeCheck = 0830;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -622,7 +622,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.0.1;
+				MODULE_VERSION = 1.1.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -674,7 +674,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.0.1;
+				MODULE_VERSION = 1.1.0;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

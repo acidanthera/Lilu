@@ -105,17 +105,17 @@ bool Configuration::getBootArguments() {
 		}
 	}
 	
-	xConcat(PRODUCT_NAME, _debugEnabled) = PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
+	ADDPR(debugEnabled) = PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
 	
 	allowDecompress = !PE_parse_boot_argn(bootargLowMem, tmp, sizeof(tmp));
 	
 	preferSlowMode = getKernelVersion() <= KernelVersion::Mavericks;
-    
-    if (PE_parse_boot_argn(bootargSlow, tmp, sizeof(tmp))) {
-        preferSlowMode = true;
-    } else if (PE_parse_boot_argn(bootargFast, tmp, sizeof(tmp))) {
-        preferSlowMode = false;
-    }
+
+	if (PE_parse_boot_argn(bootargSlow, tmp, sizeof(tmp))) {
+		preferSlowMode = true;
+	} else if (PE_parse_boot_argn(bootargFast, tmp, sizeof(tmp))) {
+		preferSlowMode = false;
+	}
 
 	if (!preferSlowMode && getKernelVersion() <= KernelVersion::Mavericks) {
 		// Since vm_shared_region_map_file interface is a little different
@@ -125,7 +125,7 @@ bool Configuration::getBootArguments() {
 	
 	readArguments = true;
 	
-	DBGLOG("config @ boot arguments disabled %d, debug %d, slow %d, decompress %d", isDisabled, xConcat(PRODUCT_NAME, _debugEnabled), preferSlowMode, allowDecompress);
+	DBGLOG("config @ boot arguments disabled %d, debug %d, slow %d, decompress %d", isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
 	
 	if (isDisabled) {
 		SYSLOG("init @ found a disabling argument or no arguments, exiting");

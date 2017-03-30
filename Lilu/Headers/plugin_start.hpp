@@ -15,6 +15,7 @@
 
 struct PluginConfiguration {
 	const char *product;		// Product name (e.g. xStringify(PRODUCT_NAME))
+	size_t version;				// Product version (e.g. parseModuleVersion(xStringify(MODULE_VERSION)))
 	const char **disableArg;	// Pointer to disabling boot arguments array
 	size_t disableArgNum;		// Number of disabling boot arguments
 	const char **debugArg;		// Pointer to debug boot arguments array
@@ -26,7 +27,7 @@ struct PluginConfiguration {
 	void (*pluginStart)();		// Main function
 };
 
-extern PluginConfiguration xConcat(PRODUCT_NAME, _config);
+extern PluginConfiguration ADDPR(config);
 
 class EXPORT PRODUCT_NAME : public IOService {
 	OSDeclareDefaultStructors(PRODUCT_NAME)

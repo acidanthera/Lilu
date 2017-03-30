@@ -43,7 +43,7 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 		return KERN_FAILURE;
 	}
 	
-	error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).disableArg, ADDPR(config).disableArgNum,
+	error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).version, ADDPR(config).disableArg, ADDPR(config).disableArgNum,
 							ADDPR(config).debugArg, ADDPR(config).debugArgNum, ADDPR(config).betaArg, ADDPR(config).betaArgNum,
 							ADDPR(config).minKernel, ADDPR(config).maxKernel, ADDPR(debugEnabled));
 	

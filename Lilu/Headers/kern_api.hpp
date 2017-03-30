@@ -11,6 +11,7 @@
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_user.hpp>
+#include <Headers/kern_util.hpp>
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -42,13 +43,20 @@ public:
 	};
 	
 	/**
+	 *  Minimal API version that guarantees forward ABI compatibility
+	 *  Present due to lack of OSBundleCompatibleVersion at kext injection
+	 */
+	static constexpr size_t CompatibilityVersion {parseModuleVersion("1.1.0")};
+	
+	/**
 	 *  Obtains api access by holding a lock, which is required when accessing out of the main context
 	 *
-	 *  @param check do not wait on the lock but return Error::LockError on failure
+	 *  @param version  api compatibility version
+	 *  @param check    do not wait on the lock but return Error::LockError on failure
 	 *
 	 *  @return Error::NoError on success
 	 */
-	EXPORT Error requestAccess(bool check=false);
+	EXPORT Error requestAccess(size_t version=CompatibilityVersion, bool check=false);
 	
 	/**
 	 *  Releases api lock
@@ -61,6 +69,7 @@ public:
 	 *  Decides whether you are eligible to continue
 	 *
 	 *  @param product       product name
+	 *  @param version       product version
 	 *  @param disableArg    pointer to disabling boot arguments array
 	 *  @param disableArgNum number of disabling boot arguments
 	 *  @param debugArg      pointer to debug boot arguments array
@@ -73,7 +82,7 @@ public:
 	 *
 	 *  @return Error::NoError on success
 	 */
-	EXPORT Error shouldLoad(const char *product, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug);
+	EXPORT Error shouldLoad(const char *product, size_t version, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug);
 	
 	/**
 	 *  Kernel patcher loaded callback

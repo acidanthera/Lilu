@@ -42,6 +42,53 @@ public:
 	EXPORT vm_prot_t getPageProtection(vm_map_t map, vm_map_address_t addr);
 
 	/**
+	 *  Mach segment/section references for patch locations
+	 */
+	enum FileSegment : uint32_t {
+		SegmentsTextStart,
+		SegmentTextText = SegmentsTextStart,
+		SegmentTextStubs,
+		SegmentTextConst,
+		SegmentTextCstring,
+		SegmentTextUstring,
+		SegmentsTextEnd = SegmentTextUstring,
+		SegmentsDataStart,
+		SegmentDataConst = SegmentsDataStart,
+		SegmentDataCfstring,
+		SegmentDataCommon,
+		SegmentsDataEnd = SegmentDataCommon,
+		SegmentTotal
+	};
+	
+	/**
+	 *  Mach segment names kept in sync with FileSegment
+	 */
+	const char *fileSegments[SegmentTotal] {
+		"__TEXT",
+		"__TEXT",
+		"__TEXT",
+		"__TEXT",
+		"__TEXT",
+		"__DATA",
+		"__DATA",
+		"__DATA"
+	};
+	
+	/**
+	 *  Mach section names kept in sync with FileSegment
+	 */
+	const char *fileSections[SegmentTotal] {
+		"__text",
+		"__stubs",
+		"__const",
+		"__cstring",
+		"__ustring",
+		"__const",
+		"__cfstring",
+		"__common"
+	};
+	
+	/**
 	 *  Structure holding lookup-style binary patches
 	 */
 	struct BinaryModPatch {
@@ -51,6 +98,7 @@ public:
 		size_t size;
 		size_t skip;
 		size_t count;
+		FileSegment segment;
 		uint32_t section;
 	};
 	
@@ -61,8 +109,10 @@ public:
 		const char *path;
 		BinaryModPatch *patches;
 		size_t count;
-		vm_address_t start;
-		vm_address_t end;
+		vm_address_t startTEXT;
+		vm_address_t endTEXT;
+		vm_address_t startDATA;
+		vm_address_t endDATA;
 	};
 	
 	/**
@@ -105,7 +155,7 @@ private:
 	using vm_shared_region_t = void *;
 	using shared_file_mapping_np = void *;
 	using t_codeSignValidatePageWrapper = boolean_t (*)(void *, memory_object_t, memory_object_offset_t, const void *, unsigned *);
-    using t_codeSignValidateRangeWrapper = boolean_t (*)(void *, memory_object_t, memory_object_offset_t, const void *, memory_object_size_t, unsigned *);
+	using t_codeSignValidateRangeWrapper = boolean_t (*)(void *, memory_object_t, memory_object_offset_t, const void *, memory_object_size_t, unsigned *);
 	using t_vmSharedRegionMapFile = kern_return_t (*)(vm_shared_region_t, unsigned int, shared_file_mapping_np *, memory_object_control_t, memory_object_size_t, void *, uint32_t, user_addr_t slide_start, user_addr_t);
 	using t_vmSharedRegionSlide = int (*)(uint32_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, mach_vm_size_t, memory_object_control_t);
 	using t_currentMap = vm_map_t (*)(void);
@@ -120,7 +170,7 @@ private:
 	 *  Original kernel function trampolines
 	 */
 	t_codeSignValidatePageWrapper orgCodeSignValidatePageWrapper {nullptr};
-    t_codeSignValidateRangeWrapper orgCodeSignValidateRangeWrapper {nullptr};
+	t_codeSignValidateRangeWrapper orgCodeSignValidateRangeWrapper {nullptr};
 	t_vmSharedRegionMapFile orgVmSharedRegionMapFile {nullptr};
 	t_vmSharedRegionSlide orgVmSharedRegionSlide {nullptr};
 	t_currentMap orgCurrentMap {nullptr};
@@ -131,60 +181,36 @@ private:
 	t_vmMapWriteUser orgVmMapWriteUser {nullptr};
 	t_procExecSwitchTask orgProcExecSwitchTask {nullptr};
 	
-    /**
-     * Base of image activation parameters
-     *
-     * Partially taken from: bsd/sys/imgact.h
-     */
-    struct image_params {
-        user_addr_t	ip_user_fname;	/* argument */
-        user_addr_t	ip_user_argv;	/* argument */
-        user_addr_t	ip_user_envv;	/* argument */
-        int         ip_seg;			/* segment for arguments */
-        vnode_t     ip_vp;          /* file */
-        vnode_attr	*ip_vattr;      /* run file attributes */
-        vnode_attr	*ip_origvattr;	/* invocation file attributes */
-    };
-    
-    /**
-     *  Image activation callback handler
-     */
-    using t_exImgact = int (*)(image_params *);
-
-    /**
-     *  Original mach image activator
-     */
-    t_exImgact orgExecMachImgact {nullptr};
-    
 	/**
 	 *  Kernel function wrappers
 	 */
 	static boolean_t codeSignValidatePageWrapper(void *blobs, memory_object_t pager, memory_object_offset_t page_offset, const void *data, unsigned *tainted);
-    static boolean_t codeSignValidateRangeWrapper(void *blobs, memory_object_t pager, memory_object_offset_t range_offset, const void *data, memory_object_size_t data_size, unsigned *tainted);
+	static boolean_t codeSignValidateRangeWrapper(void *blobs, memory_object_t pager, memory_object_offset_t range_offset, const void *data, memory_object_size_t data_size, unsigned *tainted);
 	static vm_map_t swapTaskMap(task_t task, thread_t thread, vm_map_t map, boolean_t doswitch);
 	static vm_map_t vmMapSwitch(vm_map_t map);
 	static kern_return_t vmSharedRegionMapFile(vm_shared_region_t shared_region, unsigned int mappings_count, shared_file_mapping_np *mappings, memory_object_control_t file_control, memory_object_size_t file_size, void *root_dir, uint32_t slide, user_addr_t slide_start, user_addr_t slide_size);
 	static void execsigs(proc_t p, thread_t thread);
 	static int vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, memory_object_control_t sr_file_control);
-    static int exImgact(image_params *igmp);
 	static proc_t procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread);
 
-    /**
-     *  Applies page patches to the memory range
-     *
-     *  @param data_ptr  pages in kernel memory
-     *  @param data_size data size divisible by PAGE_SIZE
-     */
-    void performPagePatch(const void *data_ptr, size_t data_size);
-    
+	/**
+	 *  Applies page patches to the memory range
+	 *
+	 *  @param data_ptr  pages in kernel memory
+	 *  @param data_size data size divisible by PAGE_SIZE
+	 */
+	void performPagePatch(const void *data_ptr, size_t data_size);
+
 	/**
 	 * dyld shared cache map entry structure
 	 */
 	struct MapEntry {
 		const char *filename;
 		size_t length;
-		vm_address_t start;
-		vm_address_t end;
+		vm_address_t startTEXT;
+		vm_address_t endTEXT;
+		vm_address_t startDATA;
+		vm_address_t endDATA;
 	};
 	
 	/**
