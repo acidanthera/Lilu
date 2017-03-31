@@ -109,7 +109,12 @@ bool Configuration::getBootArguments() {
 	
 	allowDecompress = !PE_parse_boot_argn(bootargLowMem, tmp, sizeof(tmp));
 	
-	preferSlowMode = getKernelVersion() <= KernelVersion::Mavericks;
+	installOrRecovery |= PE_parse_boot_argn("rp0", tmp, sizeof(tmp));
+	installOrRecovery |= PE_parse_boot_argn("rp", tmp, sizeof(tmp));
+	installOrRecovery |= PE_parse_boot_argn("container-dmg", tmp, sizeof(tmp));
+	installOrRecovery |= PE_parse_boot_argn("root-dmg", tmp, sizeof(tmp));
+	
+	preferSlowMode = getKernelVersion() <= KernelVersion::Mavericks || installOrRecovery;
 
 	if (PE_parse_boot_argn(bootargSlow, tmp, sizeof(tmp))) {
 		preferSlowMode = true;
@@ -120,6 +125,12 @@ bool Configuration::getBootArguments() {
 	if (!preferSlowMode && getKernelVersion() <= KernelVersion::Mavericks) {
 		// Since vm_shared_region_map_file interface is a little different
 		if (!isDisabled) SYSLOG("config @ enforcing -liluslow on Mavericks and lower");
+		preferSlowMode = true;
+	}
+	
+	if (!preferSlowMode && installOrRecovery) {
+		// Since vdyld shared cache is not available
+		if (!isDisabled) SYSLOG("config @ enforcing -liluslow in installer or recovery");
 		preferSlowMode = true;
 	}
 	

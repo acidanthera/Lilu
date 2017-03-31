@@ -215,7 +215,6 @@ void UserPatcher::patchBinary(vm_map_t map, const char *path, uint32_t len) {
 
 bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	// Get task's mach-o header and determine its cpu type
-	//auto taskPort = orgCurrentMap();
 	auto baseAddr = orgGetMapMin(taskPort);
 	
 	DBGLOG("user @ get_map_min returned %llX", baseAddr);
@@ -223,27 +222,24 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, &tmpHeader, sizeof(mach_header_64));
 	
 	if (err == KERN_SUCCESS){
-		constexpr size_t hdr_size = /*tmpHeader.magic == MH_MAGIC ? sizeof(mach_header) :*/ sizeof(mach_header_64);
-		
-		if (tmpHeader.magic == MH_MAGIC_64 /*|| header->magic == MH_MAGIC*/) {
-			
-			// Calculate protected addresses
-			kern_return_t res = KERN_SUCCESS;
+		if (tmpHeader.magic == MH_MAGIC_64 || tmpHeader.magic == MH_MAGIC) {
+			size_t hdrSize = tmpHeader.magic == MH_MAGIC ? sizeof(mach_header) : sizeof(mach_header_64);
+			size_t restrSize = tmpHeader.magic == MH_MAGIC ? sizeof(restrictSegment32) : sizeof(restrictSegment64);
 			
 			struct {
 				uintptr_t off;
-				uint32_t val;
+				vm_prot_t val;
 			} prots[3] {};
-			long org_b = hdr_size + tmpHeader.sizeofcmds;
-			long new_b = org_b + sizeof(restrictSegment);
+			size_t orgBound = hdrSize + tmpHeader.sizeofcmds;
+			size_t newBound = orgBound + restrSize;
 			
 			prots[0].off = baseAddr;
 			prots[0].val = getPageProtection(taskPort, prots[0].off);
 			
-			if (org_b + sizeof(restrictSegment) > PAGE_SIZE){
-				prots[1].off = baseAddr + org_b - org_b % PAGE_SIZE;
+			if (orgBound + restrSize > PAGE_SIZE){
+				prots[1].off = baseAddr + orgBound - orgBound % PAGE_SIZE;
 				prots[1].val = getPageProtection(taskPort, prots[1].off);
-				if (baseAddr + new_b  > prots[1].off + PAGE_SIZE){
+				if (baseAddr + newBound  > prots[1].off + PAGE_SIZE){
 					prots[2].off = prots[1].off + PAGE_SIZE;
 					prots[2].val = getPageProtection(taskPort, prots[2].off);
 				}
@@ -253,35 +249,35 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			
 			// Note, that we don't restore memory protection if we fail somewhere (no need to push something non-critical)
 			// Enable writing for the calculated regions
-			for (int i = 0; i < 3; i++) {
+			for (size_t i = 0; i < 3; i++) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
-					res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
+					auto res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
-						SYSLOG("user @ failed to change memory protection (%d, %d)", i, res);
+						SYSLOG("user @ failed to change memory protection (%zu, %d)", i, res);
 						return true;
 					}
 				}
 			}
 	
-			vm_map_address_t ncmds_addr = baseAddr+16;
-			//vm_map_address_t sizeofcmds_addr = result->mach_header+20;
-			vm_map_address_t newcmd_addr = baseAddr+hdr_size+tmpHeader.sizeofcmds;
+			vm_map_address_t ncmdsAddr = baseAddr + offsetof(mach_header, ncmds);
+			vm_map_address_t newCmdAddr = baseAddr + hdrSize + tmpHeader.sizeofcmds;
 			
-			uint64_t org_combined_value = (((uint64_t)tmpHeader.sizeofcmds) << 32) | (tmpHeader.ncmds);
-			uint64_t combined_value = (((uint64_t)(tmpHeader.sizeofcmds + sizeof(restrictSegment))) << 32) | (tmpHeader.ncmds + 1);
+			uint64_t orgCombVal = (static_cast<uint64_t>(tmpHeader.sizeofcmds) << 32) | tmpHeader.ncmds;
+			uint64_t newCombVal = (static_cast<uint64_t>(tmpHeader.sizeofcmds + restrSize) << 32) | (tmpHeader.ncmds + 1);
 			
 			// Write new number and size of commands
-			res = orgVmMapWriteUser(taskPort, &combined_value, ncmds_addr, sizeof(uint64_t));
+			auto res = orgVmMapWriteUser(taskPort, &newCombVal, ncmdsAddr, sizeof(uint64_t));
 			if (res != KERN_SUCCESS) {
 				SYSLOG("user @ failed to change mach header (%d)", res);
 				return true;
 			}
 			
 			// Write the load command
-			res = orgVmMapWriteUser(taskPort, &restrictSegment, newcmd_addr, sizeof(restrictSegment));
+			auto restrSegment = tmpHeader.magic == MH_MAGIC ? static_cast<void *>(&restrictSegment32) : static_cast<void *>(&restrictSegment64);
+			res = orgVmMapWriteUser(taskPort, restrSegment, newCmdAddr, restrSize);
 			if (res != KERN_SUCCESS) {
 				SYSLOG("user @ failed to add dylib load command (%d), reverting...", res);
-				res = orgVmMapWriteUser(taskPort, &org_combined_value, ncmds_addr, sizeof(uint64_t));
+				res = orgVmMapWriteUser(taskPort, &orgCombVal, ncmdsAddr, sizeof(uint64_t));
 				if (res != KERN_SUCCESS) {
 					SYSLOG("user @ failed to restore mach header (%d), this process will crash...", res);
 				}
@@ -289,11 +285,11 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			}
 			
 			// Restore protection flags
-			for (int i = 0; i < 3; i++) {
+			for (size_t i = 0; i < 3; i++) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
 					res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
 					if (res != KERN_SUCCESS) {
-						SYSLOG("user @ failed to restore memory protection (%d, %d)", i, res);
+						SYSLOG("user @ failed to restore memory protection (%zu, %d)", i, res);
 						return true;
 					}
 				}
@@ -636,7 +632,6 @@ bool UserPatcher::loadFilesForPatching() {
 }
 
 bool UserPatcher::loadLookups() {
-	
 	uint32_t off = 0;
 
 	for (size_t i = 0; i < Lookup::matchNum; i++) {
