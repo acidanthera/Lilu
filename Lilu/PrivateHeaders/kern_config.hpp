@@ -97,6 +97,11 @@ public:
 	bool allowDecompress {true};
 	
 	/**
+	 *  Install or recovery
+	 */
+	bool installOrRecovery {false};
+	
+	/**
 	 *  Initialisation status
 	 */
 	bool initialised {false};
