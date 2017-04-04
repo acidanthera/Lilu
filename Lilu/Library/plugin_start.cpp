@@ -36,26 +36,27 @@ void PRODUCT_NAME::stop(IOService *provider) {
 bool ADDPR(debugEnabled) = false;
 
 EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
+	kern_return_t ret = KERN_FAILURE;
 	LiluAPI::Error error = lilu.requestAccess();
 	
-	if (error != LiluAPI::Error::NoError) {
-		SYSLOG("init @ failed to call parent %d", error);
-		return KERN_FAILURE;
-	}
-	
-	error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).version, ADDPR(config).disableArg, ADDPR(config).disableArgNum,
-							ADDPR(config).debugArg, ADDPR(config).debugArgNum, ADDPR(config).betaArg, ADDPR(config).betaArgNum,
-							ADDPR(config).minKernel, ADDPR(config).maxKernel, ADDPR(debugEnabled));
-	
 	if (error == LiluAPI::Error::NoError) {
-		ADDPR(config).pluginStart();
+		error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).version, ADDPR(config).disableArg, ADDPR(config).disableArgNum,
+								ADDPR(config).debugArg, ADDPR(config).debugArgNum, ADDPR(config).betaArg, ADDPR(config).betaArgNum,
+								ADDPR(config).minKernel, ADDPR(config).maxKernel, ADDPR(debugEnabled));
+		
+		if (error == LiluAPI::Error::NoError) {
+			ADDPR(config).pluginStart();
+			ret = KERN_SUCCESS;
+		} else {
+			SYSLOG("init @ parent said we should not continue %d", error);
+		}
+		
+		lilu.releaseAccess();
 	} else {
-		SYSLOG("init @ parent said we should not continue %d", error);
+		SYSLOG("init @ failed to call parent %d", error);
 	}
 	
-	lilu.releaseAccess();
-	
-	return KERN_SUCCESS;
+	return ret;
 }
 
 EXPORT extern "C" kern_return_t ADDPR(kern_stop)(kmod_info_t *, void *) {

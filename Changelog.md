@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.1.1
+- Changed loading policy to ignore kexts that are not permitted to load
+
 #### v1.1.0
 - Added support for patching different sections/segments
 - Added file writing API by lvs1974
