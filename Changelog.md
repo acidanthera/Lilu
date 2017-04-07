@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.1.1
 - Changed loading policy to ignore kexts that are not permitted to load
+- Increased executable memory buffer from 256 to 1024 bytes
 
 #### v1.1.0
 - Added support for patching different sections/segments

@@ -214,7 +214,7 @@ private:
 	/**
 	 *  The minimal reasonable memory requirement
 	 */
-	static constexpr size_t TempExecutableMemorySize {256};
+	static constexpr size_t TempExecutableMemorySize {1024};
 	
 	/**
 	 *  As of 10.12 we seem to be not allowed to call vm_ functions from several places including onKextSummariesUpdated.
