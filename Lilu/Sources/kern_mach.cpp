@@ -53,15 +53,15 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num) {
 	vfs_context_t ctxt = nullptr;
 	bool found = false;
 
-	for(size_t i = 0; i < num; i++) {
+	for (size_t i = 0; i < num; i++) {
 		vnode = NULLVP;
 		ctxt = vfs_context_create(nullptr);
 		
 		errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
-		if(!err) {
+		if (!err) {
 			kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
-			if(readError == KERN_SUCCESS) {
-				if(isKernel && !isCurrentKernel(machHeader)) {
+			if (readError == KERN_SUCCESS) {
+				if (isKernel && !isCurrentKernel(machHeader)) {
 					vnode_put(vnode);
 				} else {
 					DBGLOG("mach @ Found executable at path: %s", paths[i]);

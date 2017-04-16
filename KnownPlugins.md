@@ -8,5 +8,6 @@ Please note that improperly written immature plugins will not be listed there.
 - [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) - Non Iris Intel graphics high resolution support
 - [HibernationFixup](https://sourceforge.net/projects/hibernationfixup) - Enable 3 & 25 mode hibernation on certain hardware
 - [IntelGraphicsFixup](https://sourceforge.net/p/intelgraphicsfixup) - Various patches necessary for certain Intel GPUs
+- [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) - Patches for DVMT problem on Broadwell/Skylake Intel Graphics
 - [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) - Various patches necessary for certain NVIDIA GPUs
 - [Shiki](https://github.com/vit9696/Shiki) - Dynamic userspace patcher for macOS
