@@ -36,7 +36,7 @@ class MachInfo {
 	off_t fat_offset {0};                    // additional fat offset
 	size_t memory_size {HeaderSize};         // memory size
 	bool kaslr_slide_set {false};            // kaslr can be null, used for disambiguation
-	bool allow_decompress {true};           // allows mach decompression
+	bool allow_decompress {true};            // allows mach decompression
 	
 	/**
 	 *  16 byte IDT descriptor, used for 32 and 64 bits kernels (64 bit capable cpus!)
@@ -114,7 +114,7 @@ class MachInfo {
 	 */
 	void processMachHeader(void *header);
 	
-	MachInfo(bool asKernel=false) : isKernel(asKernel) {
+	MachInfo(bool asKernel, const char *id) : isKernel(asKernel), objectId(id) {
 		DBGLOG("mach @ MachInfo asKernel %d object constructed", asKernel);
 	}
 	MachInfo(const MachInfo &) = delete;
@@ -131,6 +131,11 @@ public:
 	 *  Representation mode (kernel/kext)
 	 */
 	EXPORT const bool isKernel;
+	
+	/**
+	 *  Specified file identifier
+	 */
+	const char *objectId {nullptr};
 
 	/**
 	 *  MachInfo object generator
@@ -139,7 +144,7 @@ public:
 	 *
 	 *  @return MachInfo object or nullptr
 	 */
-	static MachInfo *create(bool asKernel=false) { return new MachInfo(asKernel); }
+	static MachInfo *create(bool asKernel=false, const char *id=nullptr) { return new MachInfo(asKernel, id); }
 	static void deleter(MachInfo *i) { delete i; }
 
 	/**

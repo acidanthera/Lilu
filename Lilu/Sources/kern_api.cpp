@@ -210,7 +210,8 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 		for (size_t j = 0; j < stored->second; j++) {
 			patcher.loadKinfo(&stored->first[j]);
 			if (patcher.getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("api @ failed to load %s kext file", stored->first[j].id);
+				if (patcher.getError() != KernelPatcher::Error::AlreadyDone)
+					SYSLOG("api @ failed to load %s kext file", stored->first[j].id);
 				patcher.clearError();
 				// Depending on a system some kexts may actually not exist
 				continue;

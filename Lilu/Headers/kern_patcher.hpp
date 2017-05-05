@@ -37,7 +37,8 @@ public:
 		DisasmFailure,
 		MemoryIssue,
 		MemoryProtection,
-		PointerRange
+		PointerRange,
+		AlreadyDone
 	};
 	
 	/**
