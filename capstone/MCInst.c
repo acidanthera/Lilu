@@ -3,7 +3,6 @@
 
 #if defined(CAPSTONE_HAS_OSXKERNEL)
 #include <libkern/libkern.h>
-#include <kern/debug.h>
 #else
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,13 +152,6 @@ void MCOperand_CreateReg0(MCInst *mcInst, unsigned Reg)
 	MCOperand *op = &(mcInst->Operands[mcInst->size]);
 	mcInst->size++;
 
-#if defined(CAPSTONE_HAS_OSXKERNEL)
-	// Just in case because once we got some weird panic here
-	if (mcInst->size >= 48) {
-		panic("mcInst >= 48");
-	}
-#endif
-	
 	op->Kind = kRegister;
 	op->RegVal = Reg;
 }
