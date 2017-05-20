@@ -550,7 +550,9 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 			// map internal instruction opcode to public insn ID
 			handle->insn_id(handle, insn_cache, mci.Opcode);
 
+#ifndef CAPSTONE_DIET
 			handle->printer(&mci, &ss, handle->printer_info);
+#endif
 
 			fill_insn(handle, insn_cache, ss.buffer, &mci, handle->post_printer, buffer);
 
@@ -759,7 +761,9 @@ bool CAPSTONE_API cs_disasm_iter(csh ud, const uint8_t **code, size_t *size,
 		// map internal instruction opcode to public insn ID
 		handle->insn_id(handle, insn, mci.Opcode);
 
+#ifndef CAPSTONE_DIET
 		handle->printer(&mci, &ss, handle->printer_info);
+#endif
 
 		fill_insn(handle, insn, ss.buffer, &mci, handle->post_printer, *code);
 

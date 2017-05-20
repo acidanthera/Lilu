@@ -202,7 +202,7 @@ diff -rupN capstone-3.0.5-rc2/arch/X86/X86Module.c capstone/arch/X86/X86Module.c
  
 diff -rupN capstone-3.0.5-rc2/cs.c capstone/cs.c
 --- capstone-3.0.5-rc2/cs.c	2017-03-02 06:21:24.000000000 +0300
-+++ capstone/cs.c	2017-05-20 19:42:11.000000000 +0300
++++ capstone/cs.c	2017-05-20 21:13:56.000000000 +0300
 @@ -323,7 +323,6 @@ static void fill_insn(struct cs_struct *
  #ifndef CAPSTONE_DIET
  	// fill in mnemonic & operands
@@ -227,7 +227,17 @@ diff -rupN capstone-3.0.5-rc2/cs.c capstone/cs.c
  
  // dynamicly allocate memory to contain disasm insn
  // NOTE: caller must free() the allocated memory itself to avoid memory leaking
-@@ -585,9 +586,14 @@ size_t CAPSTONE_API cs_disasm(csh ud, co
+@@ -549,7 +550,9 @@ size_t CAPSTONE_API cs_disasm(csh ud, co
+ 			// map internal instruction opcode to public insn ID
+ 			handle->insn_id(handle, insn_cache, mci.Opcode);
+ 
++#ifndef CAPSTONE_DIET
+ 			handle->printer(&mci, &ss, handle->printer_info);
++#endif
+ 
+ 			fill_insn(handle, insn_cache, ss.buffer, &mci, handle->post_printer, buffer);
+ 
+@@ -585,9 +588,14 @@ size_t CAPSTONE_API cs_disasm(csh ud, co
  			insn_cache->address = offset;
  			insn_cache->size = (uint16_t)skipdata_bytes;
  			memcpy(insn_cache->bytes, buffer, skipdata_bytes);
@@ -242,7 +252,17 @@ diff -rupN capstone-3.0.5-rc2/cs.c capstone/cs.c
  			insn_cache->detail = NULL;
  
  			next_offset = skipdata_bytes;
-@@ -786,9 +792,14 @@ bool CAPSTONE_API cs_disasm_iter(csh ud,
+@@ -753,7 +761,9 @@ bool CAPSTONE_API cs_disasm_iter(csh ud,
+ 		// map internal instruction opcode to public insn ID
+ 		handle->insn_id(handle, insn, mci.Opcode);
+ 
++#ifndef CAPSTONE_DIET
+ 		handle->printer(&mci, &ss, handle->printer_info);
++#endif
+ 
+ 		fill_insn(handle, insn, ss.buffer, &mci, handle->post_printer, *code);
+ 
+@@ -786,9 +796,14 @@ bool CAPSTONE_API cs_disasm_iter(csh ud,
  		insn->address = *address;
  		insn->size = (uint16_t)skipdata_bytes;
  		memcpy(insn->bytes, *code, skipdata_bytes);
