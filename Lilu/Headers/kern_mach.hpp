@@ -150,7 +150,7 @@ public:
 	/**
 	 *  Resolve mach data in the kernel
 	 *
-	 *  @param enable filesystem paths for lookup
+	 *  @param paths  filesystem paths for lookup
 	 *  @param num    the number of paths passed
 	 *
 	 *  @return KERN_SUCCESS if loaded
@@ -166,11 +166,21 @@ public:
 	 *  retrieve the mach header and __TEXT addresses
 	 *
 	 *  @param slide load slide if calculating for kexts
-	 *  @param memory size
+	 *  @param size  memory size
 	 *
 	 *  @return KERN_SUCCESS on success
 	 */
 	EXPORT kern_return_t getRunningAddresses(mach_vm_address_t slide=0, size_t size=0);
+	
+	/**
+	 *  Set the mach header address
+	 *
+	 *  @param slide load address
+	 *  @param size  memory size
+	 *
+	 *  @return KERN_SUCCESS on success
+	 */
+	EXPORT kern_return_t setRunningAddresses(mach_vm_address_t slide=0, size_t size=0);
 
 	/**
 	 *  retrieve running mach positions

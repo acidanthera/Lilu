@@ -3,6 +3,8 @@ Lilu Changelog
 
 #### v1.1.2
 - Reduced binary size by modding capstone
+- Fixed LiluAPI::onProcLoad return code
+- Added MachInfo::setRunningAddresses for userspace symbol solving
 
 #### v1.1.1
 - Changed loading policy to ignore kexts that are not permitted to load
