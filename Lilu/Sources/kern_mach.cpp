@@ -442,6 +442,13 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 	return KERN_SUCCESS;
 }
 
+kern_return_t MachInfo::setRunningAddresses(mach_vm_address_t slide, size_t size) {
+	memory_size = size;
+	kaslr_slide = slide;
+	kaslr_slide_set = true;
+	return KERN_SUCCESS;
+}
+
 void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 	header = reinterpret_cast<uint8_t *>(running_mh);
 	size = memory_size > 0 ? memory_size : HeaderSize;

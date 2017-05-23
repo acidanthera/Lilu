@@ -189,7 +189,8 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 			return Error::MemoryError;
 		}
 	}
-	return Error::UnsupportedFeature;
+	
+	return Error::NoError;
 }
 
 void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
