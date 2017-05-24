@@ -9,7 +9,7 @@
 #include <Headers/kern_disasm.hpp>
 #include <Headers/kern_util.hpp>
 
-#include <capstone.h>
+#include <capstone/capstone.h>
 
 bool Disassembler::init(bool detailed) {
 	if (initialised) return true;
