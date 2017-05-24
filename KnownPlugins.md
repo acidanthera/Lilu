@@ -9,5 +9,6 @@ Please note that improperly written immature plugins will not be listed there.
 - [HibernationFixup](https://sourceforge.net/projects/hibernationfixup) - Enable 3 & 25 mode hibernation on certain hardware
 - [IntelGraphicsFixup](https://sourceforge.net/p/intelgraphicsfixup) - Various patches necessary for certain Intel GPUs
 - [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) - Patches for DVMT problem on Broadwell/Skylake Intel Graphics
+- [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) - Enables Night Shift on all the models
 - [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) - Various patches necessary for certain NVIDIA GPUs
 - [Shiki](https://github.com/vit9696/Shiki) - Dynamic userspace patcher for macOS
