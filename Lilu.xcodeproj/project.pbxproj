@@ -604,6 +604,7 @@
 					"CAPSTONE_HAS_OSXKERNEL=1",
 					"CAPSTONE_DIET=1",
 					"CAPSTONE_X86_REDUCE=1",
+					"CAPSTONE_STATIC=1",
 					"MODULE_VERSION=$(MODULE_VERSION)",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
 					"$(inherited)",
@@ -656,8 +657,10 @@
 					"CAPSTONE_HAS_OSXKERNEL=1",
 					"CAPSTONE_DIET=1",
 					"CAPSTONE_X86_REDUCE=1",
+					"CAPSTONE_STATIC=1",
 					"MODULE_VERSION=$(MODULE_VERSION)",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
+					"$(inherited)",
 				);
 				HEADER_SEARCH_PATHS = (
 					"${PROJECT_DIR}/capstone/include",
