@@ -126,7 +126,7 @@ mach_vm_address_t MachInfo::findKernelBase() {
 		if (*reinterpret_cast<uint32_t *>(tmp) == MH_MAGIC_64) {
 			// make sure it's the header and not some reference to the MAGIC number
 			segmentCommand = reinterpret_cast<segment_command_64 *>(tmp + sizeof(mach_header_64));
-			if (strncmp(segmentCommand->segname, "__TEXT", 16) == 0) {
+			if (strncmp(segmentCommand->segname, "__TEXT", strlen("__TEXT")) == 0) {
 				DBGLOG("mach @ Found kernel mach-o header address at %p", (void*)(tmp));
 				return tmp;
 			}
@@ -137,22 +137,36 @@ mach_vm_address_t MachInfo::findKernelBase() {
 }
 
 kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
-	static bool syncState {false};
+	static bool syncState = false;
+	static bool interruptsDisabled = false;
+	
+	kern_return_t res = KERN_SUCCESS;
+	
 	if (sync) {
 		syncState = enable;
 	} else if (syncState) {
 		// We are currently ignoring interrupts until the next sync call arrives
-		return KERN_SUCCESS;
+		return res;
 	}
 	
-	kern_return_t res = KERN_SUCCESS;
-	if (enable) __asm__ volatile("cli"); // disable interrupts
+	if (enable) {
+		// Disable interrupts
+		unsigned long flags;
+		asm volatile("pushf; pop %0; cli" : "=r"(flags));
+		interruptsDisabled = (flags & EFL_IF) == 0;
+	}
+	
 	if (setWPBit(!enable) != KERN_SUCCESS) {
 		SYSLOG("mach @ failed to set kernel protection");
 		enable = false;
 		res = KERN_FAILURE;
 	}
-	if (!enable) __asm__ volatile("sti"); // enable interrupts
+	
+	if (!enable && !interruptsDisabled) {
+		// Enable interrupts if they were on previously
+		asm volatile("sti; nop");
+	}
+	
 	return res;
 }
 
@@ -373,10 +387,10 @@ void MachInfo::processMachHeader(void *header) {
 		if (loadCmd->cmd == LC_SEGMENT_64) {
 			segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
-			if (strncmp(segCmd->segname, "__TEXT", 16) == 0) {
+			if (strncmp(segCmd->segname, "__TEXT", strlen("__TEXT")) == 0) {
 				DBGLOG("mach @ header processing found TEXT");
 				disk_text_addr = segCmd->vmaddr;
-			} else if (strncmp(segCmd->segname, "__LINKEDIT", 16) == 0) {
+			} else if (strncmp(segCmd->segname, "__LINKEDIT", strlen("__LINKEDIT")) == 0) {
 				DBGLOG("mach @ header processing found LINKEDIT");
 				linkedit_fileoff = segCmd->fileoff;
 				linkedit_size    = segCmd->filesize;
@@ -460,14 +474,13 @@ uint64_t *MachInfo::getUUID(void *header) {
 	if (!header) return nullptr;
 	
 	mach_header_64 *mh = static_cast<mach_header_64 *>(header);
-	size_t size = sizeof(struct mach_header_64);
+	size_t size = sizeof(mach_header_64);
 	
 	uint8_t *addr = static_cast<uint8_t *>(header) + size;
 	for (uint32_t i = 0; i < mh->ncmds; i++) {
 		load_command *loadCmd = reinterpret_cast<load_command *>(addr);
-		if (loadCmd->cmd == LC_UUID) {
+		if (loadCmd->cmd == LC_UUID)
 			return reinterpret_cast<uint64_t *>((reinterpret_cast<uuid_command *>(loadCmd))->uuid);
-		}
 		
 		addr += loadCmd->cmdsize;
 	}
@@ -486,8 +499,8 @@ bool MachInfo::isCurrentKernel(void *kernelHeader) {
 
 mach_vm_address_t MachInfo::getIDTAddress() {
 	uint8_t idtr[10];
-	__asm__ volatile ("sidt %0": "=m" (idtr));
-	return *(mach_vm_address_t *)(idtr+2);
+	asm volatile("sidt %0" : "=m"(idtr));
+	return *reinterpret_cast<mach_vm_address_t *>(idtr+2);
 }
 
 mach_vm_address_t MachInfo::calculateInt80Address() {
@@ -512,23 +525,23 @@ mach_vm_address_t MachInfo::calculateInt80Address() {
 }
 
 kern_return_t MachInfo::setWPBit(bool enable) {
-	uintptr_t cr0;
-	// retrieve current value
-	cr0 = get_cr0();
-	if (enable) {
-		// add the WP bit
+	static bool writeProtectionDisabled = false;
+	
+	uintptr_t cr0 = get_cr0();
+
+	if (enable && !writeProtectionDisabled) {
+		// Set the WP bit
 		cr0 = cr0 | CR0_WP;
-	} else {
-		// remove the WP bit
+		set_cr0(cr0);
+		return (get_cr0() & CR0_WP) == 1 ? KERN_SUCCESS : KERN_FAILURE;
+	}
+	
+	if (!enable) {
+		// Remove the WP bit
+		writeProtectionDisabled = (cr0 & CR0_WP) == 0;
 		cr0 = cr0 & ~CR0_WP;
+		set_cr0(cr0);
 	}
-	// and write it back
-	set_cr0(cr0);
-	// verify if we were successful
-	if (((get_cr0() & CR0_WP) != 0 && enable) ||
-		((get_cr0() & CR0_WP) == 0 && !enable)) {
-		return KERN_SUCCESS;
-	} else {
-		return KERN_FAILURE;
-	}
+	
+	return (get_cr0() & CR0_WP) == 0 ? KERN_SUCCESS : KERN_FAILURE;
 }

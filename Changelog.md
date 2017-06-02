@@ -5,6 +5,8 @@ Lilu Changelog
 - Reduced binary size by modding capstone
 - Fixed LiluAPI::onProcLoad return code
 - Added MachInfo::setRunningAddresses for userspace symbol solving
+- Added getKernelMinorVersion for symmetry
+- Added kernel write protection and interrupt state validation
 
 #### v1.1.1
 - Changed loading policy to ignore kexts that are not permitted to load
