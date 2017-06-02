@@ -157,7 +157,7 @@ kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
 	}
 	
 	if (setWPBit(!enable) != KERN_SUCCESS) {
-		SYSLOG("mach @ failed to set kernel protection");
+		SYSLOG("mach @ failed to set wp bit to %d", !enable);
 		enable = false;
 		res = KERN_FAILURE;
 	}
@@ -393,16 +393,16 @@ void MachInfo::processMachHeader(void *header) {
 			} else if (strncmp(segCmd->segname, "__LINKEDIT", strlen("__LINKEDIT")) == 0) {
 				DBGLOG("mach @ header processing found LINKEDIT");
 				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size    = segCmd->filesize;
+				linkedit_size = segCmd->filesize;
 			}
 		}
 		// table information available at LC_SYMTAB command
 		else if (loadCmd->cmd == LC_SYMTAB) {
 			DBGLOG("mach @ header processing found SYMTAB");
 			symtab_command *symtab_cmd = (symtab_command*)loadCmd;
-			symboltable_fileoff    = symtab_cmd->symoff;
+			symboltable_fileoff = symtab_cmd->symoff;
 			symboltable_nr_symbols = symtab_cmd->nsyms;
-			stringtable_fileoff    = symtab_cmd->stroff;
+			stringtable_fileoff = symtab_cmd->stroff;
 		}
 		addr += loadCmd->cmdsize;
 	}
@@ -533,14 +533,16 @@ kern_return_t MachInfo::setWPBit(bool enable) {
 		// Set the WP bit
 		cr0 = cr0 | CR0_WP;
 		set_cr0(cr0);
-		return (get_cr0() & CR0_WP) == 1 ? KERN_SUCCESS : KERN_FAILURE;
+		return (get_cr0() & CR0_WP) != 0 ? KERN_SUCCESS : KERN_FAILURE;
 	}
 	
 	if (!enable) {
 		// Remove the WP bit
 		writeProtectionDisabled = (cr0 & CR0_WP) == 0;
-		cr0 = cr0 & ~CR0_WP;
-		set_cr0(cr0);
+		if (!writeProtectionDisabled) {
+			cr0 = cr0 & ~CR0_WP;
+			set_cr0(cr0);
+		}
 	}
 	
 	return (get_cr0() & CR0_WP) == 0 ? KERN_SUCCESS : KERN_FAILURE;
