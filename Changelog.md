@@ -1,7 +1,7 @@
 Lilu Changelog
 ==============
 
-#### v1.1.2
+#### v1.1.3
 - Reduced binary size by modding capstone
 - Fixed LiluAPI::onProcLoad return code
 - Added MachInfo::setRunningAddresses for userspace symbol solving
