@@ -25,6 +25,8 @@
 extern bool ADDPR(debugEnabled);
 // Kernel version major
 extern const int version_major;
+// Kernel version minor
+extern const int version_minor;
 
 #define SYSLOG(str, ...) IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
 
@@ -85,12 +87,26 @@ enum KernelVersion {
 };
 
 /**
+ *  Kernel minor version for symmetry
+ */
+using KernelMinorVersion = int;
+
+/**
  *  Obtain major kernel version
  *
  *  @return numeric kernel version
  */
 inline KernelVersion getKernelVersion() {
 	return static_cast<KernelVersion>(version_major);
+}
+
+/**
+ *  Obtain minor kernel version
+ *
+ *  @return numeric minor kernel version
+ */
+inline KernelMinorVersion getKernelMinorVersion() {
+	return static_cast<KernelMinorVersion>(version_minor);
 }
 
 /**
