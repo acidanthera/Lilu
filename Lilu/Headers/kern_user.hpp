@@ -358,24 +358,22 @@ private:
 	 *  Restrict 64-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
 	 */
 	segment_command_64 restrictSegment64 {
-		.cmd		= LC_SEGMENT_64,
-		.cmdsize	= sizeof(segment_command_64),
-		.nsects		= 0,
-		.segname	= "__RESTRICT",
-		.vmaddr		= SHARED_REGION_BASE_X86_64,
-		.vmsize		= 1
+		LC_SEGMENT_64,
+		sizeof(segment_command_64),
+		"__RESTRICT",
+		SHARED_REGION_BASE_X86_64,
+		1
 	};
 	
 	/**
 	 *  Restrict 32-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
 	 */
 	segment_command restrictSegment32 {
-		.cmd		= LC_SEGMENT,
-		.cmdsize	= sizeof(segment_command),
-		.nsects		= 0,
-		.segname	= "__RESTRICT",
-		.vmaddr		= SHARED_REGION_BASE_I386,
-		.vmsize		= 1
+		LC_SEGMENT,
+		sizeof(segment_command),
+		"__RESTRICT",
+		SHARED_REGION_BASE_I386,
+		1
 	};
 	
 	/**
