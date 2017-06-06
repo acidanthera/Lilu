@@ -83,7 +83,8 @@ enum KernelVersion {
 	Mavericks = 13,
 	Yosemite = 14,
 	ElCapitan = 15,
-	Sierra = 16
+	Sierra = 16,
+	HighSierra = 17
 };
 
 /**

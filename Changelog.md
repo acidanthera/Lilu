@@ -1,6 +1,11 @@
 Lilu Changelog
 ==============
 
+#### v1.1.4
+- Slightly improved userspace patcher speed for 10.12
+- Added missing dyld_shared_cache detection with a fallback
+- Defined High Sierra kernel version
+
 #### v1.1.3
 - Reduced binary size by modding capstone
 - Fixed LiluAPI::onProcLoad return code
