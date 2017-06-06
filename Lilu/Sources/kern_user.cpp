@@ -460,36 +460,44 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 	}
 	
 	bool res {false};
-	auto entries = Buffer::create<MapEntry>(binaryModSize);
-	if (entries && buffer && bufferSize > 0) {
-		for (size_t i = 0; i < binaryModSize; i++) {
-			entries[i].filename = binaryMod[i]->path;
-			entries[i].length = strlen(binaryMod[i]->path);
-			entries[i].startTEXT = entries[i].endTEXT = entries[i].startDATA = entries[i].endDATA = 0;
-		}
-		
-		size_t nEntries = mapAddresses(reinterpret_cast<char *>(buffer), entries, binaryModSize);
-		
-		if (nEntries > 0) {
-			DBGLOG("user @ mapped %zu entries out of %zu", nEntries, binaryModSize);
-			
+
+	if (buffer && bufferSize > 0) {
+		auto entries = Buffer::create<MapEntry>(binaryModSize);
+		if (entries) {
 			for (size_t i = 0; i < binaryModSize; i++) {
-				binaryMod[i]->startTEXT = entries[i].startTEXT;
-				binaryMod[i]->endTEXT = entries[i].endTEXT;
-				binaryMod[i]->startDATA = entries[i].startDATA;
-				binaryMod[i]->endDATA = entries[i].endDATA;
+				entries[i].filename = binaryMod[i]->path;
+				entries[i].length = strlen(binaryMod[i]->path);
+				entries[i].startTEXT = entries[i].endTEXT = entries[i].startDATA = entries[i].endDATA = 0;
 			}
 			
-			res = true;
+			size_t nEntries = mapAddresses(reinterpret_cast<char *>(buffer), entries, binaryModSize);
+			
+			if (nEntries > 0) {
+				DBGLOG("user @ mapped %zu entries out of %zu", nEntries, binaryModSize);
+				
+				for (size_t i = 0; i < binaryModSize; i++) {
+					binaryMod[i]->startTEXT = entries[i].startTEXT;
+					binaryMod[i]->endTEXT = entries[i].endTEXT;
+					binaryMod[i]->startDATA = entries[i].startDATA;
+					binaryMod[i]->endDATA = entries[i].endDATA;
+				}
+				
+				res = true;
+			} else {
+				SYSLOG("user @ failed to map any entry out of %zu", binaryModSize);
+			}
 		} else {
-			SYSLOG("user @ failed to map any entry out of %zu", binaryModSize);
+			SYSLOG("user @ failed to allocate memory for MapEntry %zu", binaryModSize);
 		}
+		
+		if (entries) Buffer::deleter(entries);
 	} else {
-		SYSLOG("user @ failed to allocate memory for MapEntry %zu", binaryModSize);
+		SYSLOG("user @ no dyld_shared_cache discovered, fallback to slow!");
+		patchDyldSharedCache = false;
+		res = true;
 	}
-	
+
 	if (buffer) Buffer::deleter(buffer);
-	if (entries) Buffer::deleter(entries);
 	
 	return res;
 }
@@ -714,28 +722,28 @@ vm_prot_t UserPatcher::getPageProtection(vm_map_t map, vm_map_address_t addr) {
 }
 
 bool UserPatcher::hookMemoryAccess() {
-	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page");
+	// 10.12 and newer
+	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range");
 	
 	if (patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
-			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true)
-		);
-		
-		if (patcher->getError() != KernelPatcher::Error::NoError) {
-			SYSLOG("user @ failed to hook _cs_validate_page");
-			patcher->clearError();
-			return false;
-		}
-	// 10.12 and newer
-	} else if (patcher->clearError(),
-			   kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range"),
-			   patcher->getError() == KernelPatcher::Error::NoError) {
 		orgCodeSignValidateRangeWrapper = reinterpret_cast<t_codeSignValidateRangeWrapper>(
 			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true)
 		);
-
+		
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
 			SYSLOG("user @ failed to hook _cs_validate_range");
+			patcher->clearError();
+			return false;
+		}
+	} else if (patcher->clearError(),
+			   kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page"),
+			   patcher->getError() == KernelPatcher::Error::NoError) {
+		orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
+			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true)
+		);
+
+		if (patcher->getError() != KernelPatcher::Error::NoError) {
+			SYSLOG("user @ failed to hook _cs_validate_page");
 			patcher->clearError();
 			return false;
 		}
