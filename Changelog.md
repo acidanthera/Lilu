@@ -2,6 +2,11 @@ Lilu Changelog
 ==============
 
 #### v1.1.4
+- Increased executable memory buffer to page size
+- Added auth-root-dmg support High Sierra installer detection (thx Piker-Alpha)
+- Added -liluforce to force enable Lilu in safe mode and recovery
+
+#### v1.1.4
 - Slightly improved userspace patcher speed for 10.12
 - Added missing dyld_shared_cache detection with a fallback
 - Defined High Sierra kernel version
