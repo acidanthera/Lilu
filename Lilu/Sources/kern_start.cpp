@@ -93,16 +93,21 @@ bool Configuration::getBootArguments() {
 	char tmp[16];
 	
 	isDisabled |= PE_parse_boot_argn(bootargOff, tmp, sizeof(tmp));
-	isDisabled |= PE_parse_boot_argn("-s", tmp, sizeof(tmp));
-	isDisabled |= PE_parse_boot_argn("-x", tmp, sizeof(tmp));
+	if (!PE_parse_boot_argn(bootargForce, tmp, sizeof(tmp))) {
+		isDisabled |= PE_parse_boot_argn("-s", tmp, sizeof(tmp));
+		isDisabled |= PE_parse_boot_argn("-x", tmp, sizeof(tmp));
 	
-	if (!KernelPatcher::compatibleKernel(minKernel, maxKernel)) {
-		if (!PE_parse_boot_argn(bootargBeta, tmp, sizeof(tmp))) {
-			SYSLOG("config @ automatically disabling on an unsupported operating system");
-			isDisabled = true;
-		} else if (!isDisabled) {
-			SYSLOG("config @ force enabling on an unsupported operating system due to beta flag");
+		
+		if (!KernelPatcher::compatibleKernel(minKernel, maxKernel)) {
+			if (!PE_parse_boot_argn(bootargBeta, tmp, sizeof(tmp))) {
+				SYSLOG("config @ automatically disabling on an unsupported operating system");
+				isDisabled = true;
+			} else if (!isDisabled) {
+				SYSLOG("config @ force enabling on an unsupported operating system due to beta flag");
+			}
 		}
+	} else if (!isDisabled) {
+		SYSLOG("config @ force enabling due to force flag");
 	}
 	
 	ADDPR(debugEnabled) = PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
@@ -113,6 +118,7 @@ bool Configuration::getBootArguments() {
 	installOrRecovery |= PE_parse_boot_argn("rp", tmp, sizeof(tmp));
 	installOrRecovery |= PE_parse_boot_argn("container-dmg", tmp, sizeof(tmp));
 	installOrRecovery |= PE_parse_boot_argn("root-dmg", tmp, sizeof(tmp));
+	installOrRecovery |= PE_parse_boot_argn("auth-root-dmg", tmp, sizeof(tmp));
 	
 	preferSlowMode = getKernelVersion() <= KernelVersion::Mavericks || installOrRecovery;
 
