@@ -6,6 +6,7 @@ Please note that improperly written immature plugins will not be listed there.
 
 - [AppleALC](https://github.com/vit9696/AppleALC) - Native macOS HD audio for not officially supported codecs
 - [AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) - Additional Intel HD 4600 patches for some laptops on 10.12.4+
+- [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) - Remove Broadcom Wi-Fi module whitelisting from macOS
 - [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) - Non Iris Intel graphics high resolution support
 - [EnableLidWake](https://github.com/syscl/EnableLidWake) - Enable lid wake for Intel Graphics Card
 - [HibernationFixup](https://sourceforge.net/p/hibernationfixup) - Enable 3 & 25 mode hibernation on certain hardware
