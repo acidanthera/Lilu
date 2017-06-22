@@ -13,14 +13,8 @@
 #include <sys/types.h>
 #include <sys/proc.h>
 
-extern "C" {
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-W#warnings"
-	#include <security/mac_framework.h>
-	#include <security/mac_policy.h>
-	#pragma clang diagnostic pop
-}
-
+#include <Library/security/mac_framework.h>
+#include <Library/security/mac_policy.h>
 #include <Headers/kern_util.hpp>
 
 class Policy {
