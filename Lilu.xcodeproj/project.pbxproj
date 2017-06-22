@@ -72,6 +72,9 @@
 		CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */; };
 		CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */; };
 		CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */; };
+		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
+		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
+		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -156,6 +159,9 @@
 		CE405ED51E4A005F00AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_config.hpp; sourceTree = "<group>"; };
 		CE5720AC1E54B7CA00C6B552 /* KnownPlugins.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = KnownPlugins.md; sourceTree = "<group>"; };
+		CE75B9541EFB619C00D29B40 /* _label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _label.h; sourceTree = "<group>"; };
+		CE75B9551EFB619C00D29B40 /* mac_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_framework.h; sourceTree = "<group>"; };
+		CE75B9561EFB619C00D29B40 /* mac_policy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_policy.h; sourceTree = "<group>"; };
 		CEC962431D835DE000E3E772 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		CEC962461D835DE000E3E772 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CEC962471D835DE000E3E772 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -335,12 +341,23 @@
 		CE2E7BE21E2C73B1009AC62A /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				CE75B9531EFB619C00D29B40 /* security */,
 				CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */,
 				CE2E7BE41E2C73B1009AC62A /* libkmod.a */,
 				CE405ED51E4A005F00AA0B3D /* plugin_start.cpp */,
 			);
 			name = Library;
 			path = Lilu/Library;
+			sourceTree = "<group>";
+		};
+		CE75B9531EFB619C00D29B40 /* security */ = {
+			isa = PBXGroup;
+			children = (
+				CE75B9541EFB619C00D29B40 /* _label.h */,
+				CE75B9551EFB619C00D29B40 /* mac_framework.h */,
+				CE75B9561EFB619C00D29B40 /* mac_policy.h */,
+			);
+			path = security;
 			sourceTree = "<group>";
 		};
 		CEC962481D835DE400E3E772 /* Docs */ = {
@@ -368,6 +385,7 @@
 				CE2E7B991E2C6A73009AC62A /* kern_policy.hpp in Headers */,
 				CE2E7B941E2C6A73009AC62A /* kern_disasm.hpp in Headers */,
 				CE2E7B931E2C6A73009AC62A /* kern_compression.hpp in Headers */,
+				CE75B9571EFB619C00D29B40 /* _label.h in Headers */,
 				CE2E7B951E2C6A73009AC62A /* kern_file.hpp in Headers */,
 				CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */,
 				CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */,
@@ -375,6 +393,7 @@
 				CE2E7B981E2C6A73009AC62A /* kern_patcher.hpp in Headers */,
 				CE2E7BBE1E2C6D24009AC62A /* FastCompression.hpp in Headers */,
 				1C3E7AE91C84B61700A6448A /* utils.h in Headers */,
+				CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */,
 				1C3E7AFB1C84B63000A6448A /* mips.h in Headers */,
 				1C3E7ADE1C84B61700A6448A /* MCDisassembler.h in Headers */,
 				1C3E7AFE1C84B63000A6448A /* arm.h in Headers */,
@@ -383,6 +402,7 @@
 				1C3E7B171C84B65400A6448A /* X86Mapping.h in Headers */,
 				1C3E7AFA1C84B63000A6448A /* platform.h in Headers */,
 				1C3E7B291C84B65400A6448A /* X86BaseInfo.h in Headers */,
+				CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */,
 				1C3E7B251C84B65400A6448A /* X86DisassemblerDecoder.h in Headers */,
 				1C3E7B271C84B65400A6448A /* X86Disassembler.h in Headers */,
 				1C3E7ADC1C84B61700A6448A /* LEB128.h in Headers */,
