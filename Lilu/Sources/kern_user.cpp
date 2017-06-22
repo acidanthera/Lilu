@@ -735,8 +735,8 @@ bool UserPatcher::hookMemoryAccess() {
 			patcher->clearError();
 			return false;
 		}
-	} else if (patcher->clearError(),
-			   kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page"),
+	} else if (static_cast<void>(patcher->clearError()),
+			   static_cast<void>(kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page")),
 			   patcher->getError() == KernelPatcher::Error::NoError) {
 		orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
 			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true)
