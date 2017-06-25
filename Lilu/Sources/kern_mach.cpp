@@ -409,7 +409,14 @@ void MachInfo::processMachHeader(void *header) {
 }
 
 //FIXME: Guard pointer access by HeaderSize
-kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size) {
+kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size, bool force) {
+	if (force) {
+		kaslr_slide_set = false;
+		running_mh = nullptr;
+		running_text_addr = 0;
+		memory_size = 0;
+	}
+	
 	if (kaslr_slide_set) return KERN_SUCCESS;
 	
 	if (size > 0)

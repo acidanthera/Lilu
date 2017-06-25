@@ -167,10 +167,11 @@ public:
 	 *
 	 *  @param slide load slide if calculating for kexts
 	 *  @param size  memory size
+	 *  @param force force address recalculation
 	 *
 	 *  @return KERN_SUCCESS on success
 	 */
-	EXPORT kern_return_t getRunningAddresses(mach_vm_address_t slide=0, size_t size=0);
+	EXPORT kern_return_t getRunningAddresses(mach_vm_address_t slide=0, size_t size=0, bool force=false);
 	
 	/**
 	 *  Set the mach header address

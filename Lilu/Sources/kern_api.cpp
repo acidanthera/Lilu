@@ -210,10 +210,18 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 		auto stored = storedKexts[i];
 		for (size_t j = 0; j < stored->second; j++) {
 			patcher.loadKinfo(&stored->first[j]);
-			if (patcher.getError() != KernelPatcher::Error::NoError) {
-				if (patcher.getError() != KernelPatcher::Error::AlreadyDone)
-					SYSLOG("api @ failed to load %s kext file", stored->first[j].id);
+			auto error = patcher.getError();
+			if (error != KernelPatcher::Error::NoError) {
 				patcher.clearError();
+				if (error == KernelPatcher::Error::AlreadyDone) {
+					if (stored->first[j].loaded || stored->first[j].reloadable) {
+						DBGLOG("api @ updating new kext handler features");
+						patcher.updateKextHandlerFeatures(&stored->first[j]);
+					}
+				} else {
+					SYSLOG("api @ failed to load %s kext file", stored->first[j].id);
+				}
+				
 				// Depending on a system some kexts may actually not exist
 				continue;
 			}
@@ -229,10 +237,10 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			auto handler = KernelPatcher::KextHandler::create(stored->first[j].id, stored->first[j].loadIndex,
 			[](KernelPatcher::KextHandler *h) {
 				if (h)
-					lilu.processKextLoadCallbacks(*static_cast<KernelPatcher *>(h->self), h->index, h->address, h->size);
+					lilu.processKextLoadCallbacks(*static_cast<KernelPatcher *>(h->self), h->index, h->address, h->size, h->reloadable);
 				else
 					SYSLOG("api @ kext notification callback arrived at nowhere");
-			}, stored->first[j].loaded);
+			}, stored->first[j].loaded, stored->first[j].reloadable);
 			
 			if (!handler) {
 				SYSLOG("api @ failed to allocate KextHandler for %s", stored->first[j].id);
@@ -253,9 +261,9 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	}
 }
 
-void LiluAPI::processKextLoadCallbacks(KernelPatcher &patcher, size_t id, mach_vm_address_t slide, size_t size) {
+void LiluAPI::processKextLoadCallbacks(KernelPatcher &patcher, size_t id, mach_vm_address_t slide, size_t size, bool reloadable) {
 	// Update running info
-	patcher.updateRunningInfo(id, slide, size);
+	patcher.updateRunningInfo(id, slide, size, reloadable);
 	
 	// Process the callbacks
 	for (size_t i = 0; i < kextLoadedCallbacks.size(); i++) {

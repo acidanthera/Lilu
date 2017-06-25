@@ -118,13 +118,13 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 }
 #endif /* KEXTPATH_SUPPORT */
 
-void KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t size) {
+void KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t size, bool force) {
 	if (id >= kinfos.size()) {
 		SYSLOG("patcher @ invalid kinfo id %zu for running info update", id);
 		return;
 	}
 	
-	if (kinfos[id]->getRunningAddresses(slide, size) != KERN_SUCCESS) {
+	if (kinfos[id]->getRunningAddresses(slide, size, force) != KERN_SUCCESS) {
 		SYSLOG("patcher @ failed to retrieve running info");
 		code = Error::KernRunningInitFailure;
 	}
@@ -203,6 +203,16 @@ void KernelPatcher::waitOnKext(KextHandler *handler) {
 	
 	if (!khandlers.push_back(handler)) {
 		code = Error::MemoryIssue;
+	}
+}
+
+void KernelPatcher::updateKextHandlerFeatures(KextInfo *info) {
+	for (size_t i = 0; i < khandlers.size(); i++) {
+		if (!strcmp(khandlers[i]->id, info->id)) {
+			khandlers[i]->loaded |= info->loaded;
+			khandlers[i]->reloadable |= info->reloadable;
+			break;
+		}
 	}
 }
 
@@ -411,7 +421,8 @@ void KernelPatcher::onKextSummariesUpdated() {
 							that->khandlers[i]->size = last.size;
 							that->khandlers[i]->handler(that->khandlers[i]);
 							// Remove the item
-							that->khandlers.erase(i);
+							if (!that->khandlers[i]->reloadable)
+								that->khandlers.erase(i);
 							break;
 						}
 					}
@@ -441,7 +452,8 @@ void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries
 					handler->size = curr.size;
 					handler->handler(handler);
 					// Remove the item
-					khandlers.erase(j);
+					if (!that->khandlers[j]->reloadable)
+						that->khandlers.erase(j);
 					break;
 				}
 			}
