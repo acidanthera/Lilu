@@ -6,6 +6,7 @@ Lilu Changelog
 - Added auth-root-dmg support High Sierra installer detection (thx Piker-Alpha)
 - Added -liluforce to force enable Lilu in safe mode and recovery
 - Added preliminary Xcode 9 compatibility
+- Added support for unloadable kexts
 
 #### v1.1.4
 - Slightly improved userspace patcher speed for 10.12

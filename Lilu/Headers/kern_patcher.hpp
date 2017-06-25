@@ -75,7 +75,8 @@ public:
 		const char **paths;
 		size_t pathNum;
 		bool loaded; // invoke for kext if it is already loaded
-		bool user[7];
+		bool reloadable; // allow the kext to unload and get patched again
+		bool user[6];
 		size_t loadIndex; // Updated after loading
 	};
 #endif /* KEXTPATCH_SUPPORT */
@@ -114,8 +115,9 @@ public:
 	 *  @param id    loaded kinfo id
 	 *  @param slide loaded slide
 	 *  @param size  loaded memory size
+	 *  @param force force recalculatiob
 	 */
-	EXPORT void updateRunningInfo(size_t id, mach_vm_address_t slide=0, size_t size=0);
+	EXPORT void updateRunningInfo(size_t id, mach_vm_address_t slide=0, size_t size=0, bool force=false);
 	
 	/**
 	 *  Any kernel
@@ -152,11 +154,11 @@ public:
 	 */
 	class KextHandler {
 		using t_handler = void (*)(KextHandler *);
-		KextHandler(const char * const i, size_t idx, t_handler h, bool l) :
-			id(i), index(idx), handler(h), loaded(l) {}
+		KextHandler(const char * const i, size_t idx, t_handler h, bool l, bool r) :
+			id(i), index(idx), handler(h), loaded(l), reloadable(r) {}
 	public:
-		static KextHandler *create(const char * const i, size_t idx, t_handler h, bool l=false) {
-			return new KextHandler(i, idx, h, l);
+		static KextHandler *create(const char * const i, size_t idx, t_handler h, bool l=false, bool r=false) {
+			return new KextHandler(i, idx, h, l, r);
 		}
 		static void deleter(KextHandler *i) {
 			delete i;
@@ -169,6 +171,7 @@ public:
 		size_t size {0};
 		t_handler handler {nullptr};
 		bool loaded {false};
+		bool reloadable {false};
 	};
 
 #ifdef KEXTPATCH_SUPPORT
@@ -178,6 +181,13 @@ public:
 	 *  @param handler  handler to process
 	 */
 	EXPORT void waitOnKext(KextHandler *handler);
+	
+	/**
+	 *  Update kext handler features
+	 *
+	 *  @param info  loaded kext info with features
+	 */
+	void updateKextHandlerFeatures(KextInfo *info);
 
 	/**
 	 *  Arbitrary kext find/replace patch
