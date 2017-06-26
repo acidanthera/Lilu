@@ -369,9 +369,9 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 						auto place = modStart+ref->segOffs[k]+slide;
 						auto r = orgVmMapReadUser(taskPort, place, tmp, patch.size);
 						if (!r) {
-							DBGLOG("user @ found %X %X %X %X", tmp[0], tmp[1], tmp[2], tmp[3]);
-							if ((applyChanges && !memcmp(tmp, patch.find, patch.size)) ||
-								(!applyChanges && !memcmp(tmp, patch.replace, patch.size))) {
+							bool comparison = !memcmp(tmp, applyChanges? patch.find : patch.replace, patch.size);
+							DBGLOG("user @ %d/%d found %X %X %X %X", applyChanges, comparison, tmp[0], tmp[1], tmp[2], tmp[3]);
+							if (comparison) {
 								if (vm_protect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE) == KERN_SUCCESS) {
 									DBGLOG("user @ obtained write permssions\n");
 									
@@ -385,6 +385,14 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 
 								} else {
 									SYSLOG("user @ failed to obtain write permissions for patching");
+								}
+							} else if (ADDPR(debugEnabled)) {
+								for (size_t i = 0; i < patch.size; i++) {
+									auto v = (applyChanges? patch.find : patch.replace)[i];
+									if (tmp[i] != v) {
+										DBGLOG("user @ miss at %zu: %0.2X vs %0.2X", i, tmp[i], v);
+										break;
+									}
 								}
 							}
 						}
