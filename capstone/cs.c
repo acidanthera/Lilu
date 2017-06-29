@@ -45,7 +45,11 @@
 #endif
 
 // default SKIPDATA mnemonic
+#ifndef CAPSTONE_DIET
 #define SKIPDATA_MNEM ".byte"
+#else // No printing is available in diet mode
+#define SKIPDATA_MNEM NULL
+#endif
 
 cs_err (*arch_init[MAX_ARCH])(cs_struct *) = { NULL };
 cs_err (*arch_option[MAX_ARCH]) (cs_struct *, cs_opt_type, size_t value) = { NULL };
@@ -548,11 +552,10 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 			mci.flat_insn->size = insn_size;
 
 			// map internal instruction opcode to public insn ID
+
 			handle->insn_id(handle, insn_cache, mci.Opcode);
 
-#ifndef CAPSTONE_DIET
 			handle->printer(&mci, &ss, handle->printer_info);
-#endif
 
 			fill_insn(handle, insn_cache, ss.buffer, &mci, handle->post_printer, buffer);
 
@@ -589,12 +592,12 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 			insn_cache->size = (uint16_t)skipdata_bytes;
 			memcpy(insn_cache->bytes, buffer, skipdata_bytes);
 #ifdef CAPSTONE_DIET
-			insn_cache->mnemonic[0] = '\0';
+ 			insn_cache->mnemonic[0] = '\0';
 			insn_cache->op_str[0] = '\0';
 #else
 			strncpy(insn_cache->mnemonic, handle->skipdata_setup.mnemonic,
-					sizeof(insn_cache->mnemonic) - 1);
-			skipdata_opstr(insn_cache->op_str, buffer, skipdata_bytes);
+  					sizeof(insn_cache->mnemonic) - 1);
+  			skipdata_opstr(insn_cache->op_str, buffer, skipdata_bytes);
 #endif
 			insn_cache->detail = NULL;
 
@@ -761,9 +764,7 @@ bool CAPSTONE_API cs_disasm_iter(csh ud, const uint8_t **code, size_t *size,
 		// map internal instruction opcode to public insn ID
 		handle->insn_id(handle, insn, mci.Opcode);
 
-#ifndef CAPSTONE_DIET
 		handle->printer(&mci, &ss, handle->printer_info);
-#endif
 
 		fill_insn(handle, insn, ss.buffer, &mci, handle->post_printer, *code);
 
