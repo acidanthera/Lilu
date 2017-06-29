@@ -7,6 +7,7 @@ Lilu Changelog
 - Added -liluforce to force enable Lilu in safe mode and recovery
 - Added preliminary Xcode 9 compatibility
 - Added support for unloadable kexts
+- Merged official capstone patches up to c508224
 
 #### v1.1.4
 - Slightly improved userspace patcher speed for 10.12
