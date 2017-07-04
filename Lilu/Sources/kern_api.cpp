@@ -209,6 +209,9 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	for (size_t i = 0; i < storedKexts.size(); i++) {
 		auto stored = storedKexts[i];
 		for (size_t j = 0; j < stored->second; j++) {
+			if (stored->first[j].pathNum == 0)
+				continue;
+			
 			patcher.loadKinfo(&stored->first[j]);
 			auto error = patcher.getError();
 			if (error != KernelPatcher::Error::NoError) {

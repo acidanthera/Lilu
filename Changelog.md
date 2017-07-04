@@ -1,6 +1,10 @@
 Lilu Changelog
 ==============
 
+#### v1.1.6
+- Ignored disabled kexts earlier for speed reasons
+- Added High Sierra to the list of compatible OS
+
 #### v1.1.5
 - Increased executable memory buffer to page size
 - Added auth-root-dmg support High Sierra installer detection (thx Piker-Alpha)
