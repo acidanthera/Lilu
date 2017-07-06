@@ -15,3 +15,4 @@ Please note that improperly written immature plugins will not be listed there.
 - [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) - Enables Night Shift on all the models
 - [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) - Various patches necessary for certain NVIDIA GPUs
 - [Shiki](https://github.com/vit9696/Shiki) - Dynamic userspace patcher for macOS
+- [WhateverGreen](https://github.com/vit9696/WhateverGreen) - Various patches necessary for certain ATI/AMD GPUs

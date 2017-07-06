@@ -64,6 +64,18 @@ EXPORT const char *strstr(const char *stack, const char *needle, size_t len=0);
 EXPORT char *strrchr(const char *stack, int ch);
 
 /**
+ *  Count array elements
+ *
+ *  @param array   Array to process
+ *
+ *  @return number of elements
+ */
+template <class T, size_t N>
+constexpr size_t arrsize(const T (&array)[N]) {
+	return N;
+}
+
+/**
  *  C-style memory management from libkern, missing from headers
  */
 extern "C" {

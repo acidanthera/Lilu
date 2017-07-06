@@ -4,6 +4,7 @@ Lilu Changelog
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons
 - Added High Sierra to the list of compatible OS
+- Added arrsize API
 
 #### v1.1.5
 - Increased executable memory buffer to page size
