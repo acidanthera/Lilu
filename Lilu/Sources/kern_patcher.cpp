@@ -243,9 +243,8 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 			curr++;
 		
 		if (curr != off) {
-			for (size_t j = 0; j < patch->size; j++) {
+			for (size_t j = 0; j < patch->size; j++)
 				curr[j] = patch->replace[j];
-			}
 			changes++;
 		}
 	}
@@ -257,7 +256,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	}
 	
 	if (changes != patch->count) {
-		SYSLOG("patcher @ lookup patching applied only %zu patches out of %zu", changes, patch->count);
+		DBGLOG("patcher @ lookup patching applied only %zu patches out of %zu", changes, patch->count);
 		code = Error::MemoryIssue;
 	}
 }
