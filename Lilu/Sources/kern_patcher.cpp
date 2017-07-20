@@ -263,6 +263,10 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 }
 #endif /* KEXTPATCH_SUPPORT */
 
+void KernelPatcher::activate() {
+	activated = true;
+}
+
 mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute) {
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
@@ -435,7 +439,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 
 		DBGLOG("patcher @ invoked at kext loading/unloading");
 		
-		if (that->loadedKextSummaries) {
+		if (that->activated && that->loadedKextSummaries) {
 			auto num = (*that->loadedKextSummaries)->numSummaries;
 			if (num > 0) {
 				if (that->waitingForAlreadyLoadedKexts) {

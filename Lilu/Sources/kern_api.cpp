@@ -298,3 +298,7 @@ void LiluAPI::processBinaryLoadCallbacks(UserPatcher &patcher, vm_map_t map, con
 	}
 }
 
+void LiluAPI::activate(KernelPatcher &kpatcher, UserPatcher &upatcher) {
+	kpatcher.activate();
+	upatcher.activate();
+}

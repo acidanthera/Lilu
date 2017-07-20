@@ -175,6 +175,14 @@ public:
 	 */
 	void processBinaryLoadCallbacks(UserPatcher &patcher, vm_map_t map, const char *path, size_t len);
 	
+	/**
+	 *  Activates patchers
+	 *
+	 *  @param kpatcher  kernel patcher instance
+	 *  @param upatcher  user patcher instance
+	 */
+	void activate(KernelPatcher &kpatcher, UserPatcher &upatcher);
+	
 private:
 	
 	/**
