@@ -7,6 +7,7 @@ Lilu Changelog
 - Added arrsize API
 - Made patch count warning only show in debug mode
 - Made kinfo not found logging only show in debug mode
+- Added routeBlock API for opcode-based routing
 
 #### v1.1.5
 - Increased executable memory buffer to page size
