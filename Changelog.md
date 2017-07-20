@@ -6,6 +6,7 @@ Lilu Changelog
 - Added High Sierra to the list of compatible OS
 - Added arrsize API
 - Made patch count warning only show in debug mode
+- Made kinfo not found logging only show in debug mode
 
 #### v1.1.5
 - Increased executable memory buffer to page size

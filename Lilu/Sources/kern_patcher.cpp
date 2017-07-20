@@ -77,7 +77,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 		SYSLOG("patcher @ failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
 	} else if (info->init(paths, num) != KERN_SUCCESS) {
-		if ((isKernel && ADDPR(debugEnabled)) || !isKernel)
+		if (ADDPR(debugEnabled))
 			SYSLOG("patcher @ failed to init MachInfo for %s", id);
 		code = Error::NoKinfoFound;
 	} else if (!kinfos.push_back(info)) {
@@ -256,7 +256,8 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	}
 	
 	if (changes != patch->count) {
-		DBGLOG("patcher @ lookup patching applied only %zu patches out of %zu", changes, patch->count);
+		if (ADDPR(debugEnabled))
+			SYSLOG("patcher @ lookup patching applied only %zu patches out of %zu", changes, patch->count);
 		code = Error::MemoryIssue;
 	}
 }
