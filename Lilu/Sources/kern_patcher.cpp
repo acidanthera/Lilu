@@ -331,9 +331,37 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	return trampoline;
 }
 
+mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_t *opcodes, size_t opnum, bool buildWrapper, bool kernelRoute) {
+	// Simply overwrite the function in the easiest case
+	if (!buildWrapper) {
+		if (!kernelRoute || kinfos[KernelID]->setKernelWriting(true) == KERN_SUCCESS) {
+			memcpy(reinterpret_cast<void *>(from), opcodes, opnum);
+			if (kernelRoute)
+				kinfos[KernelID]->setKernelWriting(false);
+		} else {
+			SYSLOG("patcher @ block overwrite failed to change protection");
+			code = Error::MemoryProtection;
+			return EINVAL;
+		}
+		
+		return 0;
+	} else if (!kernelRoute) {
+		SYSLOG("patcher @ cannot generate blocks outside the kernelspace");
+		code = Error::MemoryProtection;
+		return EINVAL;
+	}
+	
+	// Otherwise generate a trampoline with opcodes
+	mach_vm_address_t trampoline = createTrampoline(from, LongJump, opcodes, opnum);
+	if (!trampoline) return EINVAL;
+
+	// And redirect the original function to it
+	return routeFunction(from, trampoline) == 0 ? trampoline : EINVAL;
+}
+
 uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribute__((section("__TEXT,__text")));
 
-mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min) {
+mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
 	if (!disasm.init()) {
 		SYSLOG("patcher @ failed to use disasm");
 		code = Error::DisasmFailure;
@@ -351,17 +379,21 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	
 	uint8_t *tempDataPtr = reinterpret_cast<uint8_t *>(tempExecutableMemory) + tempExecutableMemoryOff;
 	
-	tempExecutableMemoryOff += off + LongJump;
+	tempExecutableMemoryOff += off + LongJump + opnum;
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
 		SYSLOG("patcher @ not enough executable memory requested %lld have %zu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
 	} else if (kinfos[KernelID]->setKernelWriting(true) == KERN_SUCCESS) {
+		// Copy the opcodes if any
+		if (opnum > 0)
+			memcpy(tempDataPtr, opcodes, opnum);
+		
 		// Copy the prologue, assuming it is PIC
-		memcpy(tempDataPtr, reinterpret_cast<void *>(func), off);
+		memcpy(tempDataPtr + opnum, reinterpret_cast<void *>(func), off);
 	
 		// Add a jump
-		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+off), func+off, false, false);
+		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, false);
 		
 		kinfos[KernelID]->setKernelWriting(false);
 		
