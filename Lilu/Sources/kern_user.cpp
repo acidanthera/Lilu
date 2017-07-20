@@ -19,11 +19,13 @@ static UserPatcher *that {nullptr};
 int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action_t action, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3) {
 	
 	// Make sure this is ours
-	if (idata == that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
-		const char *path = reinterpret_cast<const char *>(arg1);
-		that->onPath(path, static_cast<uint32_t>(strlen(path)));
-	} else {
-		//DBGLOG("user @ listener did not match our needs action %d cookie %d", action, idata == that->cookie);
+	if (that->activated) {
+		if (idata == that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
+			const char *path = reinterpret_cast<const char *>(arg1);
+			that->onPath(path, static_cast<uint32_t>(strlen(path)));
+		} else {
+			//DBGLOG("user @ listener did not match our needs action %d cookie %d", action, idata == that->cookie);
+		}
 	}
 	
 	return 0;
@@ -867,4 +869,8 @@ bool UserPatcher::hookMemoryAccess() {
 	}
 
 	return true;
+}
+
+void UserPatcher::activate() {
+	activated = true;
 }

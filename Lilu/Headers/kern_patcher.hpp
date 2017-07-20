@@ -150,6 +150,11 @@ public:
 	EXPORT void setupKextListening();
 	
 	/**
+	 *  Activates monitoring functions if necessary
+	 */
+	void activate();
+	
+	/**
 	 *  Load handling structure
 	 */
 	class KextHandler {
@@ -249,6 +254,11 @@ private:
 	 *  Offset to tempExecutableMemory that is safe to use
 	 */
 	off_t tempExecutableMemoryOff {0};
+	
+	/**
+	 *  Patcher status
+	 */
+	bool activated {false};
 	
 	/**
 	 *  Created routed trampoline page

@@ -147,6 +147,11 @@ public:
 	 */
 	bool registerPatches(ProcInfo **procs, size_t procNum, BinaryModInfo **mods, size_t modNum, t_BinaryLoaded callback, void *user);
 	
+	/**
+	 *  Activates monitoring functions if necessary
+	 */
+	void activate();
+	
 private:
 	
 	/**
@@ -385,6 +390,11 @@ private:
 	 *  Kernel auth listener handle
 	 */
 	kauth_listener_t listener {nullptr};
+	
+	/**
+	 *  Patcher status
+	 */
+	bool activated {false};
 	
 	/**
 	 *  Validation cookie

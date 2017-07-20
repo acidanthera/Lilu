@@ -64,6 +64,8 @@ bool Configuration::performInit() {
 	}
 	
 	lilu.processUserLoadCallbacks(userPatcher);
+	
+	lilu.activate(kernelPatcher, userPatcher);
 
 	return true;
 }

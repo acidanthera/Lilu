@@ -8,6 +8,7 @@ Lilu Changelog
 - Made patch count warning only show in debug mode
 - Made kinfo not found logging only show in debug mode
 - Added routeBlock API for opcode-based routing
+- Centralised user and kernel patcher start time
 
 #### v1.1.5
 - Increased executable memory buffer to page size
