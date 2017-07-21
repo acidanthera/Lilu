@@ -18,7 +18,7 @@ bool Disassembler::init(bool detailed) {
 		.malloc    = &kern_os_malloc,
 		.calloc    = &kern_os_calloc,
 		.realloc   = &kern_os_realloc,
-		.free      = &kern_os_free,
+		.free      = &kern_os_cfree,
 		.vsnprintf = &vsnprintf,
 	};
 	
@@ -64,21 +64,19 @@ size_t Disassembler::instructionSize(mach_vm_address_t addr, size_t min) {
 	if (err != CS_ERR_OK) {
 		SYSLOG("disasm @ capstone failed to disasemble memory (%zu, %p)", insts, result);
 		if (insts != 0 && result)
-			kern_os_free(result);
+			cs_free(result, insts);
 		return 0;
 	}
 	
 	size_t size {0};
 	
-	for (size_t i = 0; i < insts && size < min; i++) {
+	for (size_t i = 0; i < insts && size < min; i++)
 		size += result[i].size;
-	}
 	
-	kern_os_free(result);
+	cs_free(result, insts);
 	
-	if (size >= min) {
+	if (size >= min)
 		return size;
-	}
 	
 	SYSLOG("disasm @ capstone failed to disasemble enough memory (%zu), was %llX address valid?", min, addr);
 	return 0;
