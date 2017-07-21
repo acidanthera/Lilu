@@ -82,6 +82,7 @@ extern "C" {
 	void *kern_os_malloc(size_t size);
 	void *kern_os_calloc(size_t num, size_t size);
 	void kern_os_free(void *addr);
+	void kern_os_cfree(void *addr);
 	void *kern_os_realloc(void *addr, size_t nsize);
 }
 

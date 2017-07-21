@@ -9,6 +9,7 @@ Lilu Changelog
 - Made kinfo not found logging only show in debug mode
 - Added routeBlock API for opcode-based routing
 - Centralised user and kernel patcher start time
+- Added c-compliant kern_os_cfree implementation for capstone
 
 #### v1.1.5
 - Increased executable memory buffer to page size
