@@ -45,6 +45,8 @@
 		1C3E7B281C84B65400A6448A /* X86Disassembler.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C3E7B131C84B65400A6448A /* X86Disassembler.c */; };
 		1C3E7B291C84B65400A6448A /* X86BaseInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C3E7B141C84B65400A6448A /* X86BaseInfo.h */; };
 		1C3E7B2A1C84B65400A6448A /* X86ATTInstPrinter.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C3E7B151C84B65400A6448A /* X86ATTInstPrinter.c */; };
+		CE1096261F22876B00B623FC /* umm_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = CE10961E1F22876B00B623FC /* umm_malloc.c */; };
+		CE1096271F22876B00B623FC /* umm_malloc.h in Headers */ = {isa = PBXBuildFile; fileRef = CE10961F1F22876B00B623FC /* umm_malloc.h */; };
 		CE2E7B931E2C6A73009AC62A /* kern_compression.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */; };
 		CE2E7B941E2C6A73009AC62A /* kern_disasm.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */; };
 		CE2E7B951E2C6A73009AC62A /* kern_file.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7B891E2C6A73009AC62A /* kern_file.hpp */; };
@@ -127,6 +129,8 @@
 		1C3E7B151C84B65400A6448A /* X86ATTInstPrinter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = X86ATTInstPrinter.c; path = capstone/arch/X86/X86ATTInstPrinter.c; sourceTree = "<group>"; };
 		1C748C271C21952C0024EED2 /* Lilu.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Lilu.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C748C2E1C21952C0024EED2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Lilu/Info.plist; sourceTree = "<group>"; };
+		CE10961E1F22876B00B623FC /* umm_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = umm_malloc.c; sourceTree = "<group>"; };
+		CE10961F1F22876B00B623FC /* umm_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = umm_malloc.h; sourceTree = "<group>"; };
 		CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
 		CE2E7B891E2C6A73009AC62A /* kern_file.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_file.hpp; sourceTree = "<group>"; };
@@ -267,6 +271,7 @@
 				CEC962481D835DE400E3E772 /* Docs */,
 				1C3E7AC91C84B5E500A6448A /* capstone */,
 				CE2E7BBB1E2C6D24009AC62A /* FastCompression */,
+				CE10961B1F22876B00B623FC /* umm_malloc */,
 				1C748C281C21952C0024EED2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -277,6 +282,15 @@
 				1C748C271C21952C0024EED2 /* Lilu.kext */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		CE10961B1F22876B00B623FC /* umm_malloc */ = {
+			isa = PBXGroup;
+			children = (
+				CE10961E1F22876B00B623FC /* umm_malloc.c */,
+				CE10961F1F22876B00B623FC /* umm_malloc.h */,
+			);
+			path = umm_malloc;
 			sourceTree = "<group>";
 		};
 		CE2E7B861E2C6A73009AC62A /* Headers */ = {
@@ -398,6 +412,7 @@
 				1C3E7ADE1C84B61700A6448A /* MCDisassembler.h in Headers */,
 				1C3E7AFE1C84B63000A6448A /* arm.h in Headers */,
 				1C3E7ADF1C84B61700A6448A /* MCFixedLenDisassembler.h in Headers */,
+				CE1096271F22876B00B623FC /* umm_malloc.h in Headers */,
 				1C3E7AE71C84B61700A6448A /* SStream.h in Headers */,
 				1C3E7B171C84B65400A6448A /* X86Mapping.h in Headers */,
 				1C3E7AFA1C84B63000A6448A /* platform.h in Headers */,
@@ -528,6 +543,7 @@
 				CE2E7BB91E2C6BAA009AC62A /* kern_util.cpp in Sources */,
 				CE2E7BB31E2C6BAA009AC62A /* kern_mach.cpp in Sources */,
 				CE2E7BB11E2C6BAA009AC62A /* kern_file.cpp in Sources */,
+				CE1096261F22876B00B623FC /* umm_malloc.c in Sources */,
 				1C3E7AE61C84B61700A6448A /* SStream.c in Sources */,
 				CE2E7BBF1E2C6D24009AC62A /* lzvn_decode.c in Sources */,
 				1C3E7B181C84B65400A6448A /* X86Mapping.c in Sources */,
@@ -639,6 +655,8 @@
 					"CAPSTONE_DIET=1",
 					"CAPSTONE_X86_REDUCE=1",
 					"CAPSTONE_STATIC=1",
+					"UMM_BEST_FIT=1",
+					"UMM_MALLOC_CFG_HEAP_SIZE=0x10000",
 					"MODULE_VERSION=$(MODULE_VERSION)",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
 					"$(inherited)",
@@ -692,6 +710,8 @@
 					"CAPSTONE_DIET=1",
 					"CAPSTONE_X86_REDUCE=1",
 					"CAPSTONE_STATIC=1",
+					"UMM_BEST_FIT=1",
+					"UMM_MALLOC_CFG_HEAP_SIZE=0x10000",
 					"MODULE_VERSION=$(MODULE_VERSION)",
 					"PRODUCT_NAME=$(PRODUCT_NAME)",
 					"$(inherited)",

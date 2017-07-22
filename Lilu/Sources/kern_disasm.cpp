@@ -10,16 +10,18 @@
 #include <Headers/kern_util.hpp>
 
 #include <capstone.h>
+#include <umm_malloc.h>
 
 bool Disassembler::init(bool detailed) {
 	if (initialised) return true;
 	
+	// This is necessary to allow using capstone with interrupts disabled.
 	cs_opt_mem setup {
-		.malloc    = &kern_os_malloc,
-		.calloc    = &kern_os_calloc,
-		.realloc   = &kern_os_realloc,
-		.free      = &kern_os_cfree,
-		.vsnprintf = &vsnprintf,
+		umm_malloc,
+		umm_calloc,
+		umm_realloc,
+		umm_free,
+		vsnprintf
 	};
 	
 	cs_err err = cs_option(0, CS_OPT_MEM, reinterpret_cast<size_t>(&setup));
@@ -63,7 +65,7 @@ size_t Disassembler::instructionSize(mach_vm_address_t addr, size_t min) {
 	cs_err err = cs_errno(handle);
 	if (err != CS_ERR_OK) {
 		SYSLOG("disasm @ capstone failed to disasemble memory (%zu, %p)", insts, result);
-		if (insts != 0 && result)
+		if (result)
 			cs_free(result, insts);
 		return 0;
 	}

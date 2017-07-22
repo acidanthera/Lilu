@@ -13,6 +13,7 @@ An open source kernel extension bringing a platform for arbitrary kext, library,
 - [Apple](https://www.apple.com) for macOS  
 - [Onyx The Black Cat](https://github.com/gdbinit/onyx-the-black-cat) by [fG!](https://reverse.put.as) for the base of the kernel patcher  
 - [capstone](https://github.com/aquynh/capstone) by [Nguyen Anh Quynh](https://github.com/aquynh) for the disassembler module  
+- [umm_malloc](https://github.com/rhempel/umm_malloc) by [Ralph Hempel](https://github.com/rhempel) for a static pool allocator  
 - [Pike R. Alpha](https://github.com/Piker-Alpha) for [lzvn](https://github.com/Piker-Alpha/LZVN) decompression  
 - [07151129](https://github.com/07151129) for some code parts and suggestions  
 - [vit9696](https://github.com/vit9696) for writing the software and maintaining it
