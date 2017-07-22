@@ -371,11 +371,20 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		code = Error::DisasmFailure;
 		return 0;
 	}
+
+	// Doing it earlier to workaround stack corruption due to a possible 10.12 bug.
+	// Otherwise in rare cases there will be random KPs with corrupted stack data.
+	if (kinfos[KernelID]->setKernelWriting(true) != KERN_SUCCESS) {
+		SYSLOG("patcher @ failed to set executable permissions");
+		code = Error::MemoryProtection;
+		return 0;
+	}
 	
 	// Relative destination offset
 	size_t off = disasm.instructionSize(func, min);
 	
 	if (!off || off > PAGE_SIZE - LongJump) {
+		kinfos[KernelID]->setKernelWriting(false);
 		SYSLOG("patcher @ unsupported destination offset %zu", off);
 		code = Error::DisasmFailure;
 		return 0;
@@ -386,9 +395,10 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	tempExecutableMemoryOff += off + LongJump + opnum;
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
+		kinfos[KernelID]->setKernelWriting(false);
 		SYSLOG("patcher @ not enough executable memory requested %lld have %zu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
-	} else if (kinfos[KernelID]->setKernelWriting(true) == KERN_SUCCESS) {
+	} else {
 		// Copy the opcodes if any
 		if (opnum > 0)
 			memcpy(tempDataPtr, opcodes, opnum);
@@ -406,9 +416,6 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		} else {
 			SYSLOG("patcher @ failed to route an inner trempoline");
 		}
-	} else {
-		SYSLOG("patcher @ failed to set executable permissions");
-		code = Error::MemoryProtection;
 	}
 	
 	return 0;

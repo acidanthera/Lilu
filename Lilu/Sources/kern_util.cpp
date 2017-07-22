@@ -57,7 +57,6 @@ extern "C" void kern_os_cfree(void *addr) {
 	if (addr) kern_os_free(addr);
 }
 
-
 bool Page::alloc() {
 	if (p && vm_deallocate(kernel_map, reinterpret_cast<vm_address_t>(p), PAGE_SIZE) != KERN_SUCCESS)
 		return false;
