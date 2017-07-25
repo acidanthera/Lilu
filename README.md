@@ -29,7 +29,7 @@ Add `-liludbg` to enable debug printing (available in DEBUG binaries).
 Add `-liluoff` to disable Lilu.  
 Add `-liluslow` to enable legacy user patcher.  
 Add `-lilulowmem` to disable kernel unpack (disables Lilu in recovery mode).  
-Add `-lilubeta` to enable Lilu on unsupported os versions.  
+Add `-lilubeta` to enable Lilu on unsupported os versions (10.13 and below are enabled by default).  
 Add `-liluforce` to enable Lilu regardless of the os, installer, or recovery.
 
 #### Discussion
@@ -40,4 +40,3 @@ Add `-liluforce` to enable Lilu regardless of the os, installer, or recovery.
 For the contributors with programming skills the headers are filled with AppleDOC comments.  
 Earlier code changes could be tracked in [AppleALC](https://github.com/vit9696/AppleALC) project.   
 Writing and supporting code is fun but it takes time. Please provide most descriptive bugreports or pull requests.
-
