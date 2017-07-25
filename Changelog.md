@@ -11,6 +11,7 @@ Lilu Changelog
 - Centralised user and kernel patcher start time
 - Added c-compliant kern_os_cfree implementation
 - Added a workaround for page fault kernel panics
+- Added a workaround for xnu printf limitations
 
 #### v1.1.5
 - Increased executable memory buffer to page size
