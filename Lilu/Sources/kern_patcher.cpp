@@ -28,7 +28,7 @@ void KernelPatcher::init() {
 	size_t id = loadKinfo("kernel", reinterpret_cast<const char **>(&kernelPaths), kernelPathsNum, true);
 	
 	if (getError() != Error::NoError || id != KernelID) {
-		DBGLOG("patcher @ got %d error and %zu kernel id", getError(), id);
+		DBGLOG("patcher @ got %d error and %lu kernel id", getError(), id);
 		return;
 	}
 	
@@ -66,7 +66,7 @@ void KernelPatcher::deinit() {
 size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel) {
 	for (size_t i = 0; i < kinfos.size(); i++) {
 		if (kinfos[i]->objectId && !strcmp(kinfos[i]->objectId, id)) {
-			DBGLOG("patcher @ found an already loaded MachInfo for %s at %zu", id, i);
+			DBGLOG("patcher @ found an already loaded MachInfo for %s at %lu", id, i);
 			code = Error::AlreadyDone;
 			return i;
 		}
@@ -104,14 +104,14 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 	}
 
 	if (info->loadIndex != KernelPatcher::KextInfo::Unloaded) {
-		DBGLOG("patcher @ provided KextInfo (%s) has already been loaded at %zu index", info->id, info->loadIndex);
+		DBGLOG("patcher @ provided KextInfo (%s) has already been loaded at %lu index", info->id, info->loadIndex);
 		return info->loadIndex;
 	}
 	
 	auto idx = loadKinfo(info->id, info->paths, info->pathNum);
 	if (getError() == Error::NoError || getError() == Error::AlreadyDone) {
 		info->loadIndex = idx;
-		DBGLOG("patcher @ loaded kinfo %s at %zu index", info->id, idx);
+		DBGLOG("patcher @ loaded kinfo %s at %lu index", info->id, idx);
 	}
 	
 	return idx;
@@ -120,7 +120,7 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 
 void KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t size, bool force) {
 	if (id >= kinfos.size()) {
-		SYSLOG("patcher @ invalid kinfo id %zu for running info update", id);
+		SYSLOG("patcher @ invalid kinfo id %lu for running info update", id);
 		return;
 	}
 	
@@ -142,7 +142,7 @@ mach_vm_address_t KernelPatcher::solveSymbol(size_t id, const char *symbol) {
 			return addr;
 		}
 	} else {
-		SYSLOG("patcher @ invalid kinfo id %zu for %s symbol lookup", id, symbol);
+		SYSLOG("patcher @ invalid kinfo id %lu for %s symbol lookup", id, symbol);
 	}
 
 	code = Error::NoSymbolFound;
@@ -257,7 +257,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	
 	if (changes != patch->count) {
 		if (ADDPR(debugEnabled))
-			SYSLOG("patcher @ lookup patching applied only %zu patches out of %zu", changes, patch->count);
+			SYSLOG("patcher @ lookup patching applied only %lu patches out of %lu", changes, patch->count);
 		code = Error::MemoryIssue;
 	}
 }
@@ -385,7 +385,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	
 	if (!off || off > PAGE_SIZE - LongJump) {
 		kinfos[KernelID]->setKernelWriting(false);
-		SYSLOG("patcher @ unsupported destination offset %zu", off);
+		SYSLOG("patcher @ unsupported destination offset %lu", off);
 		code = Error::DisasmFailure;
 		return 0;
 	}
@@ -396,7 +396,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
 		kinfos[KernelID]->setKernelWriting(false);
-		SYSLOG("patcher @ not enough executable memory requested %lld have %zu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
+		SYSLOG("patcher @ not enough executable memory requested %lld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
 	} else {
 		// Copy the opcodes if any
@@ -482,7 +482,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 }
 
 void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries, size_t num) {
-	DBGLOG("patcher @ processing already loaded kexts by iterating over %zu summaries", num);
+	DBGLOG("patcher @ processing already loaded kexts by iterating over %lu summaries", num);
 	
 	for (size_t i = 0; i < num; i++) {
 		auto curr = summaries[i];

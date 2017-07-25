@@ -25,7 +25,7 @@ uint8_t *FileIO::readFileToBuffer(const char *path, size_t &size) {
 			buf = Buffer::create<uint8_t>(size+1);
 			if (buf) {
 				if (readFileData(buf, 0, size, vnode, ctxt)) {
-					SYSLOG("file @ failed to read %s file of %zu size", path, size);
+					SYSLOG("file @ failed to read %s file of %lu size", path, size);
 					Buffer::deleter(buf);
 					buf = nullptr;
 				} else {
@@ -33,7 +33,7 @@ uint8_t *FileIO::readFileToBuffer(const char *path, size_t &size) {
 					buf[size] = 0x00;
 				}
 			} else {
-				SYSLOG("file @ failed to allocate memory for reading %s file of %zu size", path, size);
+				SYSLOG("file @ failed to allocate memory for reading %s file of %lu size", path, size);
 			}
 		} else {
 			SYSLOG("file @ failed to obtain %s size", path);
@@ -73,7 +73,7 @@ int FileIO::writeBufferToFile(const char *path, void *buffer, size_t size, int f
 			if (err)
 				SYSLOG("file @ vnode_close(%s) failed with error %d!\n", path, err);
 		} else {
-			SYSLOG("file @ failed to write %s file of %zu size", path, size);
+			SYSLOG("file @ failed to write %s file of %lu size", path, size);
 		}
 	} else {
 		SYSLOG("file @ failed to create file %s with error %d\n", path, err);

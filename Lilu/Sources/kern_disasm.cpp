@@ -64,7 +64,7 @@ size_t Disassembler::instructionSize(mach_vm_address_t addr, size_t min) {
 	
 	cs_err err = cs_errno(handle);
 	if (err != CS_ERR_OK) {
-		SYSLOG("disasm @ capstone failed to disasemble memory (%zu, %p)", insts, result);
+		SYSLOG("disasm @ capstone failed to disasemble memory (%lu, %p)", insts, result);
 		if (result)
 			cs_free(result, insts);
 		return 0;
@@ -80,6 +80,6 @@ size_t Disassembler::instructionSize(mach_vm_address_t addr, size_t min) {
 	if (size >= min)
 		return size;
 	
-	SYSLOG("disasm @ capstone failed to disasemble enough memory (%zu), was %llX address valid?", min, addr);
+	SYSLOG("disasm @ capstone failed to disasemble enough memory (%lu), was %llX address valid?", min, addr);
 	return 0;
 }
