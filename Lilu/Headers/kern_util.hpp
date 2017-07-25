@@ -31,10 +31,10 @@ extern const int version_minor;
 #define SYSLOG(str, ...) IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
 
 #ifdef DEBUG
-#define DBGLOG(str, ...)																\
-	do {																				\
-		if (ADDPR(debugEnabled))										\
-			IOLog( xStringify(PRODUCT_NAME) ": (DEBUG) " str "\n", ## __VA_ARGS__);		\
+#define DBGLOG(str, ...)													\
+	do {																	\
+		if (ADDPR(debugEnabled))											\
+			SYSLOG( "(DEBUG) " str, ## __VA_ARGS__);						\
 	} while(0)
 #else
 #define DBGLOG(str, ...) do { } while(0)

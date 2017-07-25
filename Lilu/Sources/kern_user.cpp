@@ -90,17 +90,17 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 					for (maybe = 0; maybe < sz; maybe++) {
 						if (lookup.c[i][maybe] == value) {
 							// We have a possible match
-							DBGLOG("user @ found a possible match for %zu of %llX\n", i, value);
+							DBGLOG("user @ found a possible match for %lu of %llX\n", i, value);
 							break;
 						}
 					}
 				} else {
 					if (lookup.c[i][maybe] != value) {
 						// We failed
-						DBGLOG("user @ failure not matching %zu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
+						DBGLOG("user @ failure not matching %lu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
 						maybe = sz;
 					} else {
-						DBGLOG("user @ found a possible match for %zu of %llX\n", i, value);
+						DBGLOG("user @ found a possible match for %lu of %llX\n", i, value);
 					}
 				}
 			
@@ -156,11 +156,11 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 								DBGLOG("user @ restored write permssions\n");
 							}
 						} else {
-							SYSLOG("user @ failed to obtain write permssions for %zu\n", sz);
+							SYSLOG("user @ failed to obtain write permssions for %lu\n", sz);
 						}
 					}
 				} else {
-					DBGLOG("user @ failed to match a complete page with %zu\n", maybe);
+					DBGLOG("user @ failed to match a complete page with %lu\n", maybe);
 				}
 			}
 		}
@@ -255,7 +255,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
 					auto res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
-						SYSLOG("user @ failed to change memory protection (%zu, %d)", i, res);
+						SYSLOG("user @ failed to change memory protection (%lu, %d)", i, res);
 						return true;
 					}
 				}
@@ -291,7 +291,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
 					res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
 					if (res != KERN_SUCCESS) {
-						SYSLOG("user @ failed to restore memory protection (%zu, %d)", i, res);
+						SYSLOG("user @ failed to restore memory protection (%lu, %d)", i, res);
 						return true;
 					}
 				}
@@ -392,7 +392,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 								for (size_t i = 0; i < patch.size; i++) {
 									auto v = (applyChanges? patch.find : patch.replace)[i];
 									if (tmp[i] != v) {
-										DBGLOG("user @ miss at %zu: %0.2X vs %0.2X", i, tmp[i], v);
+										DBGLOG("user @ miss at %lu: %02X vs %02X", i, tmp[i], v);
 										break;
 									}
 								}
@@ -460,7 +460,7 @@ size_t UserPatcher::mapAddresses(const char *mapBuf, MapEntry *mapEntries, size_
 }
 
 bool UserPatcher::loadDyldSharedCacheMapping() {
-	DBGLOG("user @ loading files %zu", binaryModSize);
+	DBGLOG("user @ loading files %lu", binaryModSize);
 	
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
@@ -483,7 +483,7 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 			size_t nEntries = mapAddresses(reinterpret_cast<char *>(buffer), entries, binaryModSize);
 			
 			if (nEntries > 0) {
-				DBGLOG("user @ mapped %zu entries out of %zu", nEntries, binaryModSize);
+				DBGLOG("user @ mapped %lu entries out of %lu", nEntries, binaryModSize);
 				
 				for (size_t i = 0; i < binaryModSize; i++) {
 					binaryMod[i]->startTEXT = entries[i].startTEXT;
@@ -494,10 +494,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 				
 				res = true;
 			} else {
-				SYSLOG("user @ failed to map any entry out of %zu", binaryModSize);
+				SYSLOG("user @ failed to map any entry out of %lu", binaryModSize);
 			}
 		} else {
-			SYSLOG("user @ failed to allocate memory for MapEntry %zu", binaryModSize);
+			SYSLOG("user @ failed to allocate memory for MapEntry %lu", binaryModSize);
 		}
 		
 		if (entries) Buffer::deleter(entries);
@@ -513,10 +513,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 }
 
 bool UserPatcher::loadFilesForPatching() {
-	DBGLOG("user @ loading files %zu", binaryModSize);
+	DBGLOG("user @ loading files %lu", binaryModSize);
 
 	for (size_t i = 0; i < binaryModSize; i++) {
-		DBGLOG("user @ requesting file %s at %zu", binaryMod[i]->path, i);
+		DBGLOG("user @ requesting file %s at %lu", binaryMod[i]->path, i);
 		
 		size_t fileSize;
 		auto buf = FileIO::readFileToBuffer(binaryMod[i]->path, fileSize);
@@ -526,25 +526,25 @@ bool UserPatcher::loadFilesForPatching() {
 			void *sectionptr {nullptr};
 			size_t size {0};
 		
-			DBGLOG("user @ have %zu mods for %s (read as %zu)", binaryMod[i]->count, binaryMod[i]->path, fileSize);
+			DBGLOG("user @ have %lu mods for %s (read as %lu)", binaryMod[i]->count, binaryMod[i]->path, fileSize);
 		
 			for (size_t p = 0; p < binaryMod[i]->count; p++) {
 				auto &patch = binaryMod[i]->patches[p];
 				
 				if (!patch.section) {
-					DBGLOG("user @ skipping not requested patch %s for %zu", binaryMod[i]->path, p);
+					DBGLOG("user @ skipping not requested patch %s for %lu", binaryMod[i]->path, p);
 					continue;
 				}
 
 				if (patch.segment >= FileSegment::SegmentTotal) {
-					SYSLOG("user @ skipping patch %s for %zu with invalid segment id %d", binaryMod[i]->path, p, patch.segment);
+					SYSLOG("user @ skipping patch %s for %lu with invalid segment id %d", binaryMod[i]->path, p, patch.segment);
 					continue;
 				}
 				
 				MachInfo::findSectionBounds(buf, vmsegment, vmsection, sectionptr, size,
 											fileSegments[patch.segment], fileSections[patch.segment], patch.cpu);
 				
-				DBGLOG("user @ findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %zu", vmsegment, vmsection, sectionptr, size);
+				DBGLOG("user @ findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %lu", vmsegment, vmsection, sectionptr, size);
 				
 				if (size) {
 					uint8_t *start = reinterpret_cast<uint8_t *>(sectionptr);
@@ -552,7 +552,7 @@ bool UserPatcher::loadFilesForPatching() {
 					size_t skip = patch.skip;
 					size_t count = patch.count;
 					
-					DBGLOG("user @ this patch will start from %zu entry and will replace %zu findings", skip, count);
+					DBGLOG("user @ this patch will start from %lu entry and will replace %lu findings", skip, count);
 					
 					while (start < end && count) {
 						if (!memcmp(start, patch.find, patch.size)) {
@@ -655,7 +655,7 @@ bool UserPatcher::loadLookups() {
 	for (size_t i = 0; i < Lookup::matchNum; i++) {
 		auto &lookupCurr = lookup.c[i];
 		
-		DBGLOG("user @ loading lookup %zu current off is %X", i, off);
+		DBGLOG("user @ loading lookup %lu current off is %X", i, off);
 		
 		auto obtainValues = [&lookupCurr, &off, this]() {
 			for (size_t p = 0; p < lookupStorage.size(); p++) {

@@ -341,7 +341,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 						vmsection = sect->addr;
 						sectionptr = reinterpret_cast<void *>(sect->offset+reinterpret_cast<uintptr_t>(ptr));
 						size = static_cast<size_t>(sect->size);
-						DBGLOG("mach @ found section %lu size %zu in segment %lu\n", vmsection, vmsegment, size);
+						DBGLOG("mach @ found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
 						return;
 					}
 					
@@ -360,7 +360,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 						vmsection = sect->addr;
 						sectionptr = reinterpret_cast<void *>(sect->offset+reinterpret_cast<uintptr_t>(ptr));
 						size = static_cast<size_t>(sect->size);
-						DBGLOG("mach @ found section %lu size %zu in segment %lu\n", vmsection, vmsegment, size);
+						DBGLOG("mach @ found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
 						return;
 					}
 					
@@ -473,7 +473,7 @@ kern_return_t MachInfo::setRunningAddresses(mach_vm_address_t slide, size_t size
 void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 	header = reinterpret_cast<uint8_t *>(running_mh);
 	size = memory_size > 0 ? memory_size : HeaderSize;
-	DBGLOG("mach @ getRunningPosition %p of memory %zu size", header, size);
+	DBGLOG("mach @ getRunningPosition %p of memory %lu size", header, size);
 }
 
 //FIXME: Guard pointer access by HeaderSize

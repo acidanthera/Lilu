@@ -89,7 +89,7 @@ namespace WIOKit {
 						found = proc ? proc(user, res) : true;
 						if (found) {
 							if (bruteCount > 1)
-								DBGLOG("iokit @ bruted %s value in %zu attempts", prefix, bruteCount);
+								DBGLOG("iokit @ bruted %s value in %lu attempts", prefix, bruteCount);
 							if (!proc) {
 								break;
 							}

@@ -53,7 +53,7 @@ LiluAPI::Error LiluAPI::releaseAccess() {
 
 LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug) {
 	
-	DBGLOG("api @ got load request from %s (%zu)", product, version);
+	DBGLOG("api @ got load request from %s (%lu)", product, version);
 	
 	char tmp[16];
 	printDebug = false;
@@ -74,10 +74,10 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const ch
 		}
 		
 		if (!beta) {
-			SYSLOG("api @ automatically disabling %s (%zu) on an unsupported operating system", product, version);
+			SYSLOG("api @ automatically disabling %s (%lu) on an unsupported operating system", product, version);
 			return Error::IncompatibleOS;
 		} else {
-			SYSLOG("api @ force enabling %s (%zu) on an unsupported operating system due to beta flag", product, version);
+			SYSLOG("api @ force enabling %s (%lu) on an unsupported operating system due to beta flag", product, version);
 		}
 	}
 	
