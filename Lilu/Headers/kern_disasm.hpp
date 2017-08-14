@@ -8,6 +8,10 @@
 #ifndef kern_disasm_hpp
 #define kern_disasm_hpp
 
+#ifndef CAPSTONE_HAS_OSXKERNEL
+#define CAPSTONE_HAS_OSXKERNEL 1
+#endif
+
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/capstone/capstone.h>
