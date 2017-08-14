@@ -1,6 +1,11 @@
 Lilu Changelog
 ==============
 
+#### v1.1.7
+- Merged advanced disassembly API (thx Pb and others)
+- Added HDE disassembler for quick instruction decoding (by Vyacheslav Patkov)
+- Updated capstone to 3.0.5 rc3
+
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons
 - Added High Sierra to the list of compatible OS

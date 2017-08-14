@@ -74,6 +74,10 @@
 		CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */; };
 		CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */; };
 		CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */; };
+		CE744A8E1F42100E0077C377 /* hde64.c in Sources */ = {isa = PBXBuildFile; fileRef = CE744A8A1F42100E0077C377 /* hde64.c */; };
+		CE744A8F1F42100E0077C377 /* hde64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8B1F42100E0077C377 /* hde64.h */; };
+		CE744A901F42100E0077C377 /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = CE744A8C1F42100E0077C377 /* LICENSE.txt */; };
+		CE744A911F42100E0077C377 /* table64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8D1F42100E0077C377 /* table64.h */; };
 		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
 		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
 		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
@@ -163,6 +167,10 @@
 		CE405ED51E4A005F00AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_config.hpp; sourceTree = "<group>"; };
 		CE5720AC1E54B7CA00C6B552 /* KnownPlugins.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = KnownPlugins.md; sourceTree = "<group>"; };
+		CE744A8A1F42100E0077C377 /* hde64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hde64.c; sourceTree = "<group>"; };
+		CE744A8B1F42100E0077C377 /* hde64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hde64.h; sourceTree = "<group>"; };
+		CE744A8C1F42100E0077C377 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		CE744A8D1F42100E0077C377 /* table64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table64.h; sourceTree = "<group>"; };
 		CE75B9541EFB619C00D29B40 /* _label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _label.h; sourceTree = "<group>"; };
 		CE75B9551EFB619C00D29B40 /* mac_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_framework.h; sourceTree = "<group>"; };
 		CE75B9561EFB619C00D29B40 /* mac_policy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_policy.h; sourceTree = "<group>"; };
@@ -270,6 +278,7 @@
 				CE2E7BBA1E2C6BAE009AC62A /* Sources */,
 				CEC962481D835DE400E3E772 /* Docs */,
 				1C3E7AC91C84B5E500A6448A /* capstone */,
+				CE744A891F42100E0077C377 /* hde */,
 				CE2E7BBB1E2C6D24009AC62A /* FastCompression */,
 				CE10961B1F22876B00B623FC /* umm_malloc */,
 				1C748C281C21952C0024EED2 /* Products */,
@@ -364,6 +373,17 @@
 			path = Lilu/Library;
 			sourceTree = "<group>";
 		};
+		CE744A891F42100E0077C377 /* hde */ = {
+			isa = PBXGroup;
+			children = (
+				CE744A8A1F42100E0077C377 /* hde64.c */,
+				CE744A8B1F42100E0077C377 /* hde64.h */,
+				CE744A8C1F42100E0077C377 /* LICENSE.txt */,
+				CE744A8D1F42100E0077C377 /* table64.h */,
+			);
+			path = hde;
+			sourceTree = "<group>";
+		};
 		CE75B9531EFB619C00D29B40 /* security */ = {
 			isa = PBXGroup;
 			children = (
@@ -423,6 +443,7 @@
 				1C3E7ADC1C84B61700A6448A /* LEB128.h in Headers */,
 				1C3E7AE11C84B61700A6448A /* MCInst.h in Headers */,
 				CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */,
+				CE744A911F42100E0077C377 /* table64.h in Headers */,
 				1C3E7ADD1C84B61700A6448A /* MathExtras.h in Headers */,
 				1C3E7AF81C84B63000A6448A /* sparc.h in Headers */,
 				1C3E7AF91C84B63000A6448A /* ppc.h in Headers */,
@@ -434,6 +455,7 @@
 				1C3E7AF61C84B63000A6448A /* x86.h in Headers */,
 				1C3E7AE31C84B61700A6448A /* MCInstrDesc.h in Headers */,
 				1C3E7B1A1C84B65400A6448A /* X86InstPrinter.h in Headers */,
+				CE744A8F1F42100E0077C377 /* hde64.h in Headers */,
 				1C3E7AE51C84B61700A6448A /* MCRegisterInfo.h in Headers */,
 				1C3E7AF51C84B63000A6448A /* xcore.h in Headers */,
 			);
@@ -497,6 +519,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CE744A901F42100E0077C377 /* LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -535,6 +558,7 @@
 				1C3E7B161C84B65400A6448A /* X86Module.c in Sources */,
 				1C3E7AE41C84B61700A6448A /* MCRegisterInfo.c in Sources */,
 				1C3E7B2A1C84B65400A6448A /* X86ATTInstPrinter.c in Sources */,
+				CE744A8E1F42100E0077C377 /* hde64.c in Sources */,
 				1C3E7B191C84B65400A6448A /* X86IntelInstPrinter.c in Sources */,
 				1C3E7ADB1C84B61700A6448A /* cs.c in Sources */,
 				CE2E7BAF1E2C6BAA009AC62A /* kern_compression.cpp in Sources */,
@@ -675,7 +699,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.1.6;
+				MODULE_VERSION = 1.1.7;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -731,7 +755,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.1.6;
+				MODULE_VERSION = 1.1.7;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

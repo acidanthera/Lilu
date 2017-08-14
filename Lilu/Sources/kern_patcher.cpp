@@ -40,9 +40,6 @@ void KernelPatcher::init() {
 }
 
 void KernelPatcher::deinit() {
-	// Deinitialise disassembler
-	disasm.deinit();
-	
 	// Remove the patches
 	if (kinfos.size() > 0) {
 		if (kinfos[KernelID]->setKernelWriting(true) == KERN_SUCCESS) {
@@ -366,12 +363,6 @@ mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_
 uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribute__((section("__TEXT,__text")));
 
 mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
-	if (!disasm.init()) {
-		SYSLOG("patcher @ failed to use disasm");
-		code = Error::DisasmFailure;
-		return 0;
-	}
-
 	// Doing it earlier to workaround stack corruption due to a possible 10.12 bug.
 	// Otherwise in rare cases there will be random KPs with corrupted stack data.
 	if (kinfos[KernelID]->setKernelWriting(true) != KERN_SUCCESS) {
@@ -381,7 +372,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	}
 	
 	// Relative destination offset
-	size_t off = disasm.instructionSize(func, min);
+	size_t off = Disassembler::quickInstructionSize(func, min);
 	
 	if (!off || off > PAGE_SIZE - LongJump) {
 		kinfos[KernelID]->setKernelWriting(false);
