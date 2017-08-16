@@ -188,7 +188,7 @@ private:
 	/**
 	 *  Api lock
 	 */
-	IOSimpleLock *access {nullptr};
+	IOLock *access {nullptr};
 	
 	/**
 	 *  No longer accept any requests
