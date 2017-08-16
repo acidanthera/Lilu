@@ -63,4 +63,3 @@ EXPORT extern "C" kern_return_t ADDPR(kern_stop)(kmod_info_t *, void *) {
 	// It is not safe to unload Lilu plugins!
 	return KERN_FAILURE;
 }
-

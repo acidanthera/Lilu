@@ -14,12 +14,12 @@
 LiluAPI lilu;
 
 void LiluAPI::init() {
-	access = IOSimpleLockAlloc();
+	access = IOLockAlloc();
 }
 
 void LiluAPI::deinit() {
 	if (access) {
-		IOSimpleLockFree(access);
+		IOLockFree(access);
 		access = nullptr;
 	}
 }
@@ -31,15 +31,15 @@ LiluAPI::Error LiluAPI::requestAccess(size_t version, bool check) {
 	}
 	
 	if (check) {
-		if (!IOSimpleLockTryLock(access)) {
+		if (!IOLockTryLock(access)) {
 			return Error::LockError;
 		}
 	} else {
-		IOSimpleLockLock(access);
+		IOLockLock(access);
 	}
 	
 	if (apiRequestsOver) {
-		IOSimpleLockUnlock(access);
+		IOLockUnlock(access);
 		return Error::TooLate;
 	}
 	
@@ -47,7 +47,7 @@ LiluAPI::Error LiluAPI::requestAccess(size_t version, bool check) {
 }
 
 LiluAPI::Error LiluAPI::releaseAccess() {
-	IOSimpleLockUnlock(access);
+	IOLockUnlock(access);
 	return Error::NoError;
 }
 
@@ -195,9 +195,9 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 
 void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	// Block any new requests
-	IOSimpleLockLock(access);
+	IOLockLock(access);
 	apiRequestsOver = true;
-	IOSimpleLockUnlock(access);
+	IOLockUnlock(access);
 	
 	// Process the callbacks
 	for (size_t i = 0; i < patcherLoadedCallbacks.size(); i++) {
