@@ -6,6 +6,7 @@ Lilu Changelog
 - Added HDE disassembler for quick instruction decoding (by Vyacheslav Patkov)
 - Updated capstone to 3.0.5 rc3
 - Fixed load API lock type preventing dynamic memory allocation (thx Pb)
+- Added setInterrupts API
 
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons

@@ -209,6 +209,16 @@ public:
 	EXPORT mach_vm_address_t findKernelBase();
 
 	/**
+	 *  enable/disable interrupt handling
+	 *  this is similar to ml_set_interrupts_enabled except the return value
+	 *
+	 *  @param enable the desired value
+	 *
+	 *  @return true if changed the value and false if it is unchanged
+	 */
+	EXPORT static bool setInterrupts(bool enable);
+	
+	/**
 	 *  enable/disable kernel memory write protection
 	 *
 	 *  @param enable the desired value
