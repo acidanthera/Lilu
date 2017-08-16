@@ -136,6 +136,17 @@ mach_vm_address_t MachInfo::findKernelBase() {
 	return 0;
 }
 
+bool MachInfo::setInterrupts(bool enable) {
+	unsigned long flags;
+	
+	if (enable)
+		asm volatile("pushf; pop %0; cli" : "=r"(flags));
+	else
+		asm volatile("pushf; pop %0; sti" : "=r"(flags));
+	
+	return static_cast<bool>(flags & EFL_IF) != enable;
+}
+
 kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
 	static bool syncState = false;
 	static bool interruptsDisabled = false;
@@ -151,9 +162,7 @@ kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
 	
 	if (enable) {
 		// Disable interrupts
-		unsigned long flags;
-		asm volatile("pushf; pop %0; cli" : "=r"(flags));
-		interruptsDisabled = (flags & EFL_IF) == 0;
+		interruptsDisabled = !setInterrupts(false);
 	}
 	
 	if (setWPBit(!enable) != KERN_SUCCESS) {
@@ -164,7 +173,7 @@ kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
 	
 	if (!enable && !interruptsDisabled) {
 		// Enable interrupts if they were on previously
-		asm volatile("sti; nop");
+		setInterrupts(true);
 	}
 	
 	return res;
