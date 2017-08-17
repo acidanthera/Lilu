@@ -115,7 +115,7 @@ namespace Patch {
 	}
 }
 
-#ifdef KEXTPATCH_SUPPORT
+#ifdef LILU_KEXTPATCH_SUPPORT
 
 /**
  *  Taken from libkern/libkern/OSKextLibPrivate.h
@@ -139,6 +139,6 @@ struct OSKextLoadedKextSummaryHeader {
 	OSKextLoadedKextSummary summaries[0];
 };
 
-#endif /* KEXTPATCH_SUPPORT */
+#endif /* LILU_KEXTPATCH_SUPPORT */
 
 #endif /* kern_patcher_private_h */

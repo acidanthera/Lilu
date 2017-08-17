@@ -9,6 +9,8 @@
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_util.hpp>
 
+#ifndef LILU_CUSTOM_IOKIT_INIT
+
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
 bool PRODUCT_NAME::init(OSDictionary *dict) {
@@ -33,7 +35,11 @@ void PRODUCT_NAME::stop(IOService *provider) {
 	IOService::stop(provider);
 }
 
+#endif /* LILU_CUSTOM_IOKIT_INIT */
+
 bool ADDPR(debugEnabled) = false;
+
+#ifndef LILU_CUSTOM_KMOD_INIT
 
 EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 	kern_return_t ret = KERN_FAILURE;
@@ -63,3 +69,5 @@ EXPORT extern "C" kern_return_t ADDPR(kern_stop)(kmod_info_t *, void *) {
 	// It is not safe to unload Lilu plugins!
 	return KERN_FAILURE;
 }
+
+#endif /* LILU_CUSTOM_KMOD_INIT */

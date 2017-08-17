@@ -11,10 +11,10 @@
 
 #include <mach/mach_types.h>
 
-#ifdef KEXTPATCH_SUPPORT
+#ifdef LILU_KEXTPATCH_SUPPORT
 static KernelPatcher *that {nullptr};
 static SInt32 updateSummariesEntryCount;
-#endif /* KEXTPATCH_SUPPORT */
+#endif /* LILU_KEXTPATCH_SUPPORT */
 
 KernelPatcher::Error KernelPatcher::getError() {
 	return code;
@@ -92,7 +92,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 	return INVALID;
 }
 
-#ifdef KEXTPATCH_SUPPORT
+#ifdef LILU_KEXTPATCH_SUPPORT
 size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 	if (!info) {
 		SYSLOG("patcher @ loadKinfo got a null info");
@@ -146,7 +146,7 @@ mach_vm_address_t KernelPatcher::solveSymbol(size_t id, const char *symbol) {
 	return 0;
 }
 
-#ifdef KEXTPATCH_SUPPORT
+#ifdef LILU_KEXTPATCH_SUPPORT
 void KernelPatcher::setupKextListening() {
 	// We have already done this
 	if (that) return;
@@ -258,7 +258,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 		code = Error::MemoryIssue;
 	}
 }
-#endif /* KEXTPATCH_SUPPORT */
+#endif /* LILU_KEXTPATCH_SUPPORT */
 
 void KernelPatcher::activate() {
 	activated = true;
@@ -412,7 +412,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	return 0;
 }
 
-#ifdef KEXTPATCH_SUPPORT
+#ifdef LILU_KEXTPATCH_SUPPORT
 void KernelPatcher::onKextSummariesUpdated() {
 	if (that) {
 		// macOS 10.12 generates an interrupt during this call but unlike 10.11 and below
@@ -494,4 +494,4 @@ void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries
 		}
 	}
 }
-#endif /* KEXTPATCH_SUPPORT */
+#endif /* LILU_KEXTPATCH_SUPPORT */

@@ -10,7 +10,7 @@
 
 #include <Headers/kern_config.hpp>
 
-#ifdef COMPRESSION_SUPPORT
+#ifdef LILU_COMPRESSION_SUPPORT
 
 #include <Headers/kern_util.hpp>
 #include <stdint.h>
@@ -47,6 +47,6 @@ struct CompressedHeader {
  */
 EXPORT uint8_t *decompressData(uint32_t compression, uint32_t dstlen, uint8_t *src, uint32_t srclen);
 
-#endif /* COMPRESSION_SUPPORT */
+#endif /* LILU_COMPRESSION_SUPPORT */
 
 #endif /* kern_compression_hpp */

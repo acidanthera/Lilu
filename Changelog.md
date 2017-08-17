@@ -7,6 +7,7 @@ Lilu Changelog
 - Updated capstone to 3.0.5 rc3
 - Fixed load API lock type preventing dynamic memory allocation (thx Pb)
 - Added setInterrupts API
+- Added an option to define custom plugin entry points
 
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons
