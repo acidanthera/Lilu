@@ -27,7 +27,13 @@ struct PluginConfiguration {
 	void (*pluginStart)();		// Main function
 };
 
+#ifndef LILU_CUSTOM_KMOD_INIT
+
 extern PluginConfiguration ADDPR(config);
+
+#endif /* LILU_CUSTOM_KMOD_INIT */
+
+#ifndef LILU_CUSTOM_IOKIT_INIT
 
 class EXPORT PRODUCT_NAME : public IOService {
 	OSDeclareDefaultStructors(PRODUCT_NAME)
@@ -36,5 +42,7 @@ public:
 	bool start(IOService *provider) override;
 	void stop(IOService *provider) override;
 };
+
+#endif /* LILU_CUSTOM_IOKIT_INIT */
 
 #endif /* kern_start_hpp */
