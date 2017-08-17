@@ -7,7 +7,7 @@
 
 #include <Headers/kern_config.hpp>
 
-#ifdef COMPRESSION_SUPPORT
+#ifdef LILU_COMPRESSION_SUPPORT
 
 #include <Headers/kern_compression.hpp>
 #include <Headers/kern_util.hpp>
@@ -91,4 +91,4 @@ uint8_t *decompressData(uint32_t compression, uint32_t dstlen, uint8_t *src, uin
 	return 0;
 }
 
-#endif /* COMPRESSION_SUPPORT */
+#endif /* LILU_COMPRESSION_SUPPORT */
