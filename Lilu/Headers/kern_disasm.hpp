@@ -131,6 +131,9 @@ public:
 		x86_insn ins;       // instruction
 		bool sub;           // relevant only for X86_INS_CALL, if its arg is X86_OP_IMM
 		bool addr;          // if you want to return the address of exact inst in sig
+		
+		static DisasmSig *create() { return new DisasmSig; }
+		static void deleter(DisasmSig *sig) { delete sig; }
 	};
 	
 	/**
@@ -144,7 +147,7 @@ public:
 	 *
 	 *  @return direct address of pattern start on success, else 0
 	 */
-	EXPORT mach_vm_address_t disasmSig(mach_vm_address_t addr, evector<DisasmSig *> &sig, size_t num, size_t lookup_size);
+	EXPORT mach_vm_address_t disasmSig(mach_vm_address_t addr, evector<DisasmSig *, DisasmSig::deleter> &sig, size_t num, size_t lookup_size);
 };
 
 #endif /* kern_disasm_hpp */

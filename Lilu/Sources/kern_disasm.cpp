@@ -216,7 +216,7 @@ mach_vm_address_t Disassembler::disasmNthIns(mach_vm_address_t addr, x86_insn in
 	return 0;
 }
 
-mach_vm_address_t Disassembler::disasmSig(mach_vm_address_t addr, evector<DisasmSig *> &sig, size_t num, size_t lookup_size) {
+mach_vm_address_t Disassembler::disasmSig(mach_vm_address_t addr, evector<DisasmSig *, DisasmSig::deleter> &sig, size_t num, size_t lookup_size) {
 	cs_insn *result {nullptr};
 	size_t disasm_size = disasmBuf(addr, lookup_size, &result);
 	
