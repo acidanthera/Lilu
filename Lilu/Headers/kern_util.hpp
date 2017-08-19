@@ -11,6 +11,7 @@
 #include <Headers/kern_config.hpp>
 
 #include <libkern/libkern.h>
+#include <mach/vm_types.h>
 #include <mach/vm_prot.h>
 #include <IOKit/IOLib.h>
 
@@ -27,6 +28,8 @@ extern bool ADDPR(debugEnabled);
 extern const int version_major;
 // Kernel version minor
 extern const int version_minor;
+// Kernel map
+extern vm_map_t kernel_map;
 
 #define SYSLOG(str, ...) IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
 

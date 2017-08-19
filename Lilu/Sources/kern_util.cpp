@@ -13,7 +13,6 @@
 #include <mach/vm_map.h>
 
 bool ADDPR(debugEnabled) = false;
-extern vm_map_t kernel_map;
 
 const char *strstr(const char *stack, const char *needle, size_t len) {
 	if (!len && !(len = strlen(needle)))
