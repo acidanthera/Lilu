@@ -8,6 +8,7 @@ Lilu Changelog
 - Fixed load API lock type preventing dynamic memory allocation (thx Pb)
 - Added setInterrupts API
 - Added an option to define custom plugin entry points
+- Added const reference evector API
 
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons

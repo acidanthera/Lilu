@@ -255,13 +255,24 @@ public:
 	}
 	
 	/**
-	 *  Return evector element
+	 *  Return evector element reference
 	 *
 	 *  @param index array index
 	 *
 	 *  @return the element at provided index
 	 */
 	T &operator [](size_t index) {
+		return ptr[index];
+	}
+	
+	/**
+	 *  Return evector const element reference
+	 *
+	 *  @param index array index
+	 *
+	 *  @return the element at provided index
+	 */
+	const T &operator [](size_t index) const {
 		return ptr[index];
 	}
 	
