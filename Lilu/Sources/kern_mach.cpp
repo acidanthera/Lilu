@@ -234,13 +234,23 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 				fat_offset = off;
 				return KERN_SUCCESS;
 			case FAT_MAGIC: {
-				uint32_t num = _OSSwapInt32(reinterpret_cast<fat_header *>(buffer)->nfat_arch);
+				uint32_t num = OSSwapInt32(reinterpret_cast<fat_header *>(buffer)->nfat_arch);
 				for (uint32_t i = 0; i < num; i++) {
 					auto arch = reinterpret_cast<fat_arch *>(buffer + i*sizeof(fat_arch) + sizeof(fat_header));
-					if (_OSSwapInt32(arch->cputype) == CPU_TYPE_X86_64)
+					if (OSSwapInt32(arch->cputype) == CPU_TYPE_X86_64)
+						return readMachHeader(buffer, vnode, ctxt, OSSwapInt32(arch->offset));
+				}
+				SYSLOG("mach @ magic failed to find a x86_64 mach");
+				return KERN_FAILURE;
+			}
+			case FAT_CIGAM: {
+				uint32_t num = reinterpret_cast<fat_header *>(buffer)->nfat_arch;
+				for (uint32_t i = 0; i < num; i++) {
+					auto arch = reinterpret_cast<fat_arch *>(buffer + i*sizeof(fat_arch) + sizeof(fat_header));
+					if (arch->cputype == CPU_TYPE_X86_64)
 						return readMachHeader(buffer, vnode, ctxt, _OSSwapInt32(arch->offset));
 				}
-				SYSLOG("mach @ failed to find a x86_64 mach");
+				SYSLOG("mach @ cigam failed to find a x86_64 mach");
 				return KERN_FAILURE;
 			}
 #ifdef LILU_COMPRESSION_SUPPORT
