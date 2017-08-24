@@ -34,27 +34,44 @@ namespace WIOKit {
 	}
 	
 	int getComputerModel() {
+		char model[64];
+		if (getComputerInfo(model, sizeof(model), nullptr, 0) && model[0] != '\0') {
+			if (strstr(model, "Book", strlen("Book")))
+				return ComputerModel::ComputerLaptop;
+			else
+				return ComputerModel::ComputerDesktop;
+		}
+		return ComputerModel::ComputerAny;
+	}
+	
+	bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz) {
 		auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
 		if (entry) {
-			auto prop =  entry->getProperty("compatible");
-			if (prop) {
-				auto data = OSDynamicCast(OSData, prop);
-				if (data) {
-					//TODO: make this more reliable
-					if (strstr(static_cast<const char *>(data->getBytesNoCopy()), "Book", strlen("Book"))) {
-						return ComputerModel::ComputerLaptop;
-					} else {
-						return ComputerModel::ComputerDesktop;
-					}
+			if (model && modelsz > 0) {
+				auto data = OSDynamicCast(OSData, entry->getProperty("model"));
+				if (data && data->getLength() > 0) {
+					strlcpy(model, static_cast<const char *>(data->getBytesNoCopy()), modelsz);
 				} else {
-					DBGLOG("iokit @ compatible property has invalid format");
+					DBGLOG("iokit @ failed to get valid model property");
+					model[0] = '\0';
 				}
-			} else {
-				DBGLOG("iokit @ failed to get compatible property");
 			}
+			
+			if (board && boardsz > 0) {
+				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
+				if (data && data->getLength() > 0) {
+					strlcpy(board, static_cast<const char *>(data->getBytesNoCopy()), boardsz);
+				} else {
+					DBGLOG("iokit @ failed to get valid board-id property");
+					board[0] = '\0';
+				}
+			}
+			
+			return true;
 		}
+		
 		DBGLOG("iokit @ failed to get DT entry");
-		return ComputerModel::ComputerAny;
+		return false;
 	}
 	
 	IORegistryEntry *findEntryByPrefix(const char *path, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *), bool brute, void *user) {

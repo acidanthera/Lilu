@@ -192,7 +192,7 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 				DBGLOG("user @ caught %s performing injection", path);
 				if (orgProcExecSwitchTask) {
 					DBGLOG("user @ requesting proc_exec_switch_task patch");
-					strncpy(pendingPath, path, MAXPATHLEN);
+					strlcpy(pendingPath, path, MAXPATHLEN);
 					pendingPathLen = len;
 					pendingPatchCallback = true;
 				} else {

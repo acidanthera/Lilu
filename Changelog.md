@@ -10,6 +10,7 @@ Lilu Changelog
 - Added an option to define custom plugin entry points
 - Added const reference evector API
 - Added FAT_CIGAM Mach-O support
+- Added WIOKit::getComputerInfo API and improved some other WIOKit APIs
 
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons
