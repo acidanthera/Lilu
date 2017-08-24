@@ -25,30 +25,49 @@ namespace WIOKit {
 	static constexpr size_t bruteMax {0x10000000};
 
 	/**
-	 *  Read OSData
+	 *  Read typed OSData
 	 *
-	 *  @param sect   IORegistryEntry section
+	 *  @param obj    read object
 	 *  @param value  read value
 	 *  @param name   propert name
 	 *
 	 *  @return true on success
 	 */
 	template <typename T>
-	bool getOSDataValue(IORegistryEntry *sect, const char *name, T &value) {
-		auto obj = sect->getProperty(name);
+	bool getOSDataValue(OSObject *obj, const char *name, T &value) {
 		if (obj) {
 			auto data = OSDynamicCast(OSData, obj);
 			if (data && data->getLength() == sizeof(T)) {
 				value = *static_cast<const T *>(data->getBytesNoCopy());
-				DBGLOG("util @ getOSData %s has %llX value", name, static_cast<uint64_t>(value));
+				DBGLOG("iokit @ getOSData %s has %llX value", name, static_cast<uint64_t>(value));
 				return true;
 			} else {
-				SYSLOG("util @ getOSData %s has unexpected format", name);
+				SYSLOG("iokit @ getOSData %s has unexpected format", name);
 			}
 		} else {
-			DBGLOG("util @ getOSData %s was not found", name);
+			DBGLOG("iokit @ getOSData %s was not found", name);
 		}
-		return false;;
+		return false;
+	}
+	
+	/**
+	 *  Read typed OSData from IORegistryEntry
+	 *
+	 *  @see getOSDataValue
+	 */
+	template <typename T>
+	bool getOSDataValue(IORegistryEntry *sect, const char *name, T &value) {
+		return getOSDataValue(sect->getProperty(name), name, value);
+	}
+	
+	/**
+	 *  Read typed OSData from IORegistryEntry
+	 *
+	 *  @see getOSDataValue
+	 */
+	template <typename T>
+	bool getOSDataValue(OSDictionary *dict, const char *name, T &value) {
+		return getOSDataValue(dict->getObject(name), name, value);
 	}
 
 	/**
@@ -66,6 +85,7 @@ namespace WIOKit {
 	 */
 	struct ComputerModel {
 		enum {
+			ComputerInvalid = 0x0,
 			ComputerLaptop = 0x1,
 			ComputerDesktop = 0x2,
 			ComputerAny = ComputerLaptop | ComputerDesktop
@@ -73,11 +93,23 @@ namespace WIOKit {
 	};
 	
 	/**
-	 *  Retrieve the computer model (hw.model syscall analogue that actually works)
+	 *  Retrieve the computer type
 	 *
-	 *  @return valid computer model or ComputerAny
+	 *  @return valid computer type or ComputerAny
 	 */
 	EXPORT int getComputerModel();
+	
+	/**
+	 *  Retrieve computer model and/or board-id properties
+	 *
+	 *  @param model    model name output buffer or null
+	 *  @param modelsz  model name output buffer size
+	 *  @param board    board identifier output buffer or null
+	 *  @param boardsz  board identifier output buffer size
+	 *
+	 *  @return true if relevant properties already are available, otherwise buffers are unchanged
+	 */
+	EXPORT bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz);
 	
 	/**
 	 *  Retrieve an ioreg entry by path/prefix
