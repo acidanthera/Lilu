@@ -34,7 +34,7 @@ namespace WIOKit {
 	 *  @return true on success
 	 */
 	template <typename T>
-	bool getOSDataValue(OSObject *obj, const char *name, T &value) {
+	bool getOSDataValue(const OSObject *obj, const char *name, T &value) {
 		if (obj) {
 			auto data = OSDynamicCast(OSData, obj);
 			if (data && data->getLength() == sizeof(T)) {
@@ -56,7 +56,7 @@ namespace WIOKit {
 	 *  @see getOSDataValue
 	 */
 	template <typename T>
-	bool getOSDataValue(IORegistryEntry *sect, const char *name, T &value) {
+	bool getOSDataValue(const IORegistryEntry *sect, const char *name, T &value) {
 		return getOSDataValue(sect->getProperty(name), name, value);
 	}
 	
@@ -66,7 +66,7 @@ namespace WIOKit {
 	 *  @see getOSDataValue
 	 */
 	template <typename T>
-	bool getOSDataValue(OSDictionary *dict, const char *name, T &value) {
+	bool getOSDataValue(const OSDictionary *dict, const char *name, T &value) {
 		return getOSDataValue(dict->getObject(name), name, value);
 	}
 
