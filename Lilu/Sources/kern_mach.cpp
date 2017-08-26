@@ -140,9 +140,9 @@ bool MachInfo::setInterrupts(bool enable) {
 	unsigned long flags;
 	
 	if (enable)
-		asm volatile("pushf; pop %0; cli" : "=r"(flags));
-	else
 		asm volatile("pushf; pop %0; sti" : "=r"(flags));
+	else
+		asm volatile("pushf; pop %0; cli" : "=r"(flags));
 	
 	return static_cast<bool>(flags & EFL_IF) != enable;
 }
