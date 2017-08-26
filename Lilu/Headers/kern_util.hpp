@@ -294,7 +294,7 @@ public:
 			kern_os_free(ptr);
 			ptr = nullptr;
 		} else {
-			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt)*sizeof(T *)));
+			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt)*sizeof(T)));
 			if (nPtr) {
 				ptr = nPtr;
 			} else {
@@ -313,7 +313,7 @@ public:
 	 *  @return true on success
 	 */
 	bool push_back(T &element) {
-		T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt+1)*sizeof(T *)));
+		T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt+1)*sizeof(T)));
 		if (nPtr) {
 			ptr = nPtr;
 			ptr[cnt] = element;
@@ -333,7 +333,7 @@ public:
 	 *  @return true on success
 	 */
 	bool push_back(T &&element) {
-		T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt+1)*sizeof(T *)));
+		T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt+1)*sizeof(T)));
 		if (nPtr) {
 			ptr = nPtr;
 			ptr[cnt] = element;
