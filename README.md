@@ -30,7 +30,7 @@ Add `-liluoff` to disable Lilu.
 Add `-liluslow` to enable legacy user patcher.  
 Add `-lilulowmem` to disable kernel unpack (disables Lilu in recovery mode).  
 Add `-lilubeta` to enable Lilu on unsupported os versions (10.13 and below are enabled by default).  
-Add `-lilubetaall` to enable Lilu and all loaded plugins on unsupported os versions (use _very_ varefully)
+Add `-lilubetaall` to enable Lilu and all loaded plugins on unsupported os versions (use _very_ carefully)  
 Add `-liluforce` to enable Lilu regardless of the os, installer, or recovery.
 
 #### Discussion
