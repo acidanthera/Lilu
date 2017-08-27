@@ -94,14 +94,15 @@ bool Configuration::getBootArguments() {
 	isDisabled = false;
 	char tmp[16];
 	
+	betaForAll = PE_parse_boot_argn(bootargBetaAll, tmp, sizeof(tmp));
+	
 	isDisabled |= PE_parse_boot_argn(bootargOff, tmp, sizeof(tmp));
 	if (!PE_parse_boot_argn(bootargForce, tmp, sizeof(tmp))) {
 		isDisabled |= PE_parse_boot_argn("-s", tmp, sizeof(tmp));
 		isDisabled |= PE_parse_boot_argn("-x", tmp, sizeof(tmp));
 	
-		
 		if (!KernelPatcher::compatibleKernel(minKernel, maxKernel)) {
-			if (!PE_parse_boot_argn(bootargBeta, tmp, sizeof(tmp))) {
+			if (!betaForAll && !PE_parse_boot_argn(bootargBeta, tmp, sizeof(tmp))) {
 				SYSLOG("config @ automatically disabling on an unsupported operating system");
 				isDisabled = true;
 			} else if (!isDisabled) {

@@ -12,6 +12,7 @@ Lilu Changelog
 - Added FAT_CIGAM Mach-O support
 - Added WIOKit::getComputerInfo API and improved some other WIOKit APIs
 - Added support of storing larger than pointer types in evector
+- Added `-lilubetaall` boot argument to skip version checking for all plugins
 
 #### v1.1.6
 - Ignored disabled kexts earlier for speed reasons
