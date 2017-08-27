@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_config.hpp>
+#include <PrivateHeaders/kern_config.hpp>
 #include <Headers/kern_api.hpp>
 
 #include <IOKit/IOLib.h>
@@ -64,13 +65,11 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const ch
 	}
 	
 	if (!KernelPatcher::compatibleKernel(min, max)) {
-		bool beta = false;
-		
-		for (size_t i = 0; i < betaArgNum; i++) {
-			if (PE_parse_boot_argn(betaArg[i], tmp, sizeof(tmp))) {
+		bool beta = config.betaForAll;
+
+		for (size_t i = 0; i < betaArgNum && !beta; i++) {
+			if (PE_parse_boot_argn(betaArg[i], tmp, sizeof(tmp)))
 				beta = true;
-				break;
-			}
 		}
 		
 		if (!beta) {
