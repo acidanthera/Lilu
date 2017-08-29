@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.1.8
+- Added more handy reporting macros
+
 #### v1.1.7
 - Merged advanced disassembly API (thx Pb and others)
 - Added HDE disassembler for quick instruction decoding (by Vyacheslav Patkov)
