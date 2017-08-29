@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.1.8
 - Added more handy reporting macros
+- Enabled Lilu in safe mode by default
 
 #### v1.1.7
 - Merged advanced disassembly API (thx Pb and others)
