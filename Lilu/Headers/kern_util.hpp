@@ -11,6 +11,7 @@
 #include <Headers/kern_config.hpp>
 
 #include <libkern/libkern.h>
+#include <libkern/OSDebug.h>
 #include <mach/vm_types.h>
 #include <mach/vm_prot.h>
 #include <IOKit/IOLib.h>
@@ -31,7 +32,11 @@ extern const int version_minor;
 // Kernel map
 extern vm_map_t kernel_map;
 
-#define SYSLOG(str, ...) IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
+#define SYSLOG(str, ...)   IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
+
+#define SYSTRACE(str, ...) OSReportWithBacktrace( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
+
+#define PANIC(str, ...)    (panic)( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
 
 #ifdef DEBUG
 #define DBGLOG(str, ...)													\
@@ -39,8 +44,14 @@ extern vm_map_t kernel_map;
 		if (ADDPR(debugEnabled))											\
 			SYSLOG( "(DEBUG) " str, ## __VA_ARGS__);						\
 	} while(0)
+#define DBGTRACE(str, ...)													\
+	do {																	\
+		if (ADDPR(debugEnabled))											\
+			SYSTRACE( "(DEBUG) " str, ## __VA_ARGS__);						\
+	} while (0)
 #else
 #define DBGLOG(str, ...) do { } while(0)
+#define DBGTRACE(str, ...) do { } while(0)
 #endif
 
 #define EXPORT __attribute__((visibility("default")))

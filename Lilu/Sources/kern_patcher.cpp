@@ -429,7 +429,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 		
 		if (getKernelVersion() >= KernelVersion::Sierra) {
 			if (OSIncrementAtomic(&updateSummariesEntryCount) != 0) {
-				panic("onKextSummariesUpdated entered another time");
+				PANIC("onKextSummariesUpdated entered another time");
 			}
 			
 			that->orgUpdateLoadedKextSummaries();
@@ -467,7 +467,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 		}
 		
 		if (getKernelVersion() >= KernelVersion::Sierra && OSDecrementAtomic(&updateSummariesEntryCount) != 1) {
-			panic("onKextSummariesUpdated left another time");
+			PANIC("onKextSummariesUpdated left another time");
 		}
 	}
 }
