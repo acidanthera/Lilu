@@ -76,7 +76,6 @@
 		CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */; };
 		CE744A8E1F42100E0077C377 /* hde64.c in Sources */ = {isa = PBXBuildFile; fileRef = CE744A8A1F42100E0077C377 /* hde64.c */; };
 		CE744A8F1F42100E0077C377 /* hde64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8B1F42100E0077C377 /* hde64.h */; };
-		CE744A901F42100E0077C377 /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = CE744A8C1F42100E0077C377 /* LICENSE.txt */; };
 		CE744A911F42100E0077C377 /* table64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8D1F42100E0077C377 /* table64.h */; };
 		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
 		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
@@ -519,7 +518,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CE744A901F42100E0077C377 /* LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
