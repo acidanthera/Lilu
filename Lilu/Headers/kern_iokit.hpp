@@ -86,7 +86,7 @@ namespace WIOKit {
 	struct ComputerModel {
 		enum {
 			ComputerInvalid = 0x0,
-			ComputerLaptop = 0x1,
+			ComputerLaptop  = 0x1,
 			ComputerDesktop = 0x2,
 			ComputerAny = ComputerLaptop | ComputerDesktop
 		};

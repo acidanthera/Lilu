@@ -56,6 +56,8 @@ extern vm_map_t kernel_map;
 
 #define EXPORT __attribute__((visibility("default")))
 
+#define PACKED __attribute__((packed))
+
 /**
  *  Two-way substring search
  *
@@ -104,14 +106,14 @@ extern "C" {
  *  Known kernel versions
  */
 enum KernelVersion {
-	SnowLeopard = 10,
-	Lion = 11,
-	MountainLion = 12,
-	Mavericks = 13,
-	Yosemite = 14,
-	ElCapitan = 15,
-	Sierra = 16,
-	HighSierra = 17
+	SnowLeopard   = 10,
+	Lion          = 11,
+	MountainLion  = 12,
+	Mavericks     = 13,
+	Yosemite      = 14,
+	ElCapitan     = 15,
+	Sierra        = 16,
+	HighSierra    = 17
 };
 
 /**
@@ -154,12 +156,23 @@ constexpr size_t parseModuleVersion(const char *version) {
 namespace Buffer {
 	template <typename T>
 	T *create(size_t size) {
-		return new T[size];
+		return static_cast<T *>(kern_os_malloc(sizeof(T) * size));
+	}
+	
+	template <typename T>
+	bool resize(T *&buf, size_t size) {
+		auto nbuf = static_cast<T *>(kern_os_realloc(buf, sizeof(T) * size));
+		if (nbuf) {
+			buf = nbuf;
+			return true;
+		}
+		
+		return false;
 	}
 	
 	template <typename T>
 	void deleter(T *buf) {
-		delete[] buf;
+		kern_os_cfree(buf);
 	}
 }
 
@@ -228,6 +241,7 @@ struct ppair {
 /**
  *  Embedded vector-like container
  *  You muse call deinit before destruction
+ *  Ugh, someone, please, port libc++ to XNU...
  *
  *  @param T        held type
  *  @param deleter  type destructor
@@ -236,6 +250,7 @@ template <typename T, void (*deleter)(T)=emptyDeleter<T>>
 class evector {
 	T *ptr {nullptr};
 	size_t cnt {0};
+	size_t rsvd {0};
 public:
 	/**
 	 *  Return evector size
@@ -288,6 +303,27 @@ public:
 	}
 	
 	/**
+	 *  Reserve memory for at least N elements
+	 *
+	 *  @param num  amount of elements
+	 *
+	 *  @return elements ptr or null
+	 */
+	T *reserve(size_t num) {
+		if (rsvd < num) {
+			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, num * sizeof(T)));
+			if (nPtr) {
+				ptr = nPtr;
+				rsvd = num;
+			} else {
+				return nullptr;
+			}
+		}
+		
+		return ptr;
+	}
+	
+	/**
 	 *  Erase evector element
 	 *
 	 *  @param index element index
@@ -295,22 +331,14 @@ public:
 	 *  @return true on success
 	 */
 	bool erase(size_t index) {
-		// Free the memory
 		deleter(ptr[index]);
-		// Shift the items
-		for (size_t i = index+1; i < cnt; i++) ptr[i-1] = ptr[i];
-		// Reduce the memory used
-		cnt--;
+		if (--cnt != index)
+			memmove(ptr + index, ptr + index + 1, cnt - index);
+
 		if (cnt == 0) {
 			kern_os_free(ptr);
 			ptr = nullptr;
-		} else {
-			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt)*sizeof(T)));
-			if (nPtr) {
-				ptr = nPtr;
-			} else {
-				return false;
-			}
+			rsvd = 0;
 		}
 
 		return true;
@@ -324,9 +352,7 @@ public:
 	 *  @return true on success
 	 */
 	bool push_back(T &element) {
-		T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt+1)*sizeof(T)));
-		if (nPtr) {
-			ptr = nPtr;
+		if (reserve(cnt+1)) {
 			ptr[cnt] = element;
 			cnt++;
 			return true;
@@ -344,9 +370,7 @@ public:
 	 *  @return true on success
 	 */
 	bool push_back(T &&element) {
-		T *nPtr = static_cast<T *>(kern_os_realloc(ptr, (cnt+1)*sizeof(T)));
-		if (nPtr) {
-			ptr = nPtr;
+		if (reserve(cnt+1)) {
 			ptr[cnt] = element;
 			cnt++;
 			return true;
@@ -365,12 +389,11 @@ public:
 	 */
 	void deinit() {
 		if (ptr) {
-			for (size_t i = 0; i < cnt; i++) {
+			for (size_t i = 0; i < cnt; i++)
 				deleter(ptr[i]);
-			}
 			kern_os_free(ptr);
 			ptr = nullptr;
-			cnt = 0;
+			cnt = rsvd = 0;
 		}
 	}
 };

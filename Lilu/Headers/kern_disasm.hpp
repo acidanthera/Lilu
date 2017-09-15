@@ -8,13 +8,15 @@
 #ifndef kern_disasm_hpp
 #define kern_disasm_hpp
 
+#include <Headers/kern_config.hpp>
+#include <Headers/kern_util.hpp>
+
+#ifdef LILU_ADVANCED_DISASSEMBLY
 #ifndef CAPSTONE_HAS_OSXKERNEL
 #define CAPSTONE_HAS_OSXKERNEL 1
 #endif
-
-#include <Headers/kern_config.hpp>
-#include <Headers/kern_util.hpp>
 #include <Headers/capstone/capstone.h>
+#endif /* LILU_ADVANCED_DISASSEMBLY */
 
 #include <sys/types.h>
 #include <mach/vm_types.h>
@@ -36,6 +38,8 @@ class Disassembler {
 	static constexpr size_t MaxInstruction {15};
 public:
 
+#ifdef LILU_ADVANCED_DISASSEMBLY
+	
 	/**
 	 *  Initialise dissassembling framework
 	 *
@@ -49,6 +53,8 @@ public:
 	 *  Deinitialise dissassembling framework, must be called regardless of the init error
 	 */
 	EXPORT void deinit();
+
+#endif /* LILU_ADVANCED_DISASSEMBLY */
 	
 	/**
 	 *  Return the real instruction size contained within min bytes
@@ -60,6 +66,8 @@ public:
 	 *  @return instruction size >= min on success or 0
 	 */
 	EXPORT static size_t quickInstructionSize(mach_vm_address_t ptr, size_t min);
+
+#ifdef LILU_ADVANCED_DISASSEMBLY
 	
 	/**
 	 *  Reads size bytes from addr and disassembles them.
@@ -148,6 +156,8 @@ public:
 	 *  @return direct address of pattern start on success, else 0
 	 */
 	EXPORT mach_vm_address_t disasmSig(mach_vm_address_t addr, evector<DisasmSig *, DisasmSig::deleter> &sig, size_t num, size_t lookup_size);
+	
+#endif /* LILU_ADVANCED_DISASSEMBLY */
 };
 
 #endif /* kern_disasm_hpp */

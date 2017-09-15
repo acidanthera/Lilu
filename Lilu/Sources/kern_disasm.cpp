@@ -8,10 +8,13 @@
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_disasm.hpp>
 #include <Headers/kern_util.hpp>
-#include <Headers/capstone/capstone.h>
 
 #include <hde64.h>
+
+#ifdef LILU_ADVANCED_DISASSEMBLY
+
 #include <umm_malloc.h>
+#include <Headers/capstone/capstone.h>
 
 bool Disassembler::init(bool detailed) {
 	if (initialised) return true;
@@ -65,6 +68,8 @@ void Disassembler::deinit() {
 	}
 }
 
+#endif /* LILU_ADVANCED_DISASSEMBLY */
+
 size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	size_t total = 0;
 	
@@ -83,6 +88,8 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	
 	return total;
 }
+
+#ifdef LILU_ADVANCED_DISASSEMBLY
 
 size_t Disassembler::disasmBuf(mach_vm_address_t addr, size_t size, cs_insn **result) {
 	*result = nullptr;
@@ -262,3 +269,5 @@ mach_vm_address_t Disassembler::disasmSig(mach_vm_address_t addr, evector<Disasm
 	
 	return 0;
 }
+
+#endif /* LILU_ADVANCED_DISASSEMBLY */

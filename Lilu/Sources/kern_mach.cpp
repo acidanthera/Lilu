@@ -248,27 +248,27 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 				for (uint32_t i = 0; i < num; i++) {
 					auto arch = reinterpret_cast<fat_arch *>(buffer + i*sizeof(fat_arch) + sizeof(fat_header));
 					if (arch->cputype == CPU_TYPE_X86_64)
-						return readMachHeader(buffer, vnode, ctxt, _OSSwapInt32(arch->offset));
+						return readMachHeader(buffer, vnode, ctxt, OSSwapInt32(arch->offset));
 				}
 				SYSLOG("mach @ cigam failed to find a x86_64 mach");
 				return KERN_FAILURE;
 			}
 #ifdef LILU_COMPRESSION_SUPPORT
-			case CompressedMagic: { // comp
-				auto header = reinterpret_cast<CompressedHeader *>(buffer);
-				auto compressedBuf = Buffer::create<uint8_t>(_OSSwapInt32(header->compressed));
+			case Compression::Magic: { // comp
+				auto header = reinterpret_cast<Compression::Header *>(buffer);
+				auto compressedBuf = Buffer::create<uint8_t>(OSSwapInt32(header->compressed));
 				if (!compressedBuf) {
 					SYSLOG("mach @ failed to allocate memory for reading mach binary");
-				} else if (FileIO::readFileData(compressedBuf, off+sizeof(CompressedHeader), _OSSwapInt32(header->compressed),
+				} else if (FileIO::readFileData(compressedBuf, off+sizeof(Compression::Header), OSSwapInt32(header->compressed),
 										vnode, ctxt) != KERN_SUCCESS) {
 					SYSLOG("mach @ failed to read compressed binary");
 				} else {
 					DBGLOG("mach @ decompressing %d bytes (estimated %d bytes) with %X compression mode",
-						   _OSSwapInt32(header->compressed), _OSSwapInt32(header->decompressed), header->compression);
+						   OSSwapInt32(header->compressed), OSSwapInt32(header->decompressed), header->compression);
 					
 					if (allow_decompress) {
-						file_buf = decompressData(header->compression, _OSSwapInt32(header->decompressed),
-												  compressedBuf, _OSSwapInt32(header->compressed));
+						file_buf = Compression::decompress(header->compression, OSSwapInt32(header->decompressed),
+														   compressedBuf, OSSwapInt32(header->compressed));
 						
 						// Try again
 						if (file_buf) {
