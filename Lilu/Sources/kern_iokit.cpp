@@ -67,6 +67,7 @@ namespace WIOKit {
 				}
 			}
 			
+			entry->release();
 			return true;
 		}
 		

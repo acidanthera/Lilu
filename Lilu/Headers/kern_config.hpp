@@ -8,11 +8,25 @@
 #ifndef kern_config_hpp
 #define kern_config_hpp
 
-// As for now claim to support all the features
+/**
+ *  Enable kext patching support
+ */
 #define LILU_KEXTPATCH_SUPPORT 1
+
+/**
+ *  Enable compression and decompression support
+ */
 #define LILU_COMPRESSION_SUPPORT 1
 
-// Use these in plugins in Xcode Project Preprocessor Macros section
+/**
+ *  Enable advanced disassembly API based on capstone
+ */
+// #define LILU_ADVANCED_DISASSEMBLY 1
+
+/**
+ *  Specify custom initialisation code
+ *  Use these in plugins in Xcode Project Preprocessor Macros section.
+ */
 // #define LILU_CUSTOM_IOKIT_INIT 1
 // #define LILU_CUSTOM_KMOD_INIT 1
 
