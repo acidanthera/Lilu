@@ -46,7 +46,7 @@ public:
 	 *  Minimal API version that guarantees forward ABI compatibility
 	 *  Present due to lack of OSBundleCompatibleVersion at kext injection
 	 */
-	static constexpr size_t CompatibilityVersion {parseModuleVersion("1.1.0")};
+	static constexpr size_t CompatibilityVersion {parseModuleVersion("1.2.0")};
 	
 	/**
 	 *  Obtains api access by holding a lock, which is required when accessing out of the main context

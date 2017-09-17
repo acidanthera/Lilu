@@ -220,8 +220,8 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 						DBGLOG("api @ updating new kext handler features");
 						patcher.updateKextHandlerFeatures(&stored->first[j]);
 					}
-				} else if (ADDPR(debugEnabled)) {
-					SYSLOG("api @ failed to load %s kext file", stored->first[j].id);
+				} else {
+					SYSLOG_COND(ADDPR(debugEnabled), "api @ failed to load %s kext file", stored->first[j].id);
 				}
 				
 				// Depending on a system some kexts may actually not exist

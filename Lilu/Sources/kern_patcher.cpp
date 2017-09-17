@@ -16,6 +16,8 @@ static KernelPatcher *that {nullptr};
 static SInt32 updateSummariesEntryCount;
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
+IOSimpleLock *KernelPatcher::kernelWriteLock {nullptr};
+
 KernelPatcher::Error KernelPatcher::getError() {
 	return code;
 }
@@ -32,6 +34,15 @@ void KernelPatcher::init() {
 		return;
 	}
 	
+	if (!kernelWriteLock) {
+		kernelWriteLock = IOSimpleLockAlloc();
+		if (!kernelWriteLock) {
+			DBGLOG("patcher @ lock allocation failures");
+			code = Error::LockError;
+			return;
+		}
+	}
+	
 	if (kinfos[KernelID]->getRunningAddresses() != KERN_SUCCESS) {
 		DBGLOG("patcher @ failed to get running kernel mach info");
 		code = Error::KernRunningInitFailure;
@@ -42,11 +53,11 @@ void KernelPatcher::init() {
 void KernelPatcher::deinit() {
 	// Remove the patches
 	if (kinfos.size() > 0) {
-		if (kinfos[KernelID]->setKernelWriting(true) == KERN_SUCCESS) {
+		if (kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
 			for (size_t i = 0, n = kpatches.size(); i < n; i++) {
 				kpatches[i]->restore();
 			}
-			kinfos[KernelID]->setKernelWriting(false);
+			kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		} else {
 			SYSLOG("patcher @ failed to change kernel protection at patch removal");
 		}
@@ -58,6 +69,12 @@ void KernelPatcher::deinit() {
 	
 	// Deallocate pages
 	kpages.deinit();
+	
+	// It is assumed that only one active instance of KernelPatcher is allowed
+	if (kernelWriteLock) {
+		IOSimpleLockFree(kernelWriteLock);
+		kernelWriteLock = nullptr;
+	}
 }
 
 size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel) {
@@ -74,8 +91,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 		SYSLOG("patcher @ failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
 	} else if (info->init(paths, num) != KERN_SUCCESS) {
-		if (ADDPR(debugEnabled))
-			SYSLOG("patcher @ failed to init MachInfo for %s", id);
+		SYSLOG_COND(ADDPR(debugEnabled), "patcher @ failed to init MachInfo for %s", id);
 		code = Error::NoKinfoFound;
 	} else if (!kinfos.push_back(info)) {
 		SYSLOG("patcher @ unable to store loaded MachInfo for %s", id);
@@ -229,7 +245,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	off += size - patch->size;
 	size_t changes {0};
 	
-	if (kinfo->setKernelWriting(true) != KERN_SUCCESS) {
+	if (kinfo->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher @ lookup patching failed to write to kernel");
 		code = Error::MemoryProtection;
 		return;
@@ -246,15 +262,14 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 		}
 	}
 	
-	if (kinfo->setKernelWriting(false) != KERN_SUCCESS) {
+	if (kinfo->setKernelWriting(false, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher @ lookup patching failed to disable kernel writing");
 		code = Error::MemoryProtection;
 		return;
 	}
 	
 	if (changes != patch->count) {
-		if (ADDPR(debugEnabled))
-			SYSLOG("patcher @ lookup patching applied only %lu patches out of %lu", changes, patch->count);
+		SYSLOG_COND(ADDPR(debugEnabled), "patcher @ lookup patching applied only %lu patches out of %lu", changes, patch->count);
 		code = Error::MemoryIssue;
 	}
 }
@@ -264,7 +279,7 @@ void KernelPatcher::activate() {
 	activated = true;
 }
 
-mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute) {
+mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible) {
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
 	
@@ -275,9 +290,6 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	if (diff != static_cast<mach_vm_address_t>(newArgument)) {
 		DBGLOG("patcher @ will use absolute jumping to %llX", to);
 		absolute = true;
-		//SYSLOG("patcher @ cannot route %llX is too far from %llX", to, from);
-		//code = Error::PointerRange;
-		//return EINVAL;
 	}
 	
 	mach_vm_address_t trampoline {0};
@@ -303,7 +315,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		return EINVAL;
 	}
 	
-	if (kernelRoute && kinfos[KernelID]->setKernelWriting(true) != KERN_SUCCESS) {
+	if (kernelRoute && kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher @ cannot change kernel memory protection");
 		code = Error::MemoryProtection;
 		Patch::deleter(opcode); Patch::deleter(argument);
@@ -314,31 +326,32 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	argument->patch();
 
 	if (kernelRoute) {
-		kinfos[KernelID]->setKernelWriting(false);
+		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 
-		auto oidx = kpatches.push_back(opcode);
-		auto aidx = kpatches.push_back(argument);
+		if (revertible) {
+			auto oidx = kpatches.push_back(opcode);
+			auto aidx = kpatches.push_back(argument);
 
-		if (!oidx || !aidx) {
+			if (oidx && aidx)
+				return trampoline;
+			
 			SYSLOG("patcher @ failed to store patches for later removal, you are in trouble");
 			if (oidx) kpatches.erase(oidx);
 			if (aidx) kpatches.erase(aidx);
-			Patch::deleter(opcode); Patch::deleter(argument);
 		}
-	} else {
-		Patch::deleter(opcode); Patch::deleter(argument);
 	}
-
+	
+	Patch::deleter(opcode); Patch::deleter(argument);
 	return trampoline;
 }
 
 mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_t *opcodes, size_t opnum, bool buildWrapper, bool kernelRoute) {
 	// Simply overwrite the function in the easiest case
 	if (!buildWrapper) {
-		if (!kernelRoute || kinfos[KernelID]->setKernelWriting(true) == KERN_SUCCESS) {
+		if (!kernelRoute || kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
 			memcpy(reinterpret_cast<void *>(from), opcodes, opnum);
 			if (kernelRoute)
-				kinfos[KernelID]->setKernelWriting(false);
+				kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		} else {
 			SYSLOG("patcher @ block overwrite failed to change protection");
 			code = Error::MemoryProtection;
@@ -365,7 +378,7 @@ uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribut
 mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
 	// Doing it earlier to workaround stack corruption due to a possible 10.12 bug.
 	// Otherwise in rare cases there will be random KPs with corrupted stack data.
-	if (kinfos[KernelID]->setKernelWriting(true) != KERN_SUCCESS) {
+	if (kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher @ failed to set executable permissions");
 		code = Error::MemoryProtection;
 		return 0;
@@ -375,7 +388,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	size_t off = Disassembler::quickInstructionSize(func, min);
 	
 	if (!off || off > PAGE_SIZE - LongJump) {
-		kinfos[KernelID]->setKernelWriting(false);
+		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		SYSLOG("patcher @ unsupported destination offset %lu", off);
 		code = Error::DisasmFailure;
 		return 0;
@@ -386,7 +399,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	tempExecutableMemoryOff += off + LongJump + opnum;
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
-		kinfos[KernelID]->setKernelWriting(false);
+		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		SYSLOG("patcher @ not enough executable memory requested %lld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
 	} else {
@@ -396,11 +409,11 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		
 		// Copy the prologue, assuming it is PIC
 		memcpy(tempDataPtr + opnum, reinterpret_cast<void *>(func), off);
-	
-		// Add a jump
-		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, false);
+
+		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		
-		kinfos[KernelID]->setKernelWriting(false);
+		// Add a jump
+		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, true, false);
 		
 		if (getError() == Error::NoError) {
 			return reinterpret_cast<mach_vm_address_t>(tempDataPtr);
