@@ -128,7 +128,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 								rpatch.size > 7 ? rpatch.find[7] : 0xff
 						);
 						
-						if (sz > 0 && MachInfo::setKernelWriting(true) == KERN_SUCCESS) {
+						if (sz > 0 && MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
 							DBGLOG("user @ obtained write permssions\n");
 						
 							for (size_t i = 0; i < sz; i++) {
@@ -152,7 +152,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 								}
 							}
 						
-							if (MachInfo::setKernelWriting(false) == KERN_SUCCESS) {
+							if (MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
 								DBGLOG("user @ restored write permssions\n");
 							}
 						} else {

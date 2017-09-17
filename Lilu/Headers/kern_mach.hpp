@@ -221,12 +221,12 @@ public:
 	/**
 	 *  enable/disable kernel memory write protection
 	 *
-	 *  @param enable the desired value
-	 *  @param sync   for synchronous execution, calls in the middle will be ignored
+	 *  @param enable  the desired value
+	 *  @param lock    use spinlock to disable cpu preemption (see KernelPatcher::kernelWriteLock)
 	 *
 	 *  @return KERN_SUCCESS if succeeded
 	 */
-	EXPORT static kern_return_t setKernelWriting(bool enable, bool sync=false);
+	EXPORT static kern_return_t setKernelWriting(bool enable, IOSimpleLock *lock);
 	
 	/**
 	 *  Compare the loaded kernel with the passed kernel header

@@ -22,40 +22,143 @@
 #define xConcat(a, b) Concat(a, b)
 #define Concat(a, b) a ## b
 
+/**
+ *  Prefix name with your plugin name (to ease symbolication and avoid conflicts)
+ */
 #define ADDPR(a) xConcat(xConcat(PRODUCT_NAME, _), a)
 
+/**
+ *  Debugging state exported for your plugin
+ */
 extern bool ADDPR(debugEnabled);
-// Kernel version major
+
+/**
+ *  Kernel version major
+ */
 extern const int version_major;
-// Kernel version minor
+
+/**
+ *  Kernel version minor
+ */
 extern const int version_minor;
-// Kernel map
+
+/**
+ *  Kernel map
+ */
 extern vm_map_t kernel_map;
 
-#define SYSLOG(str, ...)   IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
+/**
+ *  Conditional logging to system log prefixed with you plugin name
+ *
+ *  @param cond  precondition
+ *  @param str   printf-like string
+ */
+#define SYSLOG_COND(cond, str, ...)												\
+	do {																		\
+		if (cond)																\
+			IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__);		\
+	} while (0)
 
-#define SYSTRACE(str, ...) OSReportWithBacktrace( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
+/**
+ *  Write to system log prefixed with you plugin name
+ *
+ *  @param str   printf-like string
+ */
+#define SYSLOG(str, ...) SYSLOG_COND(true, str, ## __VA_ARGS__)
 
-#define PANIC(str, ...)    (panic)( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__)
+/**
+ *  Conditional tracing to system log prefixed with you plugin name
+ *
+ *  @param cond  precondition
+ *  @param str   printf-like string
+ */
+#define SYSTRACE_COND(cond, str, ...)											\
+	do {																		\
+		if (cond)																\
+			OSReportWithBacktrace( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__);	\
+	} while (0)
+
+/**
+ *  Write call trace to system log prefixed with you plugin name
+ *
+ *  @param str   printf-like string
+ */
+#define SYSTRACE(str, ...) SYSTRACE_COND(true, str, ## __VA_ARGS__)
+
+/**
+ *  Conditional panic prefixed with you plugin name
+ *
+ *  @param cond  precondition
+ *  @param str   printf-like string
+ */
+#define PANIC_COND(cond, str, ...)												\
+	do {																		\
+		if (cond)																\
+			(panic)( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__);	\
+	} while (0)
+
+/**
+ *  Cause immediate kernel panic prefixed with you plugin name
+ *
+ *  @param str   printf-like string
+ */
+#define PANIC(str, ...)  PANIC_COND(true, str, ## __VA_ARGS__)
 
 #ifdef DEBUG
-#define DBGLOG(str, ...)													\
-	do {																	\
-		if (ADDPR(debugEnabled))											\
-			SYSLOG( "(DEBUG) " str, ## __VA_ARGS__);						\
-	} while(0)
-#define DBGTRACE(str, ...)													\
-	do {																	\
-		if (ADDPR(debugEnabled))											\
-			SYSTRACE( "(DEBUG) " str, ## __VA_ARGS__);						\
+
+/**
+ *  Conditional debug logging to system log prefixed with you plugin name
+ *
+ *  @param cond  precondition
+ *  @param str   printf-like string
+ */
+#define DBGLOG_COND(cond, str, ...)												\
+	do {																		\
+		SYSLOG_COND(ADDPR(debugEnabled) && (cond), "(DEBUG) " str, ## __VA_ARGS__);	\
 	} while (0)
-#else
-#define DBGLOG(str, ...) do { } while(0)
-#define DBGTRACE(str, ...) do { } while(0)
+
+/**
+ *  Write debug message to system log prefixed with you plugin name
+ *
+ *  @param str   printf-like string
+ */
+#define DBGLOG(str, ...) DBGLOG_COND(true, str, ## __VA_ARGS__)
+
+/**
+ *  Conditional debug tracing to system log prefixed with you plugin name
+ *
+ *  @param cond  precondition
+ *  @param str   printf-like string
+ */
+#define DBGTRACE_COND(cond, str, ...)												\
+	do {																		\
+		SYSTRACE_COND(ADDPR(debugEnabled) && (cond), "(DEBUG) " str, ## __VA_ARGS__);	\
+	} while (0)
+
+/**
+ *  Write debug call trace to system log prefixed with you plugin name
+ *
+ *  @param str   printf-like string
+ */
+#define DBGTRACE(str, ...) DBGTRACE_COND(true, str, ## __VA_ARGS__)
+
+#else /* DEBUG */
+
+#define DBGLOG_COND(cond, str, ...) do { } while (0)
+#define DBGLOG(str, ...) do { } while (0)
+#define DBGTRACE_COND(cond, str, ...) do { } while (0)
+#define DBGTRACE(str, ...) do { } while (0)
+
 #endif
 
+/**
+ *  Export function or symbol for linking
+ */
 #define EXPORT __attribute__((visibility("default")))
 
+/**
+ *  Remove padding between fields
+ */
 #define PACKED __attribute__((packed))
 
 /**

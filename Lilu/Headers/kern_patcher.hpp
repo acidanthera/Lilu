@@ -38,7 +38,8 @@ public:
 		MemoryIssue,
 		MemoryProtection,
 		PointerRange,
-		AlreadyDone
+		AlreadyDone,
+		LockError
 	};
 	
 	/**
@@ -63,6 +64,12 @@ public:
 	 */
 	void deinit();
 
+	/**
+	 *  Kernel write lock used for performing kernel & kext writes to disable cpu preemption
+	 *  See MachInfo::setKernelWriting
+	 */
+	EXPORT static IOSimpleLock *kernelWriteLock;
+	
 	/**
 	 *  Kext information
 	 */
@@ -220,10 +227,11 @@ public:
 	 *  @param to           routed function
 	 *  @param buildWrapper create entrance wrapper
 	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param revertible   patches could be reverted
 	 *
 	 *  @return wrapper pointer or 0 on success
 	 */
-	EXPORT mach_vm_address_t routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true);
+	EXPORT mach_vm_address_t routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true);
 	
 	/**
 	 *  Route block at assembly level

@@ -147,20 +147,15 @@ bool MachInfo::setInterrupts(bool enable) {
 	return static_cast<bool>(flags & EFL_IF) != enable;
 }
 
-kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
-	static bool syncState = false;
+kern_return_t MachInfo::setKernelWriting(bool enable, IOSimpleLock *lock) {
 	static bool interruptsDisabled = false;
 	
 	kern_return_t res = KERN_SUCCESS;
 	
-	if (sync) {
-		syncState = enable;
-	} else if (syncState) {
-		// We are currently ignoring interrupts until the next sync call arrives
-		return res;
-	}
-	
 	if (enable) {
+		// Disable preemption
+		if (lock) IOSimpleLockLock(lock);
+		
 		// Disable interrupts
 		interruptsDisabled = !setInterrupts(false);
 	}
@@ -171,9 +166,12 @@ kern_return_t MachInfo::setKernelWriting(bool enable, bool sync) {
 		res = KERN_FAILURE;
 	}
 	
-	if (!enable && !interruptsDisabled) {
+	if (!enable) {
 		// Enable interrupts if they were on previously
-		setInterrupts(true);
+		if (!interruptsDisabled) setInterrupts(true);
+		
+		// Enable preemption
+		if (lock) IOSimpleLockUnlock(lock);
 	}
 	
 	return res;
