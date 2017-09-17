@@ -623,8 +623,6 @@ bool UserPatcher::loadFilesForPatching() {
 									entry->refs.push_back(ref);
 								}
 								
-								DBGLOG("user @ ref pre %d\n", ref != nullptr);
-								
 								if (ref) {
 									DBGLOG("user @ pushing off %llX to patch", valueOff);
 									// These values belong to the current ref
