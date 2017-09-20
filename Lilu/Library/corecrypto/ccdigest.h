@@ -28,7 +28,7 @@ struct ccdigest_ctx {
 
 typedef union {
     struct ccdigest_ctx *hdr;
-} ccdigest_ctx_t __attribute__((transparent_union));
+} ccdigest_ctx_t;
 
 struct ccdigest_state {
     union {
@@ -43,7 +43,7 @@ typedef union {
     struct ccdigest_state *hdr;
     struct ccdigest_ctx *_ctx;
     ccdigest_ctx_t _ctxt;
-} ccdigest_state_t __attribute__((transparent_union));
+} ccdigest_state_t;
 #else //=======================================================
 struct ccdigest_ctx {
     union {
