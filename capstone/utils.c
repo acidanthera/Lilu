@@ -71,7 +71,7 @@ char *cs_strdup(const char *str)
 	if (new == NULL)
 		return NULL;
 
-	return (char *)memmove(new, str, len);
+	return (char *)lilu_os_memmove(new, str, len);
 }
 
 // we need this since Windows doesnt have snprintf()

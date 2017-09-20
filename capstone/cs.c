@@ -313,7 +313,7 @@ static void fill_insn(struct cs_struct *handle, cs_insn *insn, char *buffer, MCI
 
 	// fill the instruction bytes.
 	// we might skip some redundant bytes in front in the case of X86
-	memcpy(insn->bytes, code + insn->size - copy_size, copy_size);
+	lilu_os_memcpy(insn->bytes, code + insn->size - copy_size, copy_size);
 	insn->size = copy_size;
 
 	// alias instruction might have ID saved in OpcodePub
@@ -590,7 +590,7 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 			insn_cache->id = 0;	// invalid ID for this "data" instruction
 			insn_cache->address = offset;
 			insn_cache->size = (uint16_t)skipdata_bytes;
-			memcpy(insn_cache->bytes, buffer, skipdata_bytes);
+			lilu_os_memcpy(insn_cache->bytes, buffer, skipdata_bytes);
 #ifdef CAPSTONE_DIET
  			insn_cache->mnemonic[0] = '\0';
 			insn_cache->op_str[0] = '\0';
@@ -796,7 +796,7 @@ bool CAPSTONE_API cs_disasm_iter(csh ud, const uint8_t **code, size_t *size,
 		insn->id = 0;	// invalid ID for this "data" instruction
 		insn->address = *address;
 		insn->size = (uint16_t)skipdata_bytes;
-		memcpy(insn->bytes, *code, skipdata_bytes);
+		lilu_os_memcpy(insn->bytes, *code, skipdata_bytes);
 #ifdef CAPSTONE_DIET
 		insn->mnemonic[0] = '\0';
 		insn->op_str[0] = '\0';

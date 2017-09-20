@@ -33,7 +33,7 @@ void SStream_concat0(SStream *ss, char *s)
 #ifndef CAPSTONE_DIET
 	unsigned int len = (unsigned int) strlen(s);
 
-	memcpy(ss->buffer + ss->index, s, len);
+	lilu_os_memcpy(ss->buffer + ss->index, s, len);
 	ss->index += len;
 	ss->buffer[ss->index] = '\0';
 #endif

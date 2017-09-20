@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_compat.hpp>
 #include <PrivateHeaders/kern_patcher.hpp>
 #include <Headers/kern_patcher.hpp>
 
@@ -349,7 +350,7 @@ mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_
 	// Simply overwrite the function in the easiest case
 	if (!buildWrapper) {
 		if (!kernelRoute || kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
-			memcpy(reinterpret_cast<void *>(from), opcodes, opnum);
+			lilu_os_memcpy(reinterpret_cast<void *>(from), opcodes, opnum);
 			if (kernelRoute)
 				kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		} else {
@@ -405,10 +406,10 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	} else {
 		// Copy the opcodes if any
 		if (opnum > 0)
-			memcpy(tempDataPtr, opcodes, opnum);
+			lilu_os_memcpy(tempDataPtr, opcodes, opnum);
 		
 		// Copy the prologue, assuming it is PIC
-		memcpy(tempDataPtr + opnum, reinterpret_cast<void *>(func), off);
+		lilu_os_memcpy(tempDataPtr + opnum, reinterpret_cast<void *>(func), off);
 
 		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		

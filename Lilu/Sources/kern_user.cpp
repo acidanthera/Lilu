@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_compat.hpp>
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_file.hpp>
 #include <PrivateHeaders/kern_config.hpp>
@@ -148,7 +149,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 										*reinterpret_cast<uint64_t *>(patch) = *reinterpret_cast<const uint64_t *>(rpatch.replace);
 										break;
 									default:
-										memcpy(patch, rpatch.replace, rpatch.size);
+										lilu_os_memcpy(patch, rpatch.replace, rpatch.size);
 								}
 							}
 						
@@ -192,7 +193,7 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 				DBGLOG("user @ caught %s performing injection", path);
 				if (orgProcExecSwitchTask) {
 					DBGLOG("user @ requesting proc_exec_switch_task patch");
-					strlcpy(pendingPath, path, MAXPATHLEN);
+					lilu_os_strlcpy(pendingPath, path, MAXPATHLEN);
 					pendingPathLen = len;
 					pendingPatchCallback = true;
 				} else {
@@ -586,7 +587,7 @@ bool UserPatcher::loadFilesForPatching() {
 											// One could find entries by flooring first ref address but that's unreasonably complicated
 											entry->pageOff = pageOff;
 											// Now copy page data
-											memcpy(entry->page->p, reinterpret_cast<uint8_t *>(sectionptr) + pageOff, PAGE_SIZE);
+											lilu_os_memcpy(entry->page->p, reinterpret_cast<uint8_t *>(sectionptr) + pageOff, PAGE_SIZE);
 											DBGLOG("user @ first page bytes are %X %X %X %X %X %X %X %X",
 												   entry->page->p[0], entry->page->p[1], entry->page->p[2], entry->page->p[3],
 												   entry->page->p[4], entry->page->p[5], entry->page->p[6], entry->page->p[7]);
