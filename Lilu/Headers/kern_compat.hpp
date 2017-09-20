@@ -11,8 +11,8 @@
 #include <Headers/kern_config.hpp>
 #include <Availability.h>
 
-#define lilu_os_memcpy  memcpy
-#define lilu_os_strlcpy strlcpy
-#define lilu_os_memmove memmove
+#define lilu_os_memcpy  (memcpy)
+#define lilu_os_strlcpy (strlcpy)
+#define lilu_os_memmove (memmove)
 
 #endif /* kern_compat_hpp */
