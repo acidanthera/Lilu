@@ -47059,18 +47059,18 @@ void X86_get_insn_id(cs_struct *h, cs_insn *insn, unsigned int id)
 
 		if (h->detail) {
 #ifndef CAPSTONE_DIET
-			memcpy(insn->detail->regs_read, insns[i].regs_use, sizeof(insns[i].regs_use));
+			lilu_os_memcpy(insn->detail->regs_read, insns[i].regs_use, sizeof(insns[i].regs_use));
 			insn->detail->regs_read_count = (uint8_t)count_positive(insns[i].regs_use);
 
 			// special cases when regs_write[] depends on arch
 			switch(id) {
 				default:
-					memcpy(insn->detail->regs_write, insns[i].regs_mod, sizeof(insns[i].regs_mod));
+					lilu_os_memcpy(insn->detail->regs_write, insns[i].regs_mod, sizeof(insns[i].regs_mod));
 					insn->detail->regs_write_count = (uint8_t)count_positive(insns[i].regs_mod);
 					break;
 				case X86_RDTSC:
 					if (h->mode == CS_MODE_64) {
-						memcpy(insn->detail->regs_write, insns[i].regs_mod, sizeof(insns[i].regs_mod));
+						lilu_os_memcpy(insn->detail->regs_write, insns[i].regs_mod, sizeof(insns[i].regs_mod));
 						insn->detail->regs_write_count = (uint8_t)count_positive(insns[i].regs_mod);
 					} else {
 						insn->detail->regs_write[0] = X86_REG_EAX;
@@ -47080,7 +47080,7 @@ void X86_get_insn_id(cs_struct *h, cs_insn *insn, unsigned int id)
 					break;
 				case X86_RDTSCP:
 					if (h->mode == CS_MODE_64) {
-						memcpy(insn->detail->regs_write, insns[i].regs_mod, sizeof(insns[i].regs_mod));
+						lilu_os_memcpy(insn->detail->regs_write, insns[i].regs_mod, sizeof(insns[i].regs_mod));
 						insn->detail->regs_write_count = (uint8_t)count_positive(insns[i].regs_mod);
 					} else {
 						insn->detail->regs_write[0] = X86_REG_EAX;
@@ -47194,7 +47194,7 @@ void X86_get_insn_id(cs_struct *h, cs_insn *insn, unsigned int id)
 					break;
 			}
 
-			memcpy(insn->detail->groups, insns[i].groups, sizeof(insns[i].groups));
+			lilu_os_memcpy(insn->detail->groups, insns[i].groups, sizeof(insns[i].groups));
 			insn->detail->groups_count = (uint8_t)count_positive(insns[i].groups);
 
 			if (insns[i].branch || insns[i].indirect_branch) {
@@ -47859,7 +47859,7 @@ bool X86_lockrep(MCInst *MI, SStream *O)
 
 	// copy normalized prefix[] back to x86.prefix[]
 	if (MI->csh->detail)
-		memcpy(MI->flat_insn->detail->x86.prefix, MI->x86_prefix, ARR_SIZE(MI->x86_prefix));
+		lilu_os_memcpy(MI->flat_insn->detail->x86.prefix, MI->x86_prefix, ARR_SIZE(MI->x86_prefix));
 
 	return res;
 }

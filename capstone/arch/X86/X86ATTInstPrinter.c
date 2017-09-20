@@ -893,7 +893,7 @@ void X86_ATT_printInst(MCInst *MI, SStream *OS, void *info)
             case X86_ROR32m1:
             case X86_ROR64m1:
                 // shift all the ops right to leave 1st slot for this new register op
-                memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
+                lilu_os_memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
                         sizeof(MI->flat_insn->detail->x86.operands[0]) * (ARR_SIZE(MI->flat_insn->detail->x86.operands) - 1));
                 MI->flat_insn->detail->x86.operands[0].type = X86_OP_IMM;
                 MI->flat_insn->detail->x86.operands[0].imm = 1;
@@ -907,7 +907,7 @@ void X86_ATT_printInst(MCInst *MI, SStream *OS, void *info)
 		reg = X86_insn_reg_att(MCInst_getOpcode(MI));
 		if (reg) {
 			// shift all the ops right to leave 1st slot for this new register op
-			memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
+			lilu_os_memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
 					sizeof(MI->flat_insn->detail->x86.operands[0]) * (ARR_SIZE(MI->flat_insn->detail->x86.operands) - 1));
 			MI->flat_insn->detail->x86.operands[0].type = X86_OP_REG;
 			MI->flat_insn->detail->x86.operands[0].reg = reg;

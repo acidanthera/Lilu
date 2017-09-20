@@ -30,10 +30,10 @@
  * Thanks to Andy Vandijck and 'MinusZwei' for their hard work!
  */
 
-#include <string.h>
-
+#include <Headers/kern_compat.hpp>
 #include <libkern/OSByteOrder.h>
 #include <IOKit/IOLib.h>
+#include <string.h>
 
 #define DEBUG_STATE_ENABLED		0
 
@@ -340,7 +340,7 @@ size_t lzvn_decode(void * decompressedData, size_t decompressedSize, void * comp
 
 //					*(uint64_t *)((uint64_t)currentLength + compBufferPointer) = caseTableIndex;
 // or:
-//					memcpy((void *)currentLength + compBufferPointer, &caseTableIndex, 8);
+//					lilu_os_memcpy((void *)currentLength + compBufferPointer, &caseTableIndex, 8);
 // or:
 					address = (currentLength + compBufferPointer);					// mov	%r9,(%r11,%r8,1)
 					*(uint64_t *)address = caseTableIndex;
@@ -371,7 +371,7 @@ size_t lzvn_decode(void * decompressedData, size_t decompressedSize, void * comp
 
 					address = (compBuffer + compBufferPointer);						// movzbq (%rdx,%r8,1),%r9
 					caseTableIndex = (*((uint64_t *)address) & 255);
-					memcpy((void *)decompBuffer + length, &caseTableIndex, 1);
+					lilu_os_memcpy((void *)decompBuffer + length, &caseTableIndex, 1);
 					length++;														// add	$0x1,%rax
 					
 					if (currentLength == length)									// cmp	%rax,%r11
@@ -405,7 +405,7 @@ size_t lzvn_decode(void * decompressedData, size_t decompressedSize, void * comp
 					caseTableIndex = (*((uint8_t *)address) & 255);
 
 					compBufferPointer++;											// add	$0x1,%r8
-					memcpy((void *)decompBuffer + length, &caseTableIndex, 1);		// mov	%r9,(%rdi,%rax,1)
+					lilu_os_memcpy((void *)decompBuffer + length, &caseTableIndex, 1);		// mov	%r9,(%rdi,%rax,1)
 					length++;														// add	$0x1,%rax
 					
 					if (length == currentLength)									// cmp	%rax,%r11
@@ -433,7 +433,7 @@ size_t lzvn_decode(void * decompressedData, size_t decompressedSize, void * comp
 					caseTableIndex = *((uint64_t *)address);
 
 					compBufferPointer += 8;											// add	$0x8,%r8
-					memcpy((void *)decompBuffer + length, &caseTableIndex, 8);		// mov	%r9,(%rdi,%rax,1)
+					lilu_os_memcpy((void *)decompBuffer + length, &caseTableIndex, 8);		// mov	%r9,(%rdi,%rax,1)
 					length += 8;													// add	$0x8,%rax
 					byteCount -= 8;													// sub	$0x8,%r10
 					
@@ -455,7 +455,7 @@ size_t lzvn_decode(void * decompressedData, size_t decompressedSize, void * comp
 
 				if (currentLength < decompressedSize)								// cmp	%rsi,%r11 (block_end: jae	Llzvn_l8)
 				{
-					memcpy((void *)decompBuffer + length, &compBufferPointer, 8);	// mov	%r8,(%rdi,%rax,1)
+					lilu_os_memcpy((void *)decompBuffer + length, &compBufferPointer, 8);	// mov	%r8,(%rdi,%rax,1)
 					length += caseTableIndex;										// add	%r9,%rax
 					compBufferPointer = length;										// mov	%rax,%r8
 						
@@ -494,7 +494,7 @@ size_t lzvn_decode(void * decompressedData, size_t decompressedSize, void * comp
 				{
 					_LZVN_DEBUG_DUMP("jmpTable(6)\n");
 
-					memcpy((void *)decompBuffer + length, &compBufferPointer, 1);	// mov	%r8b,(%rdi,%rax,1)
+					lilu_os_memcpy((void *)decompBuffer + length, &compBufferPointer, 1);	// mov	%r8b,(%rdi,%rax,1)
 					length++;														// add	$0x1,%rax
 						
 					if (length == currentLength)									// cmp	%rax,%r11

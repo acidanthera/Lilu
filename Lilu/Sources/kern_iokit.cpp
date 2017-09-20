@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_compat.hpp>
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
@@ -50,7 +51,7 @@ namespace WIOKit {
 			if (model && modelsz > 0) {
 				auto data = OSDynamicCast(OSData, entry->getProperty("model"));
 				if (data && data->getLength() > 0) {
-					strlcpy(model, static_cast<const char *>(data->getBytesNoCopy()), modelsz);
+					lilu_os_strlcpy(model, static_cast<const char *>(data->getBytesNoCopy()), modelsz);
 				} else {
 					DBGLOG("iokit @ failed to get valid model property");
 					model[0] = '\0';
@@ -60,7 +61,7 @@ namespace WIOKit {
 			if (board && boardsz > 0) {
 				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
 				if (data && data->getLength() > 0) {
-					strlcpy(board, static_cast<const char *>(data->getBytesNoCopy()), boardsz);
+					lilu_os_strlcpy(board, static_cast<const char *>(data->getBytesNoCopy()), boardsz);
 				} else {
 					DBGLOG("iokit @ failed to get valid board-id property");
 					board[0] = '\0';

@@ -34,7 +34,7 @@ void MCInst_insert0(MCInst *inst, int index, MCOperand *Op)
 	int i;
 
 	for(i = inst->size; i > index; i--)
-		//memcpy(&(inst->Operands[i]), &(inst->Operands[i-1]), sizeof(MCOperand));
+		//lilu_os_memcpy(&(inst->Operands[i]), &(inst->Operands[i-1]), sizeof(MCOperand));
 		inst->Operands[i] = inst->Operands[i-1];
 
 	inst->Operands[index] = *Op;

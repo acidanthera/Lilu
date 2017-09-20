@@ -9,6 +9,7 @@
 #define kern_util_hpp
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_compat.hpp>
 
 #include <libkern/libkern.h>
 #include <libkern/OSDebug.h>
@@ -436,7 +437,7 @@ public:
 	bool erase(size_t index) {
 		deleter(ptr[index]);
 		if (--cnt != index)
-			memmove(&ptr[index], &ptr[index + 1], (cnt - index) * sizeof(T));
+			lilu_os_memmove(&ptr[index], &ptr[index + 1], (cnt - index) * sizeof(T));
 
 		if (cnt == 0) {
 			kern_os_free(ptr);

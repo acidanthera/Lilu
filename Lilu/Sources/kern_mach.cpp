@@ -8,6 +8,7 @@
 //
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_compat.hpp>
 #include <PrivateHeaders/kern_config.hpp>
 #include <Headers/kern_mach.hpp>
 #ifdef LILU_COMPRESSION_SUPPORT
@@ -270,7 +271,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 						
 						// Try again
 						if (file_buf) {
-							memcpy(buffer, file_buf, HeaderSize);
+							lilu_os_memcpy(buffer, file_buf, HeaderSize);
 							Buffer::deleter(compressedBuf);
 							continue;
 						}
@@ -313,7 +314,7 @@ kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
 		}
 #ifdef LILU_COMPRESSION_SUPPORT
 	} else {
-		memcpy(linkedit_buf, file_buf+linkedit_fileoff, linkedit_size);
+		lilu_os_memcpy(linkedit_buf, file_buf+linkedit_fileoff, linkedit_size);
 	}
 #endif /* LILU_COMPRESSION_SUPPORT */
 

@@ -8,6 +8,10 @@
 extern "C" {
 #endif
 
+#ifdef CAPSTONE_HAS_OSXKERNEL
+#include <Headers/kern_compat.hpp>
+#endif
+
 #if !defined(_MSC_VER) || !defined(_KERNEL_MODE)
 #include <stdint.h>
 #endif

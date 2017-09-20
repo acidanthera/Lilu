@@ -134,9 +134,9 @@ struct ccdigest_info {
 #define ccdigest_ccn(_state_)            (&((ccdigest_state_t)(_state_))->state.ccn)
 #endif
 
-/* We could just use memcpy instead of this special macro, but this allows us
+/* We could just use lilu_os_memcpy instead of this special macro, but this allows us
    to use the optimized ccn_set() assembly routine if we have one, which for
-   32 bit arm is about 200% quicker than generic memcpy(). */
+   32 bit arm is about 200% quicker than generic lilu_os_memcpy(). */
 #if CCN_SET_ASM && CCN_UNIT_SIZE <= 4
 #define ccdigest_copy_state(_di_, _dst_, _src_) ccn_set((_di_)->state_size / CCN_UNIT_SIZE, _dst_, _src_)
 #else

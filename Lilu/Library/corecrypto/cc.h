@@ -62,7 +62,7 @@ uint8_t b[_alignment_]; \
 CC_NONNULL2
 void cc_clear(size_t len, void *dst);
 
-#define cc_copy(_size_, _dst_, _src_) memcpy(_dst_, _src_, _size_)
+#define cc_copy(_size_, _dst_, _src_) lilu_os_memcpy(_dst_, _src_, _size_)
 
 CC_INLINE CC_NONNULL2 CC_NONNULL3 CC_NONNULL4
 void cc_xor(size_t size, void *r, const void *s, const void *t) {

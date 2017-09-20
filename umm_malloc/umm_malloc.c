@@ -44,7 +44,8 @@
  *                     - Move integrity and poison checking to separate file
  * ----------------------------------------------------------------------------
  */
- 
+
+#include <Headers/kern_compat.hpp>
 #include <libkern/libkern.h>
 #include <IOKit/IOLib.h>
 #include <string.h>
@@ -574,7 +575,7 @@ void *umm_realloc( void *ptr, size_t size ) {
      * only the original bytes.
      */
 
-    memmove( (void *)&UMM_DATA(c), ptr, curSize );
+    lilu_os_memmove( (void *)&UMM_DATA(c), ptr, curSize );
 
     /* And don't forget to adjust the pointer to the new block location! */
 
@@ -613,7 +614,7 @@ void *umm_realloc( void *ptr, size_t size ) {
      */
 
     if( (ptr = umm_malloc( size )) ) {
-      memcpy( ptr, oldptr, curSize );
+      lilu_os_memcpy( ptr, oldptr, curSize );
     }
 
     umm_free( oldptr );

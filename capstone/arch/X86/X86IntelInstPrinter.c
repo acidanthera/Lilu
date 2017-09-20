@@ -511,7 +511,7 @@ void X86_Intel_printInst(MCInst *MI, SStream *O, void *Info)
 		// so we have to add the missing register as the first operand
 		if (reg) {
 			// shift all the ops right to leave 1st slot for this new register op
-			memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
+			lilu_os_memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
 					sizeof(MI->flat_insn->detail->x86.operands[0]) * (ARR_SIZE(MI->flat_insn->detail->x86.operands) - 1));
 			MI->flat_insn->detail->x86.operands[0].type = X86_OP_REG;
 			MI->flat_insn->detail->x86.operands[0].reg = reg;
