@@ -11,6 +11,7 @@
 #ifndef _CORECRYPTO_CCMODE_H_
 #define _CORECRYPTO_CCMODE_H_
 
+#include <Headers/kern_compat.hpp>
 #include <Library/corecrypto/cc.h>
 #include <Library/corecrypto/ccmode_impl.h>
 #include <Library/corecrypto/ccmode_siv.h>
