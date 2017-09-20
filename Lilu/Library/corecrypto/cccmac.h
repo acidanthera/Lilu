@@ -36,7 +36,7 @@ typedef struct cccmac_ctx_hdr {
 typedef union {
     struct cccmac_ctx *b;
     cccmac_ctx_hdr *hdr;
-} cccmac_ctx_t __attribute__((transparent_union));
+} cccmac_ctx_t;
 #define cccmac_hdr_size sizeof(struct cccmac_ctx_hdr)
 
 #else
