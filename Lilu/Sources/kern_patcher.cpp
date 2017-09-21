@@ -78,7 +78,7 @@ void KernelPatcher::deinit() {
 	}
 }
 
-size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel) {
+size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel, bool fsonly) {
 	for (size_t i = 0; i < kinfos.size(); i++) {
 		if (kinfos[i]->objectId && !strcmp(kinfos[i]->objectId, id)) {
 			DBGLOG("patcher @ found an already loaded MachInfo for %s at %lu", id, i);
@@ -122,7 +122,7 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 		return info->loadIndex;
 	}
 	
-	auto idx = loadKinfo(info->id, info->paths, info->pathNum);
+	auto idx = loadKinfo(info->id, info->paths, info->pathNum, false, info->sys[KextInfo::FSOnly]);
 	if (getError() == Error::NoError || getError() == Error::AlreadyDone) {
 		info->loadIndex = idx;
 		DBGLOG("patcher @ loaded kinfo %s at %lu index", info->id, idx);
@@ -223,8 +223,8 @@ void KernelPatcher::waitOnKext(KextHandler *handler) {
 void KernelPatcher::updateKextHandlerFeatures(KextInfo *info) {
 	for (size_t i = 0; i < khandlers.size(); i++) {
 		if (!strcmp(khandlers[i]->id, info->id)) {
-			khandlers[i]->loaded |= info->loaded;
-			khandlers[i]->reloadable |= info->reloadable;
+			khandlers[i]->loaded |= info->sys[KextInfo::Loaded];
+			khandlers[i]->reloadable |= info->sys[KextInfo::Reloadable];
 			break;
 		}
 	}

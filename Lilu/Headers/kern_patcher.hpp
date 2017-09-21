@@ -9,6 +9,7 @@
 #define kern_patcher_hpp
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_compat.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_mach.hpp>
 #include <Headers/kern_disasm.hpp>
@@ -78,13 +79,21 @@ public:
 #ifdef LILU_KEXTPATCH_SUPPORT
 	struct KextInfo {
 		static constexpr size_t Unloaded {0};
-		const char *id;
-		const char **paths;
-		size_t pathNum;
-		bool loaded; // invoke for kext if it is already loaded
-		bool reloadable; // allow the kext to unload and get patched again
-		bool user[6];
-		size_t loadIndex; // Updated after loading
+		enum SysFlags : size_t {
+			Loaded,      // invoke for kext if it is already loaded
+			Reloadable,  // allow the kext to unload and get patched again
+			Disabled,    // do not load this kext (formerly achieved pathNum = 0, this no longer works)
+			FSOnly,      // do not use prelinkedkernel (kextcache) as a symbol source
+			SysFlagNum,
+			UserFlagNum = sizeof(size_t)-SysFlagNum
+		};
+		static_assert(UserFlagNum > 0, "There should be at least one user flag");
+		const char *id {nullptr};
+		const char **paths {nullptr};
+		size_t pathNum {0};
+		bool sys[SysFlagNum] {};
+		bool user[UserFlagNum] {};
+		size_t loadIndex {Unloaded}; // Updated after loading
 	};
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
@@ -95,10 +104,11 @@ public:
 	 *  @param paths    item filesystem path array
 	 *  @param num      number of path entries
 	 *  @param isKernel kinfo is kernel info
+	 *  @param fsonly   avoid using prelinkedkernel for kexts
 	 *
 	 *  @return loaded kinfo id
 	 */
-	EXPORT size_t loadKinfo(const char *id, const char * const paths[], size_t num=1, bool isKernel=false);
+	EXPORT size_t loadKinfo(const char *id, const char * const paths[], size_t num=1, bool isKernel=false, bool fsonly=false);
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**
