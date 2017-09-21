@@ -30,7 +30,7 @@
 
 extern proc_t kernproc;
 
-kern_return_t MachInfo::init(const char * const paths[], size_t num) {
+kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *prelink) {
 	kern_return_t error = KERN_FAILURE;
 	
 	allow_decompress = config.allowDecompress;
@@ -42,75 +42,85 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num) {
 		SYSLOG("mach @ current context has no credential, it's too early");
 		return error;
 	}
-	
-	// lookup vnode for /mach_kernel
-	auto machHeader = Buffer::create<uint8_t>(HeaderSize);
-	if (!machHeader) {
-		SYSLOG("mach @ can't allocate header memory.");
-		return error;
-	}
-	
-	vnode_t vnode = NULLVP;
-	vfs_context_t ctxt = nullptr;
-	bool found = false;
 
-	for (size_t i = 0; i < num; i++) {
-		vnode = NULLVP;
-		ctxt = vfs_context_create(nullptr);
-		
-		errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
-		if (!err) {
-			kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
-			if (readError == KERN_SUCCESS) {
-				if (isKernel && !isCurrentKernel(machHeader)) {
-					vnode_put(vnode);
-				} else {
-					DBGLOG("mach @ Found executable at path: %s", paths[i]);
-					found = true;
-					break;
+	// Attempt to get linkedit from prelink
+	if (prelink && objectId) {
+		/*
+		 We need to obtain the following from prelink:
+		 linkedit_buf
+		 linkedit_size
+		 linkedit_fileoff
+		 stringtable_fileoff
+		 symboltable_fileoff
+		 */
+	}
+
+	// Load directly from the filesystem
+	if (!linkedit_buf) {
+		// Allocate some data for header
+		auto machHeader = Buffer::create<uint8_t>(HeaderSize);
+		if (!machHeader) {
+			SYSLOG("mach @ can't allocate header memory.");
+			return error;
+		}
+
+		vnode_t vnode = NULLVP;
+		vfs_context_t ctxt = nullptr;
+		bool found = false;
+
+		for (size_t i = 0; i < num; i++) {
+			vnode = NULLVP;
+			ctxt = vfs_context_create(nullptr);
+
+			errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
+			if (!err) {
+				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
+				if (readError == KERN_SUCCESS) {
+					if (isKernel && !isCurrentKernel(machHeader)) {
+						vnode_put(vnode);
+					} else {
+						DBGLOG("mach @ Found executable at path: %s", paths[i]);
+						found = true;
+						break;
+					}
 				}
 			}
+
+			vfs_context_rele(ctxt);
 		}
-		
+
+		if (!found) {
+			DBGLOG("mach @ couldn't find a suitable executable");
+			Buffer::deleter(machHeader);
+			return error;
+		}
+
+		processMachHeader(machHeader);
+		if (linkedit_fileoff && symboltable_fileoff) {
+			// read linkedit from filesystem
+			error = readLinkedit(vnode, ctxt);
+			if (error != KERN_SUCCESS) {
+				SYSLOG("mach @ could not read the linkedit segment");
+			}
+		} else {
+			SYSLOG("mach @ couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
+				   linkedit_fileoff, symboltable_fileoff);
+		}
+
 		vfs_context_rele(ctxt);
-	}
-	
-	if(!found) {
-		DBGLOG("mach @ couldn't find a suitable executable");
+		// drop the iocount due to vnode_lookup()
+		// we must do this or the machine gets stuck on shutdown/reboot
+		vnode_put(vnode);
+
 		Buffer::deleter(machHeader);
-		return error;
 	}
-	
-	processMachHeader(machHeader);
-	if (linkedit_fileoff && symboltable_fileoff) {
-		// read linkedit from filesystem
-		error = readLinkedit(vnode, ctxt);
-		if (error != KERN_SUCCESS) {
-			SYSLOG("mach @ could not read the linkedit segment");
-		}
-	} else {
-		SYSLOG("mach @ couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
-			   linkedit_fileoff, symboltable_fileoff);
-	}
-
-	vfs_context_rele(ctxt);
-	// drop the iocount due to vnode_lookup()
-	// we must do this or the machine gets stuck on shutdown/reboot
-	vnode_put(vnode);
-
-#ifdef LILU_COMPRESSION_SUPPORT
-	// We do not need the whole file buffer anymore
-	if (file_buf) {
-		Buffer::deleter(file_buf);
-		file_buf = nullptr;
-	}
-#endif /* LILU_COMPRESSION_SUPPORT */
-	Buffer::deleter(machHeader);
 	
 	return error;
 }
 
 void MachInfo::deinit() {
+	freeFileBufferResources();
+
 	if (linkedit_buf) {
 		Buffer::deleter(linkedit_buf);
 		linkedit_buf = nullptr;
@@ -195,11 +205,11 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	}
 	
 	// symbols and strings offsets into LINKEDIT
-	// we just read the __LINKEDIT but fileoff values are relative to the full /mach_kernel
+	// we just read the __LINKEDIT but fileoff values are relative to the full Mach-O
 	// subtract the base of LINKEDIT to fix the value into our buffer
-	uint64_t symbolOff = symboltable_fileoff - (linkedit_fileoff);
+	uint64_t symbolOff = symboltable_fileoff - linkedit_fileoff;
 	if (symbolOff > symboltable_fileoff) return 0;
-	uint64_t stringOff = stringtable_fileoff - (linkedit_fileoff);
+	uint64_t stringOff = stringtable_fileoff - linkedit_fileoff;
 	if (stringOff > stringtable_fileoff) return 0;
 	
 	nlist_64 *nlist64 = nullptr;
@@ -305,18 +315,17 @@ kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
 	}
 
 #ifdef LILU_COMPRESSION_SUPPORT
-	if (!file_buf) {
+	if (file_buf) {
+		lilu_os_memcpy(linkedit_buf, file_buf+linkedit_fileoff, linkedit_size);
+	} else
 #endif /* LILU_COMPRESSION_SUPPORT */
+	{
 		int error = FileIO::readFileData(linkedit_buf, fat_offset+linkedit_fileoff, linkedit_size, vnode, ctxt);
 		if (error) {
 			SYSLOG("mach @ linkedit read failed with %d error", error);
 			return KERN_FAILURE;
 		}
-#ifdef LILU_COMPRESSION_SUPPORT
-	} else {
-		lilu_os_memcpy(linkedit_buf, file_buf+linkedit_fileoff, linkedit_size);
 	}
-#endif /* LILU_COMPRESSION_SUPPORT */
 
 	return KERN_SUCCESS;
 }
@@ -391,17 +400,30 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 	}
 }
 
-//FIXME: Guard pointer access by HeaderSize
+void MachInfo::freeFileBufferResources() {
+	if (file_buf) {
+		Buffer::deleter(file_buf);
+		file_buf = nullptr;
+	}
+}
+
 void MachInfo::processMachHeader(void *header) {
 	mach_header_64 *mh = static_cast<mach_header_64 *>(header);
 	size_t headerSize = sizeof(mach_header_64);
 	
 	// point to the first load command
-	char *addr = static_cast<char *>(header) + headerSize;
+	auto addr    = static_cast<uint8_t *>(header) + headerSize;
+	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
 	// iterate over all load cmds and retrieve required info to solve symbols
 	// __LINKEDIT location and symbol/string table location
 	for (uint32_t i = 0; i < mh->ncmds; i++) {
-		load_command *loadCmd = reinterpret_cast<load_command *>(addr);
+		auto loadCmd = reinterpret_cast<load_command *>(addr);
+
+		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
+			SYSLOG("mach @ header command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+			return;
+		}
+
 		if (loadCmd->cmd == LC_SEGMENT_64) {
 			segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
@@ -417,7 +439,7 @@ void MachInfo::processMachHeader(void *header) {
 		// table information available at LC_SYMTAB command
 		else if (loadCmd->cmd == LC_SYMTAB) {
 			DBGLOG("mach @ header processing found SYMTAB");
-			symtab_command *symtab_cmd = (symtab_command*)loadCmd;
+			auto symtab_cmd = reinterpret_cast<symtab_command *>(loadCmd);
 			symboltable_fileoff = symtab_cmd->symoff;
 			symboltable_nr_symbols = symtab_cmd->nsyms;
 			stringtable_fileoff = symtab_cmd->stroff;
@@ -426,7 +448,6 @@ void MachInfo::processMachHeader(void *header) {
 	}
 }
 
-//FIXME: Guard pointer access by HeaderSize
 kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size, bool force) {
 	if (force) {
 		kaslr_slide_set = false;
@@ -444,13 +465,20 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 	if (base != 0) {
 		// get the vm address of __TEXT segment
-		mach_header_64 *mh = reinterpret_cast<mach_header_64 *>(base);
-		size_t headerSize = sizeof(mach_header_64);
+		auto mh = reinterpret_cast<mach_header_64 *>(base);
+		auto headerSize = sizeof(mach_header_64);
 		
 		load_command *loadCmd;
-		char *addr = reinterpret_cast<char *>(base) + headerSize;
+		auto addr = reinterpret_cast<uint8_t *>(base) + headerSize;
+		auto endaddr = reinterpret_cast<uint8_t *>(base) + HeaderSize;
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			loadCmd = reinterpret_cast<load_command *>(addr);
+
+			if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
+				SYSLOG("mach @ running command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+				return KERN_FAILURE;
+			}
+
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 				if (strncmp(segCmd->segname, "__TEXT", 16) == 0) {
@@ -494,16 +522,22 @@ void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 	DBGLOG("mach @ getRunningPosition %p of memory %lu size", header, size);
 }
 
-//FIXME: Guard pointer access by HeaderSize
 uint64_t *MachInfo::getUUID(void *header) {
 	if (!header) return nullptr;
 	
-	mach_header_64 *mh = static_cast<mach_header_64 *>(header);
+	auto mh = static_cast<mach_header_64 *>(header);
 	size_t size = sizeof(mach_header_64);
 	
-	uint8_t *addr = static_cast<uint8_t *>(header) + size;
+	auto *addr = static_cast<uint8_t *>(header) + size;
+	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
 	for (uint32_t i = 0; i < mh->ncmds; i++) {
-		load_command *loadCmd = reinterpret_cast<load_command *>(addr);
+		auto loadCmd = reinterpret_cast<load_command *>(addr);
+
+		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
+			SYSLOG("mach @ uuid command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+			return nullptr;
+		}
+
 		if (loadCmd->cmd == LC_UUID)
 			return reinterpret_cast<uint64_t *>((reinterpret_cast<uuid_command *>(loadCmd))->uuid);
 		
