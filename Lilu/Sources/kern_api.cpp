@@ -208,15 +208,21 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	for (size_t i = 0; i < storedKexts.size(); i++) {
 		auto stored = storedKexts[i];
 		for (size_t j = 0; j < stored->second; j++) {
-			if (stored->first[j].pathNum == 0)
+			if (stored->first[j].sys[KernelPatcher::KextInfo::Disabled])
 				continue;
+
+			if (stored->first[j].sys[KernelPatcher::KextInfo::FSOnly] && stored->first[j].pathNum == 0) {
+				SYSLOG("api @ improper request with 0 paths for %s kext", stored->first[j].id);
+				continue;
+			}
 			
 			patcher.loadKinfo(&stored->first[j]);
 			auto error = patcher.getError();
 			if (error != KernelPatcher::Error::NoError) {
 				patcher.clearError();
 				if (error == KernelPatcher::Error::AlreadyDone) {
-					if (stored->first[j].loaded || stored->first[j].reloadable) {
+					if (stored->first[j].sys[KernelPatcher::KextInfo::Loaded] ||
+						stored->first[j].sys[KernelPatcher::KextInfo::Reloadable]) {
 						DBGLOG("api @ updating new kext handler features");
 						patcher.updateKextHandlerFeatures(&stored->first[j]);
 					}
@@ -242,7 +248,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 					lilu.processKextLoadCallbacks(*static_cast<KernelPatcher *>(h->self), h->index, h->address, h->size, h->reloadable);
 				else
 					SYSLOG("api @ kext notification callback arrived at nowhere");
-			}, stored->first[j].loaded, stored->first[j].reloadable);
+			}, stored->first[j].sys[KernelPatcher::KextInfo::Loaded], stored->first[j].sys[KernelPatcher::KextInfo::Reloadable]);
 			
 			if (!handler) {
 				SYSLOG("api @ failed to allocate KextHandler for %s", stored->first[j].id);

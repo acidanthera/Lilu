@@ -326,20 +326,20 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 	sectionptr = 0;
 	size = 0;
 	
-	mach_header *header = static_cast<mach_header *>(ptr);
-	load_command *cmd = static_cast<load_command *>(ptr);
+	auto header = static_cast<mach_header *>(ptr);
+	auto cmd = static_cast<load_command *>(ptr);
 	
 	if (header->magic == MH_MAGIC_64) {
-		((uintptr_t &)cmd) += sizeof(mach_header_64);
+		reinterpret_cast<uintptr_t &>(cmd) += sizeof(mach_header_64);
 	} else if (header->magic == MH_MAGIC) {
-		((uintptr_t &)cmd) += sizeof(mach_header);
+		reinterpret_cast<uintptr_t &>(cmd) += sizeof(mach_header);
 	} else if (header->magic == FAT_CIGAM){
 		fat_header *fheader = static_cast<fat_header *>(ptr);
-		uint32_t num = __builtin_bswap32(fheader->nfat_arch);
+		uint32_t num = OSSwapInt32(fheader->nfat_arch);
 		fat_arch *farch = reinterpret_cast<fat_arch *>(reinterpret_cast<uintptr_t>(ptr) + sizeof(fat_header));
 		for (size_t i = 0; i < num; i++, farch++) {
-			if (__builtin_bswap32(farch->cputype) ==  cpu) {
-				findSectionBounds(reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(ptr) + __builtin_bswap32(farch->offset)), vmsegment, vmsection, sectionptr, size, segmentName, sectionName, cpu);
+			if (OSSwapInt32(farch->cputype) ==  cpu) {
+				findSectionBounds(reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(ptr) + OSSwapInt32(farch->offset)), vmsegment, vmsection, sectionptr, size, segmentName, sectionName, cpu);
 				break;
 			}
 		}
@@ -351,7 +351,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 			segment_command *scmd = reinterpret_cast<segment_command *>(cmd);
 			if (!strcmp(scmd->segname, segmentName)) {
 				section *sect = reinterpret_cast<section *>(cmd);
-				((uintptr_t &)sect) += sizeof(segment_command);
+				reinterpret_cast<uintptr_t &>(sect) += sizeof(segment_command);
 				
 				for (uint32_t sno = 0; sno < scmd->nsects; sno++) {
 					if (!strcmp(sect->sectname, sectionName)) {
@@ -370,7 +370,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 			segment_command_64 *scmd = reinterpret_cast<segment_command_64 *>(cmd);
 			if (!strcmp(scmd->segname, segmentName)) {
 				section_64 *sect = reinterpret_cast<section_64 *>(cmd);
-				((uintptr_t &)sect) += sizeof(segment_command_64);
+				reinterpret_cast<uintptr_t &>(sect) += sizeof(segment_command_64);
 				
 				for (uint32_t sno = 0; sno < scmd->nsects; sno++) {
 					if (!strcmp(sect->sectname, sectionName)) {
@@ -387,7 +387,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 			}
 		}
 		
-		((uintptr_t &)cmd) += cmd->cmdsize;
+		reinterpret_cast<uintptr_t &>(cmd) += cmd->cmdsize;
 	}
 }
 
