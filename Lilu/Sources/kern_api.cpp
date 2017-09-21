@@ -239,7 +239,8 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			if (patcher.getError() != KernelPatcher::Error::NoError) {
 				SYSLOG("api @ failed to setup kext hooking");
 				patcher.clearError();
-				return;
+				i = storedKexts.size();
+				break;
 			}
 			
 			auto handler = KernelPatcher::KextHandler::create(stored->first[j].id, stored->first[j].loadIndex,
@@ -252,7 +253,8 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			
 			if (!handler) {
 				SYSLOG("api @ failed to allocate KextHandler for %s", stored->first[j].id);
-				return;
+				i = storedKexts.size();
+				break;
 			}
 			
 			handler->self = &patcher;
@@ -263,10 +265,14 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 				SYSLOG("api @ failed to wait on kext %s", stored->first[j].id);
 				patcher.clearError();
 				KernelPatcher::KextHandler::deleter(handler);
-				return;
+				i = storedKexts.size();
+				break;
 			}
 		}
 	}
+
+	// We no longer need to load kexts, forget about prelinked
+	patcher.freeFileBufferResources();
 }
 
 void LiluAPI::processKextLoadCallbacks(KernelPatcher &patcher, size_t id, mach_vm_address_t slide, size_t size, bool reloadable) {

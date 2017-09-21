@@ -40,7 +40,8 @@ public:
 		MemoryProtection,
 		PointerRange,
 		AlreadyDone,
-		LockError
+		LockError,
+		Unsupported
 	};
 	
 	/**
@@ -165,7 +166,12 @@ public:
 	 *  Hook kext loading and unloading to access kexts at early stage
 	 */
 	EXPORT void setupKextListening();
-	
+
+	/**
+	 *  Free file buffer resources and effectively make prelinked kext loading impossible
+	 */
+	void freeFileBufferResources();
+
 	/**
 	 *  Activates monitoring functions if necessary
 	 */

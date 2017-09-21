@@ -23,9 +23,7 @@ class MachInfo {
 	mach_vm_address_t running_text_addr {0}; // the address of running __TEXT segment
 	mach_vm_address_t disk_text_addr {0};    // the same address at from a file
 	mach_vm_address_t kaslr_slide {0};       // the kernel aslr slide, computed as the difference between above's addresses
-#ifdef LILU_COMPRESSION_SUPPORT
 	uint8_t *file_buf {nullptr};             // read file data if decompression was used
-#endif /* LILU_COMPRESSION_SUPPORT */
 	uint8_t *linkedit_buf {nullptr};         // pointer to __LINKEDIT buffer containing symbols to solve
 	uint64_t linkedit_fileoff {0};           // __LINKEDIT file offset so we can read
 	uint64_t linkedit_size {0};
@@ -135,12 +133,13 @@ public:
 	/**
 	 *  Specified file identifier
 	 */
-	const char *objectId {nullptr};
+	EXPORT const char *objectId {nullptr};
 
 	/**
 	 *  MachInfo object generator
 	 *
 	 *  @param asKernel this MachInfo represents a kernel
+	 *  @param id       kinfo identifier (e.g. CFBundleIdentifier)
 	 *
 	 *  @return MachInfo object or nullptr
 	 */
@@ -150,12 +149,13 @@ public:
 	/**
 	 *  Resolve mach data in the kernel
 	 *
-	 *  @param paths  filesystem paths for lookup
-	 *  @param num    the number of paths passed
+	 *  @param paths   filesystem paths for lookup
+	 *  @param num     the number of paths passed
+	 *  @param prelink prelink information source (i.e. Kernel MachInfo)
 	 *
 	 *  @return KERN_SUCCESS if loaded
 	 */
-	EXPORT kern_return_t init(const char * const paths[], size_t num = 1);
+	EXPORT kern_return_t init(const char * const paths[], size_t num = 1, MachInfo *prelink=nullptr);
 	
 	/**
 	 *  Release the allocated memory, must be called regardless of the init error
@@ -250,6 +250,11 @@ public:
 	 *  @param cpu         cpu to look for in case of fat binaries
 	 */
 	EXPORT static void findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &size, const char *segmentName="__TEXT", const char *sectionName="__text", cpu_type_t cpu=CPU_TYPE_X86_64);
+
+	/**
+	 *  Request to free file buffer resources (not including linkedit symtable)
+	 */
+	void freeFileBufferResources();
 };
 
 #endif /* kern_mach_hpp */

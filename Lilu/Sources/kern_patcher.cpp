@@ -86,12 +86,16 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 			return i;
 		}
 	}
+
+	MachInfo *prelink = nullptr;
+	if (!fsonly && !isKernel && kinfos.size() > KernelID)
+		prelink = kinfos[KernelID];
 	
 	auto info = MachInfo::create(isKernel, id);
 	if (!info) {
 		SYSLOG("patcher @ failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
-	} else if (info->init(paths, num) != KERN_SUCCESS) {
+	} else if (info->init(paths, num, prelink) != KERN_SUCCESS) {
 		SYSLOG_COND(ADDPR(debugEnabled), "patcher @ failed to init MachInfo for %s", id);
 		code = Error::NoKinfoFound;
 	} else if (!kinfos.push_back(info)) {
@@ -274,7 +278,16 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 		code = Error::MemoryIssue;
 	}
 }
+#else
+void KernelPatcher::setupKextListening() {
+	code = Error::Unsupported;
+}
 #endif /* LILU_KEXTPATCH_SUPPORT */
+
+void KernelPatcher::freeFileBufferResources() {
+	if (kinfos.size() > KernelID)
+		kinfos[KernelID]->freeFileBufferResources();
+}
 
 void KernelPatcher::activate() {
 	activated = true;
