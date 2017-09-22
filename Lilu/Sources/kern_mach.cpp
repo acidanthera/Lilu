@@ -150,7 +150,7 @@ mach_vm_address_t MachInfo::findKernelBase() {
 			// make sure it's the header and not some reference to the MAGIC number
 			segmentCommand = reinterpret_cast<segment_command_64 *>(tmp + sizeof(mach_header_64));
 			if (strncmp(segmentCommand->segname, "__TEXT", strlen("__TEXT")) == 0) {
-				DBGLOG("mach @ Found kernel mach-o header address at %p", (void*)(tmp));
+				DBGLOG("mach @ found kernel mach-o header address at %p", (void*)(tmp));
 				return tmp;
 			}
 		}
@@ -232,7 +232,7 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 		char *symbolStr = reinterpret_cast<char *>(linkedit_buf + stringOff + nlist64->n_un.n_strx);
 		// find if symbol matches
 		if (strncmp(symbol, symbolStr, strlen(symbol)+1) == 0) {
-			DBGLOG("mach @ Found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist64->n_value + kaslr_slide, nlist64->n_value);
+			DBGLOG("mach @ found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist64->n_value + kaslr_slide, nlist64->n_value);
 			// the symbol values are without kernel ASLR so we need to add it
 			return nlist64->n_value + kaslr_slide;
 		}
@@ -486,9 +486,10 @@ void MachInfo::updatePrelinkInfo() {
 		findSectionBounds(file_buf, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_INFO", "__info");
 		auto startoff = tmpSectSize && static_cast<uint8_t *>(tmpSectPtr) >= file_buf ?
 		                static_cast<uint8_t *>(tmpSectPtr) - file_buf : file_buf_size;
-		if (file_buf_size > startoff && file_buf_size - startoff >= tmpSectSize) {
-			auto data = OSUnserializeXML(static_cast<const char *>(tmpSectPtr), tmpSectSize, nullptr);
-			prelink_dict = OSDynamicCast(OSDictionary, data);
+		if (tmpSectSize > 0 && file_buf_size > startoff && file_buf_size - startoff >= tmpSectSize) {
+			auto xmlData = static_cast<const char *>(tmpSectPtr);
+			auto objData = xmlData[tmpSectSize-1] == '\0' ? OSUnserializeXML(xmlData, nullptr) : nullptr;
+			prelink_dict = OSDynamicCast(OSDictionary, objData);
 			if (prelink_dict) {
 				findSectionBounds(file_buf, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
 				if (tmpSectSize){
@@ -499,9 +500,9 @@ void MachInfo::updatePrelinkInfo() {
 					prelink_dict->free();
 					prelink_dict = nullptr;
 				}
-			} else if (data) {
+			} else if (objData) {
 				SYSLOG("mach @ unable to parse prelink info section");
-				data->release();
+				objData->release();
 			} else {
 				SYSLOG("mach @ unable to deserialize prelink info section");
 			}
@@ -608,7 +609,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		
 		DBGLOG("mach @ aslr/load slide is 0x%llx", kaslr_slide);
 	} else {
-		SYSLOG("mach @ Couldn't find the running addresses");
+		SYSLOG("mach @ couldn't find the running addresses");
 		return KERN_FAILURE;
 	}
 	
@@ -684,7 +685,7 @@ mach_vm_address_t MachInfo::calculateInt80Address() {
 	uint64_t high = static_cast<uint64_t>(int80Descr->offset_high) << 32;
 	uint32_t middle = static_cast<uint32_t>(int80Descr->offset_middle) << 16;
 	int80Addr = static_cast<mach_vm_address_t>(high + middle + int80Descr->offset_low);
-	DBGLOG("mach @ Address of interrupt 80 stub is 0x%llx", int80Addr);
+	DBGLOG("mach @ address of interrupt 80 stub is 0x%llx", int80Addr);
 	
 	return int80Addr;
 }
