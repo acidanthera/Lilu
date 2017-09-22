@@ -384,7 +384,6 @@ private:
 		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache",
 		"/System/Library/PrelinkedKernels/prelinkedkernel"
 #endif /* LILU_COMPRESSION_SUPPORT */
-		
 	};
 };
 

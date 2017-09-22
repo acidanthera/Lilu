@@ -18,12 +18,17 @@
 #include <sys/vnode.h>
 #include <mach-o/loader.h>
 #include <mach/vm_param.h>
+#include <libkern/c++/OSDictionary.h>
 
 class MachInfo {
 	mach_vm_address_t running_text_addr {0}; // the address of running __TEXT segment
 	mach_vm_address_t disk_text_addr {0};    // the same address at from a file
 	mach_vm_address_t kaslr_slide {0};       // the kernel aslr slide, computed as the difference between above's addresses
-	uint8_t *file_buf {nullptr};             // read file data if decompression was used
+	uint8_t *file_buf {nullptr};             // read file data
+	OSDictionary *prelink_dict {nullptr};    // read prealinked kext dictionary
+	uint8_t *prelink_addr {nullptr};         // prelink text base address
+	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address
+	uint32_t file_buf_size {0};              // read file data size
 	uint8_t *linkedit_buf {nullptr};         // pointer to __LINKEDIT buffer containing symbols to solve
 	uint64_t linkedit_fileoff {0};           // __LINKEDIT file offset so we can read
 	uint64_t linkedit_size {0};
@@ -35,7 +40,7 @@ class MachInfo {
 	size_t memory_size {HeaderSize};         // memory size
 	bool kaslr_slide_set {false};            // kaslr can be null, used for disambiguation
 	bool allow_decompress {true};            // allows mach decompression
-	
+
 	/**
 	 *  16 byte IDT descriptor, used for 32 and 64 bits kernels (64 bit capable cpus!)
 	 */
@@ -50,21 +55,21 @@ class MachInfo {
 	};
 	
 	/**
-	 *  retrieve the address of the IDT
+	 *  Retrieve the address of the IDT
 	 *
 	 *  @return always returns the IDT address
 	 */
 	mach_vm_address_t getIDTAddress();
 	
 	/**
-	 *  calculate the address of the kernel int80 handler
+	 *  Calculate the address of the kernel int80 handler
 	 *
 	 *  @return always returns the int80 handler address
 	 */
 	mach_vm_address_t calculateInt80Address();
 	
 	/**
-	 *  retrieve LC_UUID command value from a mach header
+	 *  Retrieve LC_UUID command value from a mach header
 	 *
 	 *  @param header mach header pointer
 	 *
@@ -73,7 +78,7 @@ class MachInfo {
 	uint64_t *getUUID(void *header);
 	
 	/**
-	 *  enable/disable the Write Protection bit in CR0 register
+	 *  Enable/disable the Write Protection bit in CR0 register
 	 *
 	 *  @param enable the desired value
 	 *
@@ -82,8 +87,8 @@ class MachInfo {
 	static kern_return_t setWPBit(bool enable);
 	
 	/**
-	 *  retrieve the first pages of a binary at disk into a buffer
-	 *  version that uses KPI VFS functions and a ripped uio_createwithbuffer() from XNU
+	 *  Retrieve the first pages of a binary at disk into a buffer
+	 *  Version that uses KPI VFS functions and a ripped uio_createwithbuffer() from XNU
 	 *
 	 *  @param buffer     allocated buffer sized no less than HeaderSize
 	 *  @param vnode      file node
@@ -96,7 +101,7 @@ class MachInfo {
 	kern_return_t readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_context_t ctxt, off_t off=0);
 
 	/**
-	 *  retrieve the whole linkedit segment into target buffer from kernel binary at disk
+	 *  Retrieve the whole linkedit segment into target buffer from kernel binary at disk
 	 *
 	 *  @param vnode file node
 	 *  @param ctxt  filesystem context
@@ -106,11 +111,26 @@ class MachInfo {
 	kern_return_t readLinkedit(vnode_t vnode, vfs_context_t ctxt);
 	
 	/**
-	 *  retrieve necessary mach-o header information from the mach header
+	 *  Retrieve necessary mach-o header information from the mach header
 	 *
 	 *  @param header read header sized no less than HeaderSize
 	 */
 	void processMachHeader(void *header);
+
+	/**
+	 *  Load kext info dictionary and addresses if they were not loaded previously
+	 */
+	void updatePrelinkInfo();
+
+	/**
+	 *  Lookup mach image in prelinked image
+	 *
+	 *  @param identifier  identifier
+	 *  @param imageSize   size of the returned buffer
+	 *
+	 *  @return pointer to const buffer on success or nullptr
+	 */
+	uint8_t *findImage(const char *identifier, uint32_t &imageSize);
 	
 	MachInfo(bool asKernel, const char *id) : isKernel(asKernel), objectId(id) {
 		DBGLOG("mach @ MachInfo asKernel %d object constructed", asKernel);

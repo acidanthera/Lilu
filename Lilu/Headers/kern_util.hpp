@@ -15,6 +15,7 @@
 #include <libkern/OSDebug.h>
 #include <mach/vm_types.h>
 #include <mach/vm_prot.h>
+#include <sys/proc.h>
 #include <IOKit/IOLib.h>
 
 #define xStringify(a) Stringify(a)
@@ -47,6 +48,11 @@ extern const int version_minor;
  *  Kernel map
  */
 extern vm_map_t kernel_map;
+
+/**
+ *  Kernel proc
+ */
+extern proc_t kernproc;
 
 /**
  *  Conditional logging to system log prefixed with you plugin name
