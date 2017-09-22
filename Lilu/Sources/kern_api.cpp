@@ -203,7 +203,8 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 		auto p = patcherLoadedCallbacks[i];
 		p->first(p->second, patcher);
 	}
-	
+
+#ifdef LILU_KEXTPATCH_SUPPORT
 	// Queue the kexts we are in need of waiting
 	for (size_t i = 0; i < storedKexts.size(); i++) {
 		auto stored = storedKexts[i];
@@ -270,6 +271,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			}
 		}
 	}
+#endif
 
 	// We no longer need to load kexts, forget about prelinked
 	patcher.freeFileBufferResources();
