@@ -6,9 +6,10 @@ Please note that improperly written immature plugins will not be listed there.
 
 | Name | Short description |
 |:-----|:------------------|
-[AirportBrcmFixup](https://sourceforge.net/p/airportbrcmfixup/) | Various patches for Broadcom Airport Wi-Fi cards
+[AirportBrcmFixup](https://sourceforge.net/p/airportbrcmfixup) | Various patches for Broadcom Airport Wi-Fi cards
 [AppleALC](https://github.com/vit9696/AppleALC) | Native macOS HD audio for not officially supported codecs
 [AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) | Additional Intel HD 4600 patches for some laptops on 10.12.4+
+[BT4LEContiunityFixup](https://sourceforge.net/p/bt4lecontiunityfixup) | Enable BT4LE-Handoff-Hotspot features
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Non Iris Intel graphics high resolution support
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Enable lid wake for Intel Graphics Card
