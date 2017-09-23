@@ -231,15 +231,10 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 				// get the pointer to the symbol entry and extract its symbol string
 				auto symbolStr = reinterpret_cast<char *>(strlist + nlist->n_un.n_strx);
 				// find if symbol matches
-				if (reinterpret_cast<uint8_t *>(symbolStr + symlen) <= endaddr) {
-					if (!strncmp(symbol, symbolStr, symlen)) {
-						DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist->n_value + kaslr_slide, nlist->n_value);
-						// the symbol values are without kernel ASLR so we need to add it
-						return nlist->n_value + kaslr_slide;
-					}
-				} else {
-					SYSLOG("mach", "string at %u out of %u exceeds linkedit bounds", i, symboltable_nr_symbols);
-					break;
+				if (reinterpret_cast<uint8_t *>(symbolStr + symlen) <= endaddr && !strncmp(symbol, symbolStr, symlen)) {
+					DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist->n_value + kaslr_slide, nlist->n_value);
+					// the symbol values are without kernel ASLR so we need to add it
+					return nlist->n_value + kaslr_slide;
 				}
 			} else {
 				SYSLOG("mach", "symbol at %u out of %u exceeds linkedit bounds", i, symboltable_nr_symbols);
