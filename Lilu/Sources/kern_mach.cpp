@@ -41,7 +41,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	// When calling kauth_cred_get() for the current_thread.
 	// This probably wants a better solution...
 	if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
-		SYSLOG("mach @ current context has no credential, it's too early");
+		SYSLOG("mach", "current context has no credential, it's too early");
 		return error;
 	}
 
@@ -55,13 +55,13 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 				// read linkedit from prelink
 				error = readLinkedit(NULLVP, nullptr);
 				if (error != KERN_SUCCESS)
-					SYSLOG("mach @ could not read the linkedit segment from prelink");
+					SYSLOG("mach", "could not read the linkedit segment from prelink");
 			} else {
-				SYSLOG("mach @ couldn't find the necessary mach segments or sections in prelink (linkedit %llX, sym %X)",
+				SYSLOG("mach", "couldn't find the necessary mach segments or sections in prelink (linkedit %llX, sym %X)",
 					   linkedit_fileoff, symboltable_fileoff);
 			}
 		} else {
-			SYSLOG("mach @ unable to load image from prelink");
+			SYSLOG("mach", "unable to load image from prelink");
 		}
 
 		file_buf = nullptr;
@@ -72,7 +72,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 		// Allocate some data for header
 		auto machHeader = Buffer::create<uint8_t>(HeaderSize);
 		if (!machHeader) {
-			SYSLOG("mach @ can't allocate header memory.");
+			SYSLOG("mach", "can't allocate header memory.");
 			return error;
 		}
 
@@ -86,13 +86,13 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 			errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
 			if (!err) {
-				DBGLOG("mach @ readMachHeader for %s", paths[i]);
+				DBGLOG("mach", "readMachHeader for %s", paths[i]);
 				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
 				if (readError == KERN_SUCCESS) {
 					if (isKernel && !isCurrentKernel(machHeader)) {
 						vnode_put(vnode);
 					} else {
-						DBGLOG("mach @ found executable at path: %s", paths[i]);
+						DBGLOG("mach", "found executable at path: %s", paths[i]);
 						found = true;
 						break;
 					}
@@ -103,7 +103,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 		}
 
 		if (!found) {
-			DBGLOG("mach @ couldn't find a suitable executable");
+			DBGLOG("mach", "couldn't find a suitable executable");
 			Buffer::deleter(machHeader);
 			return error;
 		}
@@ -113,9 +113,9 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 			// read linkedit from filesystem
 			error = readLinkedit(vnode, ctxt);
 			if (error != KERN_SUCCESS)
-				SYSLOG("mach @ could not read the linkedit segment");
+				SYSLOG("mach", "could not read the linkedit segment");
 		} else {
-			SYSLOG("mach @ couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
+			SYSLOG("mach", "couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
 				   linkedit_fileoff, symboltable_fileoff);
 		}
 
@@ -150,7 +150,7 @@ mach_vm_address_t MachInfo::findKernelBase() {
 			// make sure it's the header and not some reference to the MAGIC number
 			segmentCommand = reinterpret_cast<segment_command_64 *>(tmp + sizeof(mach_header_64));
 			if (strncmp(segmentCommand->segname, "__TEXT", strlen("__TEXT")) == 0) {
-				DBGLOG("mach @ found kernel mach-o header address at %p", (void*)(tmp));
+				DBGLOG("mach", "found kernel mach-o header address at %p", (void*)(tmp));
 				return tmp;
 			}
 		}
@@ -184,7 +184,7 @@ kern_return_t MachInfo::setKernelWriting(bool enable, IOSimpleLock *lock) {
 	}
 	
 	if (setWPBit(!enable) != KERN_SUCCESS) {
-		SYSLOG("mach @ failed to set wp bit to %d", !enable);
+		SYSLOG("mach", "failed to set wp bit to %d", !enable);
 		enable = false;
 		res = KERN_FAILURE;
 	}
@@ -202,17 +202,17 @@ kern_return_t MachInfo::setKernelWriting(bool enable, IOSimpleLock *lock) {
 
 mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	if (!linkedit_buf) {
-		SYSLOG("mach @ no loaded linkedit buffer found");
+		SYSLOG("mach", "no loaded linkedit buffer found");
 		return 0;
 	}
 	
 	if (!symboltable_fileoff) {
-		SYSLOG("mach @ no symtable offsets found");
+		SYSLOG("mach", "no symtable offsets found");
 		return 0;
 	}
 	
 	if (!kaslr_slide_set) {
-		SYSLOG("mach @ no slide is present");
+		SYSLOG("mach", "no slide is present");
 		return 0;
 	}
 	
@@ -232,7 +232,7 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 		char *symbolStr = reinterpret_cast<char *>(linkedit_buf + stringOff + nlist64->n_un.n_strx);
 		// find if symbol matches
 		if (strncmp(symbol, symbolStr, strlen(symbol)+1) == 0) {
-			DBGLOG("mach @ found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist64->n_value + kaslr_slide, nlist64->n_value);
+			DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist64->n_value + kaslr_slide, nlist64->n_value);
 			// the symbol values are without kernel ASLR so we need to add it
 			return nlist64->n_value + kaslr_slide;
 		}
@@ -244,13 +244,13 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_context_t ctxt, off_t off) {
 	int error = FileIO::readFileData(buffer, off, HeaderSize, vnode, ctxt);
 	if (error) {
-		SYSLOG("mach @ mach header read failed with %d error", error);
+		SYSLOG("mach", "mach header read failed with %d error", error);
 		return KERN_FAILURE;
 	}
 	
 	while (1) {
 		auto magic = *reinterpret_cast<uint32_t *>(buffer);
-		DBGLOG("mach @ readMachHeader got magic %08X", magic);
+		DBGLOG("mach", "readMachHeader got magic %08X", magic);
 
 		switch (magic) {
 			case MH_MAGIC_64:
@@ -263,7 +263,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					if (arch->cputype == CPU_TYPE_X86_64)
 						return readMachHeader(buffer, vnode, ctxt, arch->offset);
 				}
-				SYSLOG("mach @ magic failed to find a x86_64 mach");
+				SYSLOG("mach", "magic failed to find a x86_64 mach");
 				return KERN_FAILURE;
 			}
 			case FAT_CIGAM: {
@@ -273,7 +273,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					if (OSSwapInt32(arch->cputype) == CPU_TYPE_X86_64)
 						return readMachHeader(buffer, vnode, ctxt, OSSwapInt32(arch->offset));
 				}
-				SYSLOG("mach @ cigam failed to find a x86_64 mach");
+				SYSLOG("mach", "cigam failed to find a x86_64 mach");
 				return KERN_FAILURE;
 			}
 #ifdef LILU_COMPRESSION_SUPPORT
@@ -282,14 +282,14 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					auto header = reinterpret_cast<Compression::Header *>(buffer);
 					auto compressedBuf = Buffer::create<uint8_t>(OSSwapInt32(header->compressed));
 					if (!compressedBuf) {
-						SYSLOG("mach @ failed to allocate memory for reading mach binary");
+						SYSLOG("mach", "failed to allocate memory for reading mach binary");
 					} else if (FileIO::readFileData(compressedBuf, off+sizeof(Compression::Header), OSSwapInt32(header->compressed),
 													vnode, ctxt) != KERN_SUCCESS) {
-						SYSLOG("mach @ failed to read compressed binary");
+						SYSLOG("mach", "failed to read compressed binary");
 					} else {
 						uint32_t comp = OSSwapInt32(header->compressed);
 						uint32_t dec  = OSSwapInt32(header->decompressed);
-						DBGLOG("mach @ decompressing %d bytes (estimated %u bytes) with %X compression mode", comp, dec, header->compression);
+						DBGLOG("mach", "decompressing %d bytes (estimated %u bytes) with %X compression mode", comp, dec, header->compression);
 
 						if (header->decompressed > HeaderSize) {
 							if (file_buf) Buffer::deleter(file_buf);
@@ -302,19 +302,19 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 								continue;
 							}
 						} else {
-							SYSLOG("mach @ decompression disallowed due to low out size %u", header->decompressed);
+							SYSLOG("mach", "decompression disallowed due to low out size %u", header->decompressed);
 						}
 					}
 
 					Buffer::deleter(compressedBuf);
 				} else {
-					SYSLOG("mach @ decompression disallowed due to lowmem flag");
+					SYSLOG("mach", "decompression disallowed due to lowmem flag");
 				}
 				return KERN_FAILURE;
 			}
 #endif /* LILU_COMPRESSION_SUPPORT */
 			default:
-				SYSLOG("mach @ read mach has unsupported %X magic", magic);
+				SYSLOG("mach", "read mach has unsupported %X magic", magic);
 				return KERN_FAILURE;
 		}
 	}
@@ -329,7 +329,7 @@ kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
 	// we should free this buffer later when we don't need anymore to solve symbols
 	linkedit_buf = Buffer::create<uint8_t>(linkedit_size);
 	if (!linkedit_buf) {
-		SYSLOG("mach @ Could not allocate enough memory (%lld) for __LINKEDIT segment", linkedit_size);
+		SYSLOG("mach", "Could not allocate enough memory (%lld) for __LINKEDIT segment", linkedit_size);
 		return KERN_FAILURE;
 	}
 
@@ -339,14 +339,14 @@ kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
 			lilu_os_memcpy(linkedit_buf, file_buf + linkedit_fileoff, linkedit_size);
 			return KERN_SUCCESS;
 		}
-		SYSLOG("mach @ requested linkedit (%llu %llu) exceeds file buf size (%u)", linkedit_fileoff, linkedit_size, file_buf_size);
+		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", linkedit_fileoff, linkedit_size, file_buf_size);
 	} else
 #endif /* LILU_COMPRESSION_SUPPORT */
 	{
 		int error = FileIO::readFileData(linkedit_buf, fat_offset + linkedit_fileoff, linkedit_size, vnode, ctxt);
 		if (!error)
 			return KERN_SUCCESS;
-		SYSLOG("mach @ linkedit read failed with %d error", error);
+		SYSLOG("mach", "linkedit read failed with %d error", error);
 	}
 
 	Buffer::deleter(linkedit_buf);
@@ -393,7 +393,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 						vmsection = sect->addr;
 						sectionptr = reinterpret_cast<void *>(sect->offset+reinterpret_cast<uintptr_t>(ptr));
 						size = static_cast<size_t>(sect->size);
-						DBGLOG("mach @ found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
+						DBGLOG("mach", "found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
 						return;
 					}
 					
@@ -412,7 +412,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 						vmsection = sect->addr;
 						sectionptr = reinterpret_cast<void *>(sect->offset+reinterpret_cast<uintptr_t>(ptr));
 						size = static_cast<size_t>(sect->size);
-						DBGLOG("mach @ found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
+						DBGLOG("mach", "found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
 						return;
 					}
 					
@@ -450,7 +450,7 @@ void MachInfo::processMachHeader(void *header) {
 		auto loadCmd = reinterpret_cast<load_command *>(addr);
 
 		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
-			SYSLOG("mach @ header command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+			SYSLOG("mach", "header command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
 			return;
 		}
 
@@ -458,17 +458,17 @@ void MachInfo::processMachHeader(void *header) {
 			segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
 			if (strncmp(segCmd->segname, "__TEXT", strlen("__TEXT")) == 0) {
-				DBGLOG("mach @ header processing found TEXT");
+				DBGLOG("mach", "header processing found TEXT");
 				disk_text_addr = segCmd->vmaddr;
 			} else if (strncmp(segCmd->segname, "__LINKEDIT", strlen("__LINKEDIT")) == 0) {
-				DBGLOG("mach @ header processing found LINKEDIT");
+				DBGLOG("mach", "header processing found LINKEDIT");
 				linkedit_fileoff = segCmd->fileoff;
 				linkedit_size = segCmd->filesize;
 			}
 		}
 		// table information available at LC_SYMTAB command
 		else if (loadCmd->cmd == LC_SYMTAB) {
-			DBGLOG("mach @ header processing found SYMTAB");
+			DBGLOG("mach", "header processing found SYMTAB");
 			auto symtab_cmd = reinterpret_cast<symtab_command *>(loadCmd);
 			symboltable_fileoff = symtab_cmd->symoff;
 			symboltable_nr_symbols = symtab_cmd->nsyms;
@@ -496,18 +496,18 @@ void MachInfo::updatePrelinkInfo() {
 					prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
 					prelink_vmaddr = tmpSect;
 				} else {
-					SYSLOG("mach @ unable to get prelink offset");
+					SYSLOG("mach", "unable to get prelink offset");
 					prelink_dict->free();
 					prelink_dict = nullptr;
 				}
 			} else if (objData) {
-				SYSLOG("mach @ unable to parse prelink info section");
+				SYSLOG("mach", "unable to parse prelink info section");
 				objData->release();
 			} else {
-				SYSLOG("mach @ unable to deserialize prelink info section");
+				SYSLOG("mach", "unable to deserialize prelink info section");
 			}
 		} else {
-			SYSLOG("mach @ unable to find prelink info section");
+			SYSLOG("mach", "unable to find prelink info section");
 		}
 	}
 }
@@ -528,7 +528,7 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize) {
 				if (image) {
 					auto imageID = OSDynamicCast(OSString, image->getObject("CFBundleIdentifier"));
 					if (imageID && imageID->isEqualTo(identifier)) {
-						DBGLOG("mach @ found kext %s at %u of prelink", identifier, i);
+						DBGLOG("mach", "found kext %s at %u of prelink", identifier, i);
 						auto addr = OSDynamicCast(OSNumber, image->getObject("_PrelinkExecutableSourceAddr"));
 						auto size = OSDynamicCast(OSNumber, image->getObject("_PrelinkExecutableSize"));
 
@@ -539,16 +539,16 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize) {
 							if (file_buf_size > startoff && file_buf_size - startoff >= imageSize)
 								return imageaddr;
 							else
-								SYSLOG("mach @ invalid addresses of kext %s at %u of prelink", identifier, i);
+								SYSLOG("mach", "invalid addresses of kext %s at %u of prelink", identifier, i);
 						}
 
-						SYSLOG("mach @ unable to obtain addr and size for %s at %u of prelink", identifier, i);
+						SYSLOG("mach", "unable to obtain addr and size for %s at %u of prelink", identifier, i);
 						return nullptr;
 					}
 				}
 			}
 		} else {
-			SYSLOG("mach @ unable to find prelink info array");
+			SYSLOG("mach", "unable to find prelink info array");
 		}
 	}
 
@@ -582,7 +582,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 			loadCmd = reinterpret_cast<load_command *>(addr);
 
 			if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
-				SYSLOG("mach @ running command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+				SYSLOG("mach", "running command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
 				return KERN_FAILURE;
 			}
 
@@ -607,9 +607,9 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		}
 		kaslr_slide_set = true;
 		
-		DBGLOG("mach @ aslr/load slide is 0x%llx", kaslr_slide);
+		DBGLOG("mach", "aslr/load slide is 0x%llx", kaslr_slide);
 	} else {
-		SYSLOG("mach @ couldn't find the running addresses");
+		SYSLOG("mach", "couldn't find the running addresses");
 		return KERN_FAILURE;
 	}
 	
@@ -626,7 +626,7 @@ kern_return_t MachInfo::setRunningAddresses(mach_vm_address_t slide, size_t size
 void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 	header = reinterpret_cast<uint8_t *>(running_mh);
 	size = memory_size > 0 ? memory_size : HeaderSize;
-	DBGLOG("mach @ getRunningPosition %p of memory %lu size", header, size);
+	DBGLOG("mach", "getRunningPosition %p of memory %lu size", header, size);
 }
 
 uint64_t *MachInfo::getUUID(void *header) {
@@ -641,7 +641,7 @@ uint64_t *MachInfo::getUUID(void *header) {
 		auto loadCmd = reinterpret_cast<load_command *>(addr);
 
 		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
-			SYSLOG("mach @ uuid command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+			SYSLOG("mach", "uuid command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
 			return nullptr;
 		}
 
@@ -685,7 +685,7 @@ mach_vm_address_t MachInfo::calculateInt80Address() {
 	uint64_t high = static_cast<uint64_t>(int80Descr->offset_high) << 32;
 	uint32_t middle = static_cast<uint32_t>(int80Descr->offset_middle) << 16;
 	int80Addr = static_cast<mach_vm_address_t>(high + middle + int80Descr->offset_low);
-	DBGLOG("mach @ address of interrupt 80 stub is 0x%llx", int80Addr);
+	DBGLOG("mach", "address of interrupt 80 stub is 0x%llx", int80Addr);
 	
 	return int80Addr;
 }

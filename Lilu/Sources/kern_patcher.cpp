@@ -31,21 +31,21 @@ void KernelPatcher::init() {
 	size_t id = loadKinfo("kernel", reinterpret_cast<const char **>(&kernelPaths), kernelPathsNum, true);
 	
 	if (getError() != Error::NoError || id != KernelID) {
-		DBGLOG("patcher @ got %d error and %lu kernel id", getError(), id);
+		DBGLOG("patcher", "got %d error and %lu kernel id", getError(), id);
 		return;
 	}
 	
 	if (!kernelWriteLock) {
 		kernelWriteLock = IOSimpleLockAlloc();
 		if (!kernelWriteLock) {
-			DBGLOG("patcher @ lock allocation failures");
+			DBGLOG("patcher", "lock allocation failures");
 			code = Error::LockError;
 			return;
 		}
 	}
 	
 	if (kinfos[KernelID]->getRunningAddresses() != KERN_SUCCESS) {
-		DBGLOG("patcher @ failed to get running kernel mach info");
+		DBGLOG("patcher", "failed to get running kernel mach info");
 		code = Error::KernRunningInitFailure;
 		return;
 	}
@@ -60,7 +60,7 @@ void KernelPatcher::deinit() {
 			}
 			kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		} else {
-			SYSLOG("patcher @ failed to change kernel protection at patch removal");
+			SYSLOG("patcher", "failed to change kernel protection at patch removal");
 		}
 	}
 	kpatches.deinit();
@@ -81,7 +81,7 @@ void KernelPatcher::deinit() {
 size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel, bool fsonly) {
 	for (size_t i = 0; i < kinfos.size(); i++) {
 		if (kinfos[i]->objectId && !strcmp(kinfos[i]->objectId, id)) {
-			DBGLOG("patcher @ found an already loaded MachInfo for %s at %lu", id, i);
+			DBGLOG("patcher", "found an already loaded MachInfo for %s at %lu", id, i);
 			code = Error::AlreadyDone;
 			return i;
 		}
@@ -93,13 +93,13 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 	
 	auto info = MachInfo::create(isKernel, id);
 	if (!info) {
-		SYSLOG("patcher @ failed to allocate MachInfo for %s", id);
+		SYSLOG("patcher", "failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
 	} else if (info->init(paths, num, prelink) != KERN_SUCCESS) {
-		SYSLOG_COND(ADDPR(debugEnabled), "patcher @ failed to init MachInfo for %s", id);
+		SYSLOG_COND(ADDPR(debugEnabled), "patcher", "failed to init MachInfo for %s", id);
 		code = Error::NoKinfoFound;
 	} else if (!kinfos.push_back(info)) {
-		SYSLOG("patcher @ unable to store loaded MachInfo for %s", id);
+		SYSLOG("patcher", "unable to store loaded MachInfo for %s", id);
 		code = Error::MemoryIssue;
 	} else {
 		return kinfos.last();
@@ -116,20 +116,20 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 #ifdef LILU_KEXTPATCH_SUPPORT
 size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 	if (!info) {
-		SYSLOG("patcher @ loadKinfo got a null info");
+		SYSLOG("patcher", "loadKinfo got a null info");
 		code = Error::MemoryIssue;
 		return INVALID;
 	}
 
 	if (info->loadIndex != KernelPatcher::KextInfo::Unloaded) {
-		DBGLOG("patcher @ provided KextInfo (%s) has already been loaded at %lu index", info->id, info->loadIndex);
+		DBGLOG("patcher", "provided KextInfo (%s) has already been loaded at %lu index", info->id, info->loadIndex);
 		return info->loadIndex;
 	}
 	
 	auto idx = loadKinfo(info->id, info->paths, info->pathNum, false, info->sys[KextInfo::FSOnly]);
 	if (getError() == Error::NoError || getError() == Error::AlreadyDone) {
 		info->loadIndex = idx;
-		DBGLOG("patcher @ loaded kinfo %s at %lu index", info->id, idx);
+		DBGLOG("patcher", "loaded kinfo %s at %lu index", info->id, idx);
 	}
 	
 	return idx;
@@ -138,12 +138,12 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 
 void KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t size, bool force) {
 	if (id >= kinfos.size()) {
-		SYSLOG("patcher @ invalid kinfo id %lu for running info update", id);
+		SYSLOG("patcher", "invalid kinfo id %lu for running info update", id);
 		return;
 	}
 	
 	if (kinfos[id]->getRunningAddresses(slide, size, force) != KERN_SUCCESS) {
-		SYSLOG("patcher @ failed to retrieve running info");
+		SYSLOG("patcher", "failed to retrieve running info");
 		code = Error::KernRunningInitFailure;
 	}
 }
@@ -160,7 +160,7 @@ mach_vm_address_t KernelPatcher::solveSymbol(size_t id, const char *symbol) {
 			return addr;
 		}
 	} else {
-		SYSLOG("patcher @ invalid kinfo id %lu for %s symbol lookup", id, symbol);
+		SYSLOG("patcher", "invalid kinfo id %lu for %s symbol lookup", id, symbol);
 	}
 
 	code = Error::NoSymbolFound;
@@ -175,7 +175,7 @@ void KernelPatcher::setupKextListening() {
 	loadedKextSummaries = reinterpret_cast<OSKextLoadedKextSummaryHeader **>(solveSymbol(KernelID, "_gLoadedKextSummaries"));
 
 	if (loadedKextSummaries) {
-		DBGLOG("patcher @ _gLoadedKextSummaries address %p", loadedKextSummaries);
+		DBGLOG("patcher", "_gLoadedKextSummaries address %p", loadedKextSummaries);
 	} else {
 		code = Error::NoSymbolFound;
 		return;
@@ -188,7 +188,7 @@ void KernelPatcher::setupKextListening() {
 									  "_OSKextLoadedKextSummariesUpdated");
 	
 	if (s) {
-		DBGLOG("patcher @ kext summaries (%d) address %llX value %llX", hookOuter, s, *reinterpret_cast<uint64_t *>(s));
+		DBGLOG("patcher", "kext summaries (%d) address %llX value %llX", hookOuter, s, *reinterpret_cast<uint64_t *>(s));
 	} else {
 		code = Error::NoSymbolFound;
 		return;
@@ -210,7 +210,7 @@ void KernelPatcher::setupKextListening() {
 
 void KernelPatcher::waitOnKext(KextHandler *handler) {
 	if (!that) {
-		SYSLOG("patcher @ you should have called setupKextListening first");
+		SYSLOG("patcher", "you should have called setupKextListening first");
 		code = Error::KextListeningFailure;
 		return;
 	}
@@ -236,7 +236,7 @@ void KernelPatcher::updateKextHandlerFeatures(KextInfo *info) {
 
 void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	if (!patch || !patch->kext || patch->kext->loadIndex == KextInfo::Unloaded) {
-		SYSLOG("patcher @ an invalid lookup patch provided");
+		SYSLOG("patcher", "an invalid lookup patch provided");
 		code = Error::MemoryIssue;
 		return;
 	}
@@ -251,7 +251,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	size_t changes {0};
 	
 	if (kinfo->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
-		SYSLOG("patcher @ lookup patching failed to write to kernel");
+		SYSLOG("patcher", "lookup patching failed to write to kernel");
 		code = Error::MemoryProtection;
 		return;
 	}
@@ -268,13 +268,13 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 	}
 	
 	if (kinfo->setKernelWriting(false, kernelWriteLock) != KERN_SUCCESS) {
-		SYSLOG("patcher @ lookup patching failed to disable kernel writing");
+		SYSLOG("patcher", "lookup patching failed to disable kernel writing");
 		code = Error::MemoryProtection;
 		return;
 	}
 	
 	if (changes != patch->count) {
-		SYSLOG_COND(ADDPR(debugEnabled), "patcher @ lookup patching applied only %lu patches out of %lu", changes, patch->count);
+		SYSLOG_COND(ADDPR(debugEnabled), "patcher", "lookup patching applied only %lu patches out of %lu", changes, patch->count);
 		code = Error::MemoryIssue;
 	}
 }
@@ -297,12 +297,12 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
 	
-	DBGLOG("patcher @ diff %llX argument %X", diff, newArgument);
+	DBGLOG("patcher", "diff %llX argument %X", diff, newArgument);
 	
 	bool absolute {false};
 	
 	if (diff != static_cast<mach_vm_address_t>(newArgument)) {
-		DBGLOG("patcher @ will use absolute jumping to %llX", to);
+		DBGLOG("patcher", "will use absolute jumping to %llX", to);
 		absolute = true;
 	}
 	
@@ -323,14 +323,14 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	}
 	
 	if (!opcode || !argument) {
-		SYSLOG("patcher @ cannot create the necessary patches");
+		SYSLOG("patcher", "cannot create the necessary patches");
 		code = Error::MemoryIssue;
 		Patch::deleter(opcode); Patch::deleter(argument);
 		return EINVAL;
 	}
 	
 	if (kernelRoute && kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
-		SYSLOG("patcher @ cannot change kernel memory protection");
+		SYSLOG("patcher", "cannot change kernel memory protection");
 		code = Error::MemoryProtection;
 		Patch::deleter(opcode); Patch::deleter(argument);
 		return EINVAL;
@@ -349,7 +349,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 			if (oidx && aidx)
 				return trampoline;
 			
-			SYSLOG("patcher @ failed to store patches for later removal, you are in trouble");
+			SYSLOG("patcher", "failed to store patches for later removal, you are in trouble");
 			if (oidx) kpatches.erase(oidx);
 			if (aidx) kpatches.erase(aidx);
 		}
@@ -367,14 +367,14 @@ mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_
 			if (kernelRoute)
 				kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 		} else {
-			SYSLOG("patcher @ block overwrite failed to change protection");
+			SYSLOG("patcher", "block overwrite failed to change protection");
 			code = Error::MemoryProtection;
 			return EINVAL;
 		}
 		
 		return 0;
 	} else if (!kernelRoute) {
-		SYSLOG("patcher @ cannot generate blocks outside the kernelspace");
+		SYSLOG("patcher", "cannot generate blocks outside the kernelspace");
 		code = Error::MemoryProtection;
 		return EINVAL;
 	}
@@ -393,7 +393,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	// Doing it earlier to workaround stack corruption due to a possible 10.12 bug.
 	// Otherwise in rare cases there will be random KPs with corrupted stack data.
 	if (kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
-		SYSLOG("patcher @ failed to set executable permissions");
+		SYSLOG("patcher", "failed to set executable permissions");
 		code = Error::MemoryProtection;
 		return 0;
 	}
@@ -403,7 +403,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	
 	if (!off || off > PAGE_SIZE - LongJump) {
 		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
-		SYSLOG("patcher @ unsupported destination offset %lu", off);
+		SYSLOG("patcher", "unsupported destination offset %lu", off);
 		code = Error::DisasmFailure;
 		return 0;
 	}
@@ -414,7 +414,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
 		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
-		SYSLOG("patcher @ not enough executable memory requested %lld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
+		SYSLOG("patcher", "not enough executable memory requested %lld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
 	} else {
 		// Copy the opcodes if any
@@ -432,7 +432,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		if (getError() == Error::NoError) {
 			return reinterpret_cast<mach_vm_address_t>(tempDataPtr);
 		} else {
-			SYSLOG("patcher @ failed to route an inner trempoline");
+			SYSLOG("patcher", "failed to route an inner trempoline");
 		}
 	}
 	
@@ -456,13 +456,13 @@ void KernelPatcher::onKextSummariesUpdated() {
 		
 		if (getKernelVersion() >= KernelVersion::Sierra) {
 			if (OSIncrementAtomic(&updateSummariesEntryCount) != 0) {
-				PANIC("onKextSummariesUpdated entered another time");
+				PANIC("patcher", "onKextSummariesUpdated entered another time");
 			}
 			
 			that->orgUpdateLoadedKextSummaries();
 		}
 
-		DBGLOG("patcher @ invoked at kext loading/unloading");
+		DBGLOG("patcher", "invoked at kext loading/unloading");
 		
 		if (that->activated && that->loadedKextSummaries) {
 			auto num = (*that->loadedKextSummaries)->numSummaries;
@@ -473,11 +473,11 @@ void KernelPatcher::onKextSummariesUpdated() {
 				}
 				if (that->khandlers.size() > 0) {
 					OSKextLoadedKextSummary &last = (*that->loadedKextSummaries)->summaries[num-1];
-					DBGLOG("patcher @ last kext is %llX and its name is %.*s", last.address, KMOD_MAX_NAME, last.name);
+					DBGLOG("patcher", "last kext is %llX and its name is %.*s", last.address, KMOD_MAX_NAME, last.name);
 					// We may add khandlers items inside the handler
 					for (size_t i = 0; i < that->khandlers.size(); i++) {
 						if (!strncmp(that->khandlers[i]->id, last.name, KMOD_MAX_NAME)) {
-							DBGLOG("patcher @ caught the right kext at %llX, invoking handler", last.address);
+							DBGLOG("patcher", "caught the right kext at %llX, invoking handler", last.address);
 							that->khandlers[i]->address = last.address;
 							that->khandlers[i]->size = last.size;
 							that->khandlers[i]->handler(that->khandlers[i]);
@@ -489,18 +489,18 @@ void KernelPatcher::onKextSummariesUpdated() {
 					}
 				}
 			} else {
-				SYSLOG("patcher @ no kext is currently loaded, this should not happen");
+				SYSLOG("patcher", "no kext is currently loaded, this should not happen");
 			}
 		}
 		
 		if (getKernelVersion() >= KernelVersion::Sierra && OSDecrementAtomic(&updateSummariesEntryCount) != 1) {
-			PANIC("onKextSummariesUpdated left another time");
+			PANIC("patcher", "onKextSummariesUpdated left another time");
 		}
 	}
 }
 
 void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries, size_t num) {
-	DBGLOG("patcher @ processing already loaded kexts by iterating over %lu summaries", num);
+	DBGLOG("patcher", "processing already loaded kexts by iterating over %lu summaries", num);
 	
 	for (size_t i = 0; i < num; i++) {
 		auto curr = summaries[i];
@@ -508,7 +508,7 @@ void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries
 			auto handler = khandlers[j];
 			if (handler->loaded) {
 				if (!strncmp(handler->id, curr.name, KMOD_MAX_NAME)) {
-					DBGLOG("patcher @ discovered the right kext %s at %llX, invoking handler", curr.name, curr.address);
+					DBGLOG("patcher", "discovered the right kext %s at %llX, invoking handler", curr.name, curr.address);
 					handler->address = curr.address;
 					handler->size = curr.size;
 					handler->handler(handler);

@@ -376,14 +376,14 @@ private:
 	static constexpr size_t kernelPathsNum {4};
 #endif /* LILU_COMPRESSION_SUPPORT */
 	const char *kernelPaths[kernelPathsNum] {
-		"/mach_kernel",
-		"/System/Library/Kernels/kernel",	//since 10.10
-		"/System/Library/Kernels/kernel.debug",
-		"/System/Library/Kernels/kernel.development",
 #ifdef LILU_COMPRESSION_SUPPORT
 		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache",
-		"/System/Library/PrelinkedKernels/prelinkedkernel"
+		"/System/Library/PrelinkedKernels/prelinkedkernel",
 #endif /* LILU_COMPRESSION_SUPPORT */
+		"/System/Library/Kernels/kernel",	//since 10.10
+		"/mach_kernel",
+		"/System/Library/Kernels/kernel.debug",
+		"/System/Library/Kernels/kernel.development"
 	};
 };
 

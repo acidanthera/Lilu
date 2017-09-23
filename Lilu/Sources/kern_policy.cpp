@@ -15,7 +15,7 @@ bool Policy::registerPolicy() {
 
 bool Policy::unregisterPolicy() {
 	if (!(policyConf.mpc_loadtime_flags & MPC_LOADTIME_FLAG_UNLOADOK)) {
-		SYSLOG("policy @ this policy is not allowed to be unregistered");
+		SYSLOG("policy", "this policy is not allowed to be unregistered");
 	}
 
 	return mac_policy_unregister(policyHandle) == KERN_SUCCESS;

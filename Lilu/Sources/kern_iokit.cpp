@@ -25,11 +25,11 @@ namespace WIOKit {
 			if (value->serialize(s)) {
 				return s;
 			} else {
-				SYSLOG("iokit @ failed to serialise %s property", property);
+				SYSLOG("iokit", "failed to serialise %s property", property);
 				s->release();
 			}
 		} else {
-			DBGLOG("iokit @ failed to get %s property", property);
+			DBGLOG("iokit", "failed to get %s property", property);
 		}
 		return nullptr;
 	}
@@ -53,7 +53,7 @@ namespace WIOKit {
 				if (data && data->getLength() > 0) {
 					lilu_os_strlcpy(model, static_cast<const char *>(data->getBytesNoCopy()), modelsz);
 				} else {
-					DBGLOG("iokit @ failed to get valid model property");
+					DBGLOG("iokit", "failed to get valid model property");
 					model[0] = '\0';
 				}
 			}
@@ -63,7 +63,7 @@ namespace WIOKit {
 				if (data && data->getLength() > 0) {
 					lilu_os_strlcpy(board, static_cast<const char *>(data->getBytesNoCopy()), boardsz);
 				} else {
-					DBGLOG("iokit @ failed to get valid board-id property");
+					DBGLOG("iokit", "failed to get valid board-id property");
 					board[0] = '\0';
 				}
 			}
@@ -72,7 +72,7 @@ namespace WIOKit {
 			return true;
 		}
 		
-		DBGLOG("iokit @ failed to get DT entry");
+		DBGLOG("iokit", "failed to get DT entry");
 		return false;
 	}
 	
@@ -83,7 +83,7 @@ namespace WIOKit {
 			entry->release();
 			return res;
 		}
-		DBGLOG("iokit @ failed to get %s entry", path);
+		DBGLOG("iokit", "failed to get %s entry", path);
 		return nullptr;
 	}
 	
@@ -103,12 +103,12 @@ namespace WIOKit {
 				while ((res = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
 					const char *resname = res->getName();
 					
-					//DBGLOG("iokit @ iterating over %s", resname);
+					//DBGLOG("iokit", "iterating over %s", resname);
 					if (!strncmp(prefix, resname, len)) {
 						found = proc ? proc(user, res) : true;
 						if (found) {
 							if (bruteCount > 1)
-								DBGLOG("iokit @ bruted %s value in %lu attempts", prefix, bruteCount);
+								DBGLOG("iokit", "bruted %s value in %lu attempts", prefix, bruteCount);
 							if (!proc) {
 								break;
 							}
@@ -118,14 +118,14 @@ namespace WIOKit {
 				
 				iterator->release();
 			} else {
-				SYSLOG("iokit @ failed to iterate over entry");
+				SYSLOG("iokit", "failed to iterate over entry");
 				return nullptr;
 			}
 			
 		} while (brute && bruteCount < bruteMax && !found);
 		
 		if (!found)
-			DBGLOG("iokit @ failed to find %s", prefix);
+			DBGLOG("iokit", "failed to find %s", prefix);
 		return proc ? nullptr : res;
 	}
 }
