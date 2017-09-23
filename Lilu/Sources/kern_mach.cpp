@@ -219,25 +219,37 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	// symbols and strings offsets into LINKEDIT
 	// we just read the __LINKEDIT but fileoff values are relative to the full Mach-O
 	// subtract the base of LINKEDIT to fix the value into our buffer
-	uint64_t symbolOff = symboltable_fileoff - linkedit_fileoff;
-	if (symbolOff > symboltable_fileoff) return 0;
-	uint64_t stringOff = stringtable_fileoff - linkedit_fileoff;
-	if (stringOff > stringtable_fileoff) return 0;
-	
-	nlist_64 *nlist64 = nullptr;
-	// search for the symbol and get its location if found
-	for (uint32_t i = 0; i < symboltable_nr_symbols; i++) {
-		// get the pointer to the symbol entry and extract its symbol string
-		nlist64 = reinterpret_cast<nlist_64 *>(linkedit_buf + symbolOff + i * sizeof(nlist_64));
-		char *symbolStr = reinterpret_cast<char *>(linkedit_buf + stringOff + nlist64->n_un.n_strx);
-		// find if symbol matches
-		if (strncmp(symbol, symbolStr, strlen(symbol)+1) == 0) {
-			DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist64->n_value + kaslr_slide, nlist64->n_value);
-			// the symbol values are without kernel ASLR so we need to add it
-			return nlist64->n_value + kaslr_slide;
+
+	auto nlist = reinterpret_cast<nlist_64 *>(linkedit_buf + (symboltable_fileoff - linkedit_fileoff));
+	auto strlist = reinterpret_cast<char *>(linkedit_buf + (stringtable_fileoff - linkedit_fileoff));
+	auto endaddr = linkedit_buf + linkedit_size;
+
+	if (reinterpret_cast<uint8_t *>(nlist) >= linkedit_buf && reinterpret_cast<uint8_t *>(strlist) >= linkedit_buf) {
+		auto symlen = strlen(symbol) + 1;
+		for (uint32_t i = 0; i < symboltable_nr_symbols; i++, nlist++) {
+			if (reinterpret_cast<uint8_t *>(nlist+1) <= endaddr) {
+				// get the pointer to the symbol entry and extract its symbol string
+				auto symbolStr = reinterpret_cast<char *>(strlist + nlist->n_un.n_strx);
+				// find if symbol matches
+				if (reinterpret_cast<uint8_t *>(symbolStr + symlen) <= endaddr) {
+					if (!strncmp(symbol, symbolStr, symlen)) {
+						DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist->n_value + kaslr_slide, nlist->n_value);
+						// the symbol values are without kernel ASLR so we need to add it
+						return nlist->n_value + kaslr_slide;
+					}
+				} else {
+					SYSLOG("mach", "string at %u out of %u exceeds linkedit bounds", i, symboltable_nr_symbols);
+					break;
+				}
+			} else {
+				SYSLOG("mach", "symbol at %u out of %u exceeds linkedit bounds", i, symboltable_nr_symbols);
+				break;
+			}
 		}
+	} else {
+		SYSLOG("mach", "invalid symbol/string tables point behind linkedit");
 	}
-	// failure
+
 	return 0;
 }
 

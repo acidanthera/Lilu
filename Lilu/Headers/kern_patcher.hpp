@@ -371,7 +371,7 @@ private:
 	 *  Possible kernel paths
 	 */
 #ifdef LILU_COMPRESSION_SUPPORT
-	static constexpr size_t kernelPathsNum {6};
+	static constexpr size_t kernelPathsNum {10};
 #else
 	static constexpr size_t kernelPathsNum {4};
 #endif /* LILU_COMPRESSION_SUPPORT */
@@ -382,6 +382,12 @@ private:
 #endif /* LILU_COMPRESSION_SUPPORT */
 		"/System/Library/Kernels/kernel",	//since 10.10
 		"/mach_kernel",
+#ifdef LILU_COMPRESSION_SUPPORT
+		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache.debug",
+		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache.development",
+		"/System/Library/PrelinkedKernels/prelinkedkernel.debug",
+		"/System/Library/PrelinkedKernels/prelinkedkernel.development",
+#endif /* LILU_COMPRESSION_SUPPORT */
 		"/System/Library/Kernels/kernel.debug",
 		"/System/Library/Kernels/kernel.development"
 	};
