@@ -60,101 +60,110 @@ extern proc_t kernproc;
  *  @param cond  precondition
  *  @param str   printf-like string
  */
-#define SYSLOG_COND(cond, str, ...)												\
-	do {																		\
-		if (cond)																\
-			IOLog( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__);		\
+#define SYSLOG_COND(cond, module, str, ...)                                                          \
+	do {                                                                                             \
+		if (cond)                                                                                    \
+			IOLog( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
 	} while (0)
 
 /**
  *  Write to system log prefixed with you plugin name
  *
- *  @param str   printf-like string
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define SYSLOG(str, ...) SYSLOG_COND(true, str, ## __VA_ARGS__)
+#define SYSLOG(module, str, ...) SYSLOG_COND(true, module, str, ## __VA_ARGS__)
 
 /**
  *  Conditional tracing to system log prefixed with you plugin name
  *
- *  @param cond  precondition
- *  @param str   printf-like string
+ *  @param cond   precondition
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define SYSTRACE_COND(cond, str, ...)											\
-	do {																		\
-		if (cond)																\
-			OSReportWithBacktrace( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__);	\
+#define SYSTRACE_COND(cond, module, str, ...)                                                                        \
+	do {                                                                                                             \
+		if (cond)                                                                                                    \
+			OSReportWithBacktrace( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
 	} while (0)
 
 /**
  *  Write call trace to system log prefixed with you plugin name
  *
- *  @param str   printf-like string
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define SYSTRACE(str, ...) SYSTRACE_COND(true, str, ## __VA_ARGS__)
+#define SYSTRACE(module, str, ...) SYSTRACE_COND(true, module, str, ## __VA_ARGS__)
 
 /**
  *  Conditional panic prefixed with you plugin name
  *
- *  @param cond  precondition
- *  @param str   printf-like string
+ *  @param cond   precondition
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define PANIC_COND(cond, str, ...)												\
-	do {																		\
-		if (cond)																\
-			(panic)( xStringify(PRODUCT_NAME) ": " str "\n", ## __VA_ARGS__);	\
+#define PANIC_COND(cond, module, str, ...)                                                             \
+	do {                                                                                               \
+		if (cond)                                                                                      \
+			(panic)( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
 	} while (0)
 
 /**
  *  Cause immediate kernel panic prefixed with you plugin name
  *
- *  @param str   printf-like string
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define PANIC(str, ...)  PANIC_COND(true, str, ## __VA_ARGS__)
+#define PANIC(module, str, ...)  PANIC_COND(true, module, str, ## __VA_ARGS__)
 
 #ifdef DEBUG
 
 /**
  *  Conditional debug logging to system log prefixed with you plugin name
  *
- *  @param cond  precondition
- *  @param str   printf-like string
+ *  @param cond   precondition
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define DBGLOG_COND(cond, str, ...)												\
-	do {																		\
-		SYSLOG_COND(ADDPR(debugEnabled) && (cond), "(DEBUG) " str, ## __VA_ARGS__);	\
+#define DBGLOG_COND(cond, module, str, ...)                                                     \
+	do {                                                                                        \
+		SYSLOG_COND(ADDPR(debugEnabled) && (cond), module, "%s" str, "(DBG) ", ## __VA_ARGS__); \
 	} while (0)
 
 /**
  *  Write debug message to system log prefixed with you plugin name
  *
- *  @param str   printf-like string
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define DBGLOG(str, ...) DBGLOG_COND(true, str, ## __VA_ARGS__)
+#define DBGLOG(module, str, ...) DBGLOG_COND(true, module, str, ## __VA_ARGS__)
 
 /**
  *  Conditional debug tracing to system log prefixed with you plugin name
  *
- *  @param cond  precondition
- *  @param str   printf-like string
+ *  @param cond   precondition
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define DBGTRACE_COND(cond, str, ...)												\
-	do {																		\
-		SYSTRACE_COND(ADDPR(debugEnabled) && (cond), "(DEBUG) " str, ## __VA_ARGS__);	\
+#define DBGTRACE_COND(cond, module, str, ...)                                                     \
+	do {                                                                                          \
+		SYSTRACE_COND(ADDPR(debugEnabled) && (cond), module, "%s" str, "(DBG) ", ## __VA_ARGS__); \
 	} while (0)
 
 /**
  *  Write debug call trace to system log prefixed with you plugin name
  *
- *  @param str   printf-like string
+ *  @param module log module
+ *  @param str    printf-like string
  */
-#define DBGTRACE(str, ...) DBGTRACE_COND(true, str, ## __VA_ARGS__)
+#define DBGTRACE(module, str, ...) DBGTRACE_COND(true, module, str, ## __VA_ARGS__)
 
 #else /* DEBUG */
 
-#define DBGLOG_COND(cond, str, ...) do { } while (0)
-#define DBGLOG(str, ...) do { } while (0)
-#define DBGTRACE_COND(cond, str, ...) do { } while (0)
-#define DBGTRACE(str, ...) do { } while (0)
+#define DBGLOG_COND(module, str, ...) do { } while (0)
+#define DBGLOG(module, str, ...) do { } while (0)
+#define DBGTRACE_COND(module, str, ...) do { } while (0)
+#define DBGTRACE(module, str, ...) do { } while (0)
 
 #endif
 
@@ -468,7 +477,7 @@ public:
 			return true;
 		}
 		
-		SYSLOG("evector @ insertion failure");
+		SYSLOG("evector", "insertion failure");
 		return false;
 	}
 	
@@ -486,7 +495,7 @@ public:
 			return true;
 		}
 		
-		SYSLOG("evector @ insertion failure");
+		SYSLOG("evector", "insertion failure");
 		return false;
 	}
 	

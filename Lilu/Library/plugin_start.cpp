@@ -15,7 +15,7 @@ OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
 bool PRODUCT_NAME::init(OSDictionary *dict) {
 	if (!IOService::init(dict)) {
-		SYSLOG("init @ failed to initalise the parent");
+		SYSLOG("init", "failed to initalise the parent");
 		return false;
 	}
 	
@@ -24,7 +24,7 @@ bool PRODUCT_NAME::init(OSDictionary *dict) {
 
 bool PRODUCT_NAME::start(IOService *provider) {
 	if (!IOService::start(provider)) {
-		SYSLOG("init @ failed to start the parent");
+		SYSLOG("init", "failed to start the parent");
 		return false;
 	}
 	
@@ -54,12 +54,12 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 			ADDPR(config).pluginStart();
 			ret = KERN_SUCCESS;
 		} else {
-			SYSLOG("init @ parent said we should not continue %d", error);
+			SYSLOG("init", "parent said we should not continue %d", error);
 		}
 		
 		lilu.releaseAccess();
 	} else {
-		SYSLOG("init @ failed to call parent %d", error);
+		SYSLOG("init", "failed to call parent %d", error);
 	}
 	
 	return ret;

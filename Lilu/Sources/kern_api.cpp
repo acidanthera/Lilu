@@ -54,7 +54,7 @@ LiluAPI::Error LiluAPI::releaseAccess() {
 
 LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug) {
 	
-	DBGLOG("api @ got load request from %s (%lu)", product, version);
+	DBGLOG("api", "got load request from %s (%lu)", product, version);
 	
 	char tmp[16];
 	printDebug = false;
@@ -73,10 +73,10 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const ch
 		}
 		
 		if (!beta) {
-			SYSLOG("api @ automatically disabling %s (%lu) on an unsupported operating system", product, version);
+			SYSLOG("api", "automatically disabling %s (%lu) on an unsupported operating system", product, version);
 			return Error::IncompatibleOS;
 		} else {
-			SYSLOG("api @ force enabling %s (%lu) on an unsupported operating system due to beta flag", product, version);
+			SYSLOG("api", "force enabling %s (%lu) on an unsupported operating system due to beta flag", product, version);
 		}
 	}
 	
@@ -94,7 +94,7 @@ LiluAPI::Error LiluAPI::onPatcherLoad(t_patcherLoaded callback, void *user) {
 	auto *pcall = stored_pair<t_patcherLoaded>::create();
 	
 	if (!pcall) {
-		SYSLOG("api @ failed to allocate memory for stored_pair<t_patcherLoaded>");
+		SYSLOG("api", "failed to allocate memory for stored_pair<t_patcherLoaded>");
 		return Error::MemoryError;
 	}
 	
@@ -102,7 +102,7 @@ LiluAPI::Error LiluAPI::onPatcherLoad(t_patcherLoaded callback, void *user) {
 	pcall->second = user;
 	
 	if (!patcherLoadedCallbacks.push_back(pcall)) {
-		SYSLOG("api @ failed to store stored_pair<t_patcherLoaded>");
+		SYSLOG("api", "failed to store stored_pair<t_patcherLoaded>");
 		pcall->deleter(pcall);
 		return Error::MemoryError;
 	}
@@ -115,7 +115,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 	auto *pcall = stored_pair<t_kextLoaded>::create();
 	
 	if (!pcall) {
-		SYSLOG("api @ failed to allocate memory for stored_pair<t_kextLoaded>");
+		SYSLOG("api", "failed to allocate memory for stored_pair<t_kextLoaded>");
 		return Error::MemoryError;
 	}
 	
@@ -123,7 +123,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 	pcall->second = user;
 	
 	if (!kextLoadedCallbacks.push_back(pcall)) {
-		SYSLOG("api @ failed to store stored_pair<t_kextLoaded>");
+		SYSLOG("api", "failed to store stored_pair<t_kextLoaded>");
 		pcall->deleter(pcall);
 		return Error::MemoryError;
 	}
@@ -132,7 +132,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 	auto *pkext = stored_pair<KernelPatcher::KextInfo *, size_t>::create();
 	
 	if (!pkext) {
-		SYSLOG("api @ failed to allocate memory for stored_pair<KextInfo>");
+		SYSLOG("api", "failed to allocate memory for stored_pair<KextInfo>");
 		return Error::MemoryError;
 	}
 	
@@ -140,7 +140,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 	pkext->second = num;
 
 	if (!storedKexts.push_back(pkext)) {
-		SYSLOG("api @ failed to store stored_pair<KextInfo>");
+		SYSLOG("api", "failed to store stored_pair<KextInfo>");
 		pkext->deleter(pkext);
 		return Error::MemoryError;
 	}
@@ -159,7 +159,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 		auto *pcall = stored_pair<UserPatcher::t_BinaryLoaded>::create();
 		
 		if (!pcall) {
-			SYSLOG("api @ failed to allocate memory for stored_pair<t_binaryLoaded>");
+			SYSLOG("api", "failed to allocate memory for stored_pair<t_binaryLoaded>");
 			return Error::MemoryError;
 		}
 		
@@ -167,7 +167,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 		pcall->second = user;
 		
 		if (!binaryLoadedCallbacks.push_back(pcall)) {
-			SYSLOG("api @ failed to store stored_pair<t_binaryLoaded>");
+			SYSLOG("api", "failed to store stored_pair<t_binaryLoaded>");
 			pcall->deleter(pcall);
 			return Error::MemoryError;
 		}
@@ -176,7 +176,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 	// Filter disabled processes right away and store the rest
 	for (size_t i = 0; i < num; i++) {
 		if (infos[i].section && !storedProcs.push_back(&infos[i])) {
-			SYSLOG("api @ failed to store ProcInfo");
+			SYSLOG("api", "failed to store ProcInfo");
 			return Error::MemoryError;
 		}
 	}
@@ -184,7 +184,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 	// Store all the binary mods
 	for (size_t i = 0; i < modnum; i++) {
 		if (!storedBinaryMods.push_back(&mods[i])) {
-			SYSLOG("api @ failed to store BinaryModInfo");
+			SYSLOG("api", "failed to store BinaryModInfo");
 			return Error::MemoryError;
 		}
 	}
@@ -213,7 +213,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 				continue;
 
 			if (stored->first[j].sys[KernelPatcher::KextInfo::FSOnly] && stored->first[j].pathNum == 0) {
-				SYSLOG("api @ improper request with 0 paths for %s kext", stored->first[j].id);
+				SYSLOG("api", "improper request with 0 paths for %s kext", stored->first[j].id);
 				continue;
 			}
 			
@@ -224,11 +224,11 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 				if (error == KernelPatcher::Error::AlreadyDone) {
 					if (stored->first[j].sys[KernelPatcher::KextInfo::Loaded] ||
 						stored->first[j].sys[KernelPatcher::KextInfo::Reloadable]) {
-						DBGLOG("api @ updating new kext handler features");
+						DBGLOG("api", "updating new kext handler features");
 						patcher.updateKextHandlerFeatures(&stored->first[j]);
 					}
 				} else {
-					SYSLOG_COND(ADDPR(debugEnabled), "api @ failed to load %s kext file", stored->first[j].id);
+					SYSLOG_COND(ADDPR(debugEnabled), "api", "failed to load %s kext file", stored->first[j].id);
 				}
 				
 				// Depending on a system some kexts may actually not exist
@@ -238,7 +238,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			patcher.setupKextListening();
 			
 			if (patcher.getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("api @ failed to setup kext hooking");
+				SYSLOG("api", "failed to setup kext hooking");
 				patcher.clearError();
 				i = storedKexts.size();
 				break;
@@ -249,11 +249,11 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 				if (h)
 					lilu.processKextLoadCallbacks(*static_cast<KernelPatcher *>(h->self), h->index, h->address, h->size, h->reloadable);
 				else
-					SYSLOG("api @ kext notification callback arrived at nowhere");
+					SYSLOG("api", "kext notification callback arrived at nowhere");
 			}, stored->first[j].sys[KernelPatcher::KextInfo::Loaded], stored->first[j].sys[KernelPatcher::KextInfo::Reloadable]);
 			
 			if (!handler) {
-				SYSLOG("api @ failed to allocate KextHandler for %s", stored->first[j].id);
+				SYSLOG("api", "failed to allocate KextHandler for %s", stored->first[j].id);
 				i = storedKexts.size();
 				break;
 			}
@@ -263,7 +263,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			patcher.waitOnKext(handler);
 			
 			if (patcher.getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("api @ failed to wait on kext %s", stored->first[j].id);
+				SYSLOG("api", "failed to wait on kext %s", stored->first[j].id);
 				patcher.clearError();
 				KernelPatcher::KextHandler::deleter(handler);
 				i = storedKexts.size();
@@ -299,7 +299,7 @@ void LiluAPI::processUserLoadCallbacks(UserPatcher &patcher) {
 									 auto api = static_cast<LiluAPI *>(user);
 									 api->processBinaryLoadCallbacks(patcher, map, path, len);
 								 }, this)) {
-		SYSLOG("api @ failed to register user patches");
+		SYSLOG("api", "failed to register user patches");
 	}
 }
 

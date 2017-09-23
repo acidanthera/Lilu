@@ -34,7 +34,7 @@ public:
 	 *  @param conf policy configuration
 	 */
 	static void dummyPolicyInitBSD(mac_policy_conf *conf) {
-		DBGLOG("policy @ init bsd");
+		DBGLOG("policy", "init bsd");
 	}
 	
 	/**

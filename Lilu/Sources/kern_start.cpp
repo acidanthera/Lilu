@@ -20,7 +20,7 @@ OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
 bool PRODUCT_NAME::init(OSDictionary *dict) {
 	if (!IOService::init(dict)) {
-		SYSLOG("init @ failed to initalise the parent");
+		SYSLOG("init", "failed to initalise the parent");
 		return false;
 	}
 	
@@ -29,7 +29,7 @@ bool PRODUCT_NAME::init(OSDictionary *dict) {
 
 bool PRODUCT_NAME::start(IOService *provider) {
 	if (!IOService::start(provider)) {
-		SYSLOG("init @ failed to start the parent");
+		SYSLOG("init", "failed to start the parent");
 		return false;
 	}
 	
@@ -46,7 +46,7 @@ bool Configuration::performInit() {
 	kernelPatcher.init();
 		
 	if (kernelPatcher.getError() != KernelPatcher::Error::NoError) {
-		DBGLOG("config @ failed to initialise kernel patcher");
+		DBGLOG("config", "failed to initialise kernel patcher");
 		kernelPatcher.deinit();
 		kernelPatcher.clearError();
 		return false;
@@ -56,7 +56,7 @@ bool Configuration::performInit() {
 	
 	initialised = userPatcher.init(kernelPatcher, preferSlowMode);
 	if (!initialised) {
-		DBGLOG("config @ initialisation failed");
+		DBGLOG("config", "initialisation failed");
 		userPatcher.deinit();
 		kernelPatcher.deinit();
 		kernelPatcher.clearError();
@@ -72,7 +72,7 @@ bool Configuration::performInit() {
 
 int Configuration::policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabel) {
 	if (!config.initialised) {
-		DBGLOG("config @ init via mac_mount_check_remount");
+		DBGLOG("config", "init via mac_mount_check_remount");
 		config.performInit();
 	}
 	
@@ -81,7 +81,7 @@ int Configuration::policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabe
 
 int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t auth, vnode_t vp, ...) {
 	if (!config.initialised) {
-		DBGLOG("config @ init via mac_cred_check_label_update_execve");
+		DBGLOG("config", "init via mac_cred_check_label_update_execve");
 		config.performInit();
 	}
 	
@@ -102,14 +102,14 @@ bool Configuration::getBootArguments() {
 		
 		if (!KernelPatcher::compatibleKernel(minKernel, maxKernel)) {
 			if (!betaForAll && !PE_parse_boot_argn(bootargBeta, tmp, sizeof(tmp))) {
-				SYSLOG("config @ automatically disabling on an unsupported operating system");
+				SYSLOG("config", "automatically disabling on an unsupported operating system");
 				isDisabled = true;
 			} else if (!isDisabled) {
-				SYSLOG("config @ force enabling on an unsupported operating system due to beta flag");
+				SYSLOG("config", "force enabling on an unsupported operating system due to beta flag");
 			}
 		}
 	} else if (!isDisabled) {
-		SYSLOG("config @ force enabling due to force flag");
+		SYSLOG("config", "force enabling due to force flag");
 	}
 	
 	ADDPR(debugEnabled) = PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
@@ -132,22 +132,22 @@ bool Configuration::getBootArguments() {
 
 	if (!preferSlowMode && getKernelVersion() <= KernelVersion::Mavericks) {
 		// Since vm_shared_region_map_file interface is a little different
-		if (!isDisabled) SYSLOG("config @ enforcing -liluslow on Mavericks and lower");
+		if (!isDisabled) SYSLOG("config", "enforcing -liluslow on Mavericks and lower");
 		preferSlowMode = true;
 	}
 	
 	if (!preferSlowMode && installOrRecovery) {
 		// Since vdyld shared cache is not available
-		if (!isDisabled) SYSLOG("config @ enforcing -liluslow in installer or recovery");
+		if (!isDisabled) SYSLOG("config", "enforcing -liluslow in installer or recovery");
 		preferSlowMode = true;
 	}
 	
 	readArguments = true;
 	
-	DBGLOG("config @ boot arguments disabled %d, debug %d, slow %d, decompress %d", isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
+	DBGLOG("config", "boot arguments disabled %d, debug %d, slow %d, decompress %d", isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
 	
 	if (isDisabled) {
-		SYSLOG("init @ found a disabling argument or no arguments, exiting");
+		SYSLOG("init", "found a disabling argument or no arguments, exiting");
 	} else {
 		// Decide on booter
 		if (!preferSlowMode) {
@@ -162,7 +162,7 @@ bool Configuration::getBootArguments() {
 
 extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
 	if (config.getBootArguments()) {
-		DBGLOG("init @ initialising policy");
+		DBGLOG("init", "initialising policy");
 		
 		lilu.init();
 		
@@ -170,7 +170,7 @@ extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
 			return KERN_SUCCESS;
 		}
 			
-		SYSLOG("init @ failed to register the policy");
+		SYSLOG("init", "failed to register the policy");
 	}
 	
 	return KERN_FAILURE;

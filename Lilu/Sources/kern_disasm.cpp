@@ -34,7 +34,7 @@ bool Disassembler::init(bool detailed) {
 		cs_err err = cs_option(0, CS_OPT_MEM, reinterpret_cast<size_t>(&setup));
 		
 		if (err != CS_ERR_OK) {
-			SYSLOG("disasm @ capstone memory management failed (%d)", err);
+			SYSLOG("disasm", "capstone memory management failed (%d)", err);
 			return false;
 		}
 		
@@ -44,7 +44,7 @@ bool Disassembler::init(bool detailed) {
 	cs_err err = cs_open(CS_ARCH_X86, CS_MODE_64, &handle);
 	
 	if (err != CS_ERR_OK) {
-		SYSLOG("disasm @ capstone cs_open failed (%d)", err);
+		SYSLOG("disasm", "capstone cs_open failed (%d)", err);
 		return false;
 	}
 	
@@ -53,7 +53,7 @@ bool Disassembler::init(bool detailed) {
 	if (detailed) {
 		err = cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
 		if (err != CS_ERR_OK) {
-			SYSLOG("disasm @ capstone instruction detalisation unsupported (%d)", err);
+			SYSLOG("disasm", "capstone instruction detalisation unsupported (%d)", err);
 			return false;
 		}
 	}
@@ -78,7 +78,7 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 		auto len = hde64_disasm(reinterpret_cast<void *>(addr), &hs);
 		
 		if (hs.flags & F_ERROR) {
-			SYSLOG("disasm @ hde decoding failure");
+			SYSLOG("disasm", "hde decoding failure");
 			return 0;
 		}
 		
@@ -97,7 +97,7 @@ size_t Disassembler::disasmBuf(mach_vm_address_t addr, size_t size, cs_insn **re
 	
 	cs_err err = cs_errno(handle);
 	if (err != CS_ERR_OK) {
-		SYSLOG("disasm @ buf capstone failed to disasemble memory (%lu, %p)", insts, result);
+		SYSLOG("disasm", "buf capstone failed to disasemble memory (%lu, %p)", insts, result);
 		if (*result) {
 			cs_free(*result, insts);
 			*result = nullptr;
@@ -124,7 +124,7 @@ size_t Disassembler::instructionSize(mach_vm_address_t addr, size_t min) {
 			return size;
 	}
 	
-	SYSLOG("disasm @ capstone failed to disasemble enough memory (%lu), was %llX address valid?", min, addr);
+	SYSLOG("disasm", "capstone failed to disasemble enough memory (%lu), was %llX address valid?", min, addr);
 	return 0;
 }
 

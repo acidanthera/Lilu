@@ -324,18 +324,18 @@ uint8_t *Compression::decompress(uint32_t compression, uint32_t dstlen, const ui
 				size = lzvn_decode(decompressedBuf, dstlen, src, srclen);
 				break;
 			default:
-				SYSLOG("compression @ unsupported decompression format %X", compression);
+				SYSLOG("comp", "unsupported decompression format %X", compression);
 		}
 		
 		if (size == dstlen) {
 			return decompressedBuf;
 		} else {
-			SYSLOG("compression @ failed to correctly decompress the data");
+			SYSLOG("compression", "failed to correctly decompress the data");
 		}
 		
 		if (!buffer) Buffer::deleter(decompressedBuf);
 	} else {
-		SYSLOG("compression @ failed to allocate memory for decompression buffer of %u", dstlen);
+		SYSLOG("comp", "failed to allocate memory for decompression buffer of %u", dstlen);
 	}
 	
 	return 0;
@@ -350,7 +350,7 @@ uint8_t *Compression::compress(uint32_t compression, uint32_t &dstlen, const uin
 				endptr = compress_lzss(compressedBuf, dstlen, src, srclen);
 				break;
 			default:
-				SYSLOG("compression @ unsupported compression format %X", compression);
+				SYSLOG("comp", "unsupported compression format %X", compression);
 		}
 		
 		if (endptr) {
@@ -358,12 +358,12 @@ uint8_t *Compression::compress(uint32_t compression, uint32_t &dstlen, const uin
 			if (!buffer) Buffer::resize(compressedBuf, dstlen);
 			return compressedBuf;
 		} else {
-			SYSLOG("compression @ failed to correctly compress the data");
+			SYSLOG("compression", "failed to correctly compress the data");
 		}
 		
 		if (!buffer) Buffer::deleter(compressedBuf);
 	} else {
-		SYSLOG("compression @ failed to allocate memory for compression buffer of %u", dstlen);
+		SYSLOG("comp", "failed to allocate memory for compression buffer of %u", dstlen);
 	}
 	
 	return nullptr;

@@ -25,7 +25,7 @@ int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action
 			const char *path = reinterpret_cast<const char *>(arg1);
 			that->onPath(path, static_cast<uint32_t>(strlen(path)));
 		} else {
-			//DBGLOG("user @ listener did not match our needs action %d cookie %d", action, idata == that->cookie);
+			//DBGLOG("user", "listener did not match our needs action %d cookie %d", action, idata == that->cookie);
 		}
 	}
 	
@@ -40,7 +40,7 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, cookie);
 	
 	if (!listener) {
-		SYSLOG("user @ failed to register a listener");
+		SYSLOG("user", "failed to register a listener");
 		return false;
 	}
 	
@@ -91,17 +91,17 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 					for (maybe = 0; maybe < sz; maybe++) {
 						if (lookup.c[i][maybe] == value) {
 							// We have a possible match
-							DBGLOG("user @ found a possible match for %lu of %llX\n", i, value);
+							DBGLOG("user", "found a possible match for %lu of %llX\n", i, value);
 							break;
 						}
 					}
 				} else {
 					if (lookup.c[i][maybe] != value) {
 						// We failed
-						DBGLOG("user @ failure not matching %lu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
+						DBGLOG("user", "failure not matching %lu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
 						maybe = sz;
 					} else {
-						DBGLOG("user @ found a possible match for %lu of %llX\n", i, value);
+						DBGLOG("user", "found a possible match for %lu of %llX\n", i, value);
 					}
 				}
 			
@@ -119,7 +119,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						sz = ref->pageOffs.size();
 						
 						
-						DBGLOG("user @ found what we are looking for %X %X %X %X %X %X %X %X\n", rpatch.find[0],
+						DBGLOG("user", "found what we are looking for %X %X %X %X %X %X %X %X\n", rpatch.find[0],
 								rpatch.size > 1 ? rpatch.find[1] : 0xff,
 								rpatch.size > 2 ? rpatch.find[2] : 0xff,
 								rpatch.size > 3 ? rpatch.find[3] : 0xff,
@@ -130,7 +130,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						);
 						
 						if (sz > 0 && MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
-							DBGLOG("user @ obtained write permssions\n");
+							DBGLOG("user", "obtained write permssions\n");
 						
 							for (size_t i = 0; i < sz; i++) {
 								uint8_t *patch = const_cast<uint8_t *>(ptr + ref->pageOffs[i]);
@@ -154,14 +154,14 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 							}
 						
 							if (MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
-								DBGLOG("user @ restored write permssions\n");
+								DBGLOG("user", "restored write permssions\n");
 							}
 						} else {
-							SYSLOG("user @ failed to obtain write permssions for %lu\n", sz);
+							SYSLOG("user", "failed to obtain write permssions for %lu\n", sz);
 						}
 					}
 				} else {
-					DBGLOG("user @ failed to match a complete page with %lu\n", maybe);
+					DBGLOG("user", "failed to match a complete page with %lu\n", maybe);
 				}
 			}
 		}
@@ -180,7 +180,7 @@ boolean_t UserPatcher::codeSignValidateRangeWrapper(void *blobs, memory_object_t
 	if (res)
 		that->performPagePatch(data, data_size);
 	
-	/*DBGLOG("user @ cs_validate_range %llX %llX %llX %llX -> %llX %llX", (uint64_t)blobs, (uint64_t)pager, range_offset, (uint64_t)data, data_size, (uint64_t)tainted);*/
+	/*DBGLOG("user", "cs_validate_range %llX %llX %llX %llX -> %llX %llX", (uint64_t)blobs, (uint64_t)pager, range_offset, (uint64_t)data, data_size, (uint64_t)tainted);*/
 
 	return res;
 }
@@ -190,9 +190,9 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 		for (uint32_t i = 0; i < procInfoSize; i++) {
 			auto p = procInfo[i];
 			if (p->len == len && !strncmp(p->path, path, len)) {
-				DBGLOG("user @ caught %s performing injection", path);
+				DBGLOG("user", "caught %s performing injection", path);
 				if (orgProcExecSwitchTask) {
-					DBGLOG("user @ requesting proc_exec_switch_task patch");
+					DBGLOG("user", "requesting proc_exec_switch_task patch");
 					lilu_os_strlcpy(pendingPath, path, MAXPATHLEN);
 					pendingPathLen = len;
 					pendingPatchCallback = true;
@@ -210,7 +210,7 @@ void UserPatcher::patchBinary(vm_map_t map, const char *path, uint32_t len) {
 	if (patchDyldSharedCache && sharedCacheSlideStored) {
 		patchSharedCache(map, storedSharedCacheSlide, CPU_TYPE_X86_64);
 	} else {
-		if (patchDyldSharedCache) SYSLOG("user @ no slide present, initialisation failed, fallback to restrict");
+		if (patchDyldSharedCache) SYSLOG("user", "no slide present, initialisation failed, fallback to restrict");
 		injectRestrict(map);
 	}
 	userCallback.first(userCallback.second, *this, map, path, len);
@@ -220,7 +220,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	// Get task's mach-o header and determine its cpu type
 	auto baseAddr = orgGetMapMin(taskPort);
 	
-	DBGLOG("user @ get_map_min returned %llX", baseAddr);
+	DBGLOG("user", "get_map_min returned %llX", baseAddr);
 	
 	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, &tmpHeader, sizeof(mach_header_64));
 	
@@ -256,7 +256,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
 					auto res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
-						SYSLOG("user @ failed to change memory protection (%lu, %d)", i, res);
+						SYSLOG("user", "failed to change memory protection (%lu, %d)", i, res);
 						return true;
 					}
 				}
@@ -271,7 +271,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			// Write new number and size of commands
 			auto res = orgVmMapWriteUser(taskPort, &newCombVal, ncmdsAddr, sizeof(uint64_t));
 			if (res != KERN_SUCCESS) {
-				SYSLOG("user @ failed to change mach header (%d)", res);
+				SYSLOG("user", "failed to change mach header (%d)", res);
 				return true;
 			}
 			
@@ -279,10 +279,10 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			auto restrSegment = tmpHeader.magic == MH_MAGIC ? static_cast<void *>(&restrictSegment32) : static_cast<void *>(&restrictSegment64);
 			res = orgVmMapWriteUser(taskPort, restrSegment, newCmdAddr, restrSize);
 			if (res != KERN_SUCCESS) {
-				SYSLOG("user @ failed to add dylib load command (%d), reverting...", res);
+				SYSLOG("user", "failed to add dylib load command (%d), reverting...", res);
 				res = orgVmMapWriteUser(taskPort, &orgCombVal, ncmdsAddr, sizeof(uint64_t));
 				if (res != KERN_SUCCESS) {
-					SYSLOG("user @ failed to restore mach header (%d), this process will crash...", res);
+					SYSLOG("user", "failed to restore mach header (%d), this process will crash...", res);
 				}
 				return true;
 			}
@@ -292,17 +292,17 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
 					res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
 					if (res != KERN_SUCCESS) {
-						SYSLOG("user @ failed to restore memory protection (%lu, %d)", i, res);
+						SYSLOG("user", "failed to restore memory protection (%lu, %d)", i, res);
 						return true;
 					}
 				}
 			}
 
 		} else {
-			SYSLOG("user @ unknown header magic %X", tmpHeader.magic);
+			SYSLOG("user", "unknown header magic %X", tmpHeader.magic);
 		}
 	} else {
-		SYSLOG("user @ could not read target mach-o header (error %d)", err);
+		SYSLOG("user", "could not read target mach-o header (error %d)", err);
 		return false;
 	}
 	
@@ -319,7 +319,7 @@ kern_return_t UserPatcher::vmSharedRegionMapFile(vm_shared_region_t shared_regio
 
 int UserPatcher::vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, memory_object_control_t sr_file_control) {
 
-	DBGLOG("user @ params are %X %llX %llX %llX %llX", slide, entry_start_address, entry_size, slide_start, slide_size);
+	DBGLOG("user", "params are %X %llX %llX %llX %llX", slide, entry_start_address, entry_size, slide_start, slide_size);
 	
 	that->patchSharedCache(that->orgCurrentMap(), slide, CPU_TYPE_X86_64);
 	
@@ -330,7 +330,7 @@ proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new
 	proc_t rp = that->orgProcExecSwitchTask(p, current_task, new_task, new_thread);
 
 	if (that->pendingPatchCallback) {
-		DBGLOG("user @ firing hook from procExecSwitchTask\n");
+		DBGLOG("user", "firing hook from procExecSwitchTask\n");
 		that->patchBinary(that->orgGetTaskMap(new_task), that->pendingPath, that->pendingPathLen);
 		that->pendingPatchCallback = false;
 	}
@@ -365,7 +365,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 			}
 			
 			if (modStart && modEnd && offNum && patch.cpu == cpu) {
-				DBGLOG("user @ patch for %s in %lX %lX\n", mod->path, modStart, modEnd);
+				DBGLOG("user", "patch for %s in %lX %lX\n", mod->path, modStart, modEnd);
 				auto tmp = Buffer::create<uint8_t>(patch.size);
 				if (tmp) {
 					for (size_t k = 0; k < offNum; k++) {
@@ -373,34 +373,34 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 						auto r = orgVmMapReadUser(taskPort, place, tmp, patch.size);
 						if (!r) {
 							bool comparison = !memcmp(tmp, applyChanges? patch.find : patch.replace, patch.size);
-							DBGLOG("user @ %d/%d found %X %X %X %X", applyChanges, comparison, tmp[0], tmp[1], tmp[2], tmp[3]);
+							DBGLOG("user", "%d/%d found %X %X %X %X", applyChanges, comparison, tmp[0], tmp[1], tmp[2], tmp[3]);
 							if (comparison) {
 								if (vm_protect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE) == KERN_SUCCESS) {
-									DBGLOG("user @ obtained write permssions\n");
+									DBGLOG("user", "obtained write permssions\n");
 									
 									r = orgVmMapWriteUser(taskPort, applyChanges ? patch.replace : patch.find, place, patch.size);
 										
-									DBGLOG("user @ patching %llX -> res %d", place, r);
+									DBGLOG("user", "patching %llX -> res %d", place, r);
 										
 									if (vm_protect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_EXECUTE) == KERN_SUCCESS) {
-										DBGLOG("user @ restored write permssions\n");
+										DBGLOG("user", "restored write permssions\n");
 									}
 
 								} else {
-									SYSLOG("user @ failed to obtain write permissions for patching");
+									SYSLOG("user", "failed to obtain write permissions for patching");
 								}
 							} else if (ADDPR(debugEnabled)) {
 								for (size_t i = 0; i < patch.size; i++) {
 									auto v = (applyChanges? patch.find : patch.replace)[i];
 									if (tmp[i] != v) {
-										DBGLOG("user @ miss at %lu: %02X vs %02X", i, tmp[i], v);
+										DBGLOG("user", "miss at %lu: %02X vs %02X", i, tmp[i], v);
 										break;
 									}
 								}
 							}
 						}
 						
-						DBGLOG("user @ done reading patches for %llX", ref->segOffs[k]);
+						DBGLOG("user", "done reading patches for %llX", ref->segOffs[k]);
 					}
 					Buffer::deleter(tmp);
 				}
@@ -461,7 +461,7 @@ size_t UserPatcher::mapAddresses(const char *mapBuf, MapEntry *mapEntries, size_
 }
 
 bool UserPatcher::loadDyldSharedCacheMapping() {
-	DBGLOG("user @ loading files %lu", binaryModSize);
+	DBGLOG("user", "loading files %lu", binaryModSize);
 	
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
@@ -484,7 +484,7 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 			size_t nEntries = mapAddresses(reinterpret_cast<char *>(buffer), entries, binaryModSize);
 			
 			if (nEntries > 0) {
-				DBGLOG("user @ mapped %lu entries out of %lu", nEntries, binaryModSize);
+				DBGLOG("user", "mapped %lu entries out of %lu", nEntries, binaryModSize);
 				
 				for (size_t i = 0; i < binaryModSize; i++) {
 					binaryMod[i]->startTEXT = entries[i].startTEXT;
@@ -495,15 +495,15 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 				
 				res = true;
 			} else {
-				SYSLOG("user @ failed to map any entry out of %lu", binaryModSize);
+				SYSLOG("user", "failed to map any entry out of %lu", binaryModSize);
 			}
 		} else {
-			SYSLOG("user @ failed to allocate memory for MapEntry %lu", binaryModSize);
+			SYSLOG("user", "failed to allocate memory for MapEntry %lu", binaryModSize);
 		}
 		
 		if (entries) Buffer::deleter(entries);
 	} else {
-		SYSLOG("user @ no dyld_shared_cache discovered, fallback to slow!");
+		SYSLOG("user", "no dyld_shared_cache discovered, fallback to slow!");
 		patchDyldSharedCache = false;
 		res = true;
 	}
@@ -514,10 +514,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 }
 
 bool UserPatcher::loadFilesForPatching() {
-	DBGLOG("user @ loading files %lu", binaryModSize);
+	DBGLOG("user", "loading files %lu", binaryModSize);
 
 	for (size_t i = 0; i < binaryModSize; i++) {
-		DBGLOG("user @ requesting file %s at %lu", binaryMod[i]->path, i);
+		DBGLOG("user", "requesting file %s at %lu", binaryMod[i]->path, i);
 		
 		size_t fileSize;
 		auto buf = FileIO::readFileToBuffer(binaryMod[i]->path, fileSize);
@@ -527,25 +527,25 @@ bool UserPatcher::loadFilesForPatching() {
 			void *sectionptr {nullptr};
 			size_t size {0};
 		
-			DBGLOG("user @ have %lu mods for %s (read as %lu)", binaryMod[i]->count, binaryMod[i]->path, fileSize);
+			DBGLOG("user", "have %lu mods for %s (read as %lu)", binaryMod[i]->count, binaryMod[i]->path, fileSize);
 		
 			for (size_t p = 0; p < binaryMod[i]->count; p++) {
 				auto &patch = binaryMod[i]->patches[p];
 				
 				if (!patch.section) {
-					DBGLOG("user @ skipping not requested patch %s for %lu", binaryMod[i]->path, p);
+					DBGLOG("user", "skipping not requested patch %s for %lu", binaryMod[i]->path, p);
 					continue;
 				}
 
 				if (patch.segment >= FileSegment::SegmentTotal) {
-					SYSLOG("user @ skipping patch %s for %lu with invalid segment id %d", binaryMod[i]->path, p, patch.segment);
+					SYSLOG("user", "skipping patch %s for %lu with invalid segment id %d", binaryMod[i]->path, p, patch.segment);
 					continue;
 				}
 				
 				MachInfo::findSectionBounds(buf, vmsegment, vmsection, sectionptr, size,
 											fileSegments[patch.segment], fileSections[patch.segment], patch.cpu);
 				
-				DBGLOG("user @ findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %lu", vmsegment, vmsection, sectionptr, size);
+				DBGLOG("user", "findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %lu", vmsegment, vmsection, sectionptr, size);
 				
 				if (size) {
 					uint8_t *start = reinterpret_cast<uint8_t *>(sectionptr);
@@ -553,11 +553,11 @@ bool UserPatcher::loadFilesForPatching() {
 					size_t skip = patch.skip;
 					size_t count = patch.count;
 					
-					DBGLOG("user @ this patch will start from %lu entry and will replace %lu findings", skip, count);
+					DBGLOG("user", "this patch will start from %lu entry and will replace %lu findings", skip, count);
 					
 					while (start < end && count) {
 						if (!memcmp(start, patch.find, patch.size)) {
-							DBGLOG("user @ found entry of %X %X patch", patch.find[0], patch.find[1]);
+							DBGLOG("user", "found entry of %X %X patch", patch.find[0], patch.find[1]);
 							
 							if (skip == 0) {
 								off_t sectOff = start - reinterpret_cast<uint8_t *>(sectionptr);
@@ -566,7 +566,7 @@ bool UserPatcher::loadFilesForPatching() {
 								off_t valueOff = reinterpret_cast<uintptr_t>(start - pageOff - reinterpret_cast<uintptr_t>(sectionptr));
 								off_t segOff = vmsection-vmsegment+sectOff;
 								
-								DBGLOG("user @ using it off %llX pageOff %llX new %lX segOff %llX", sectOff, pageOff, vmpage, segOff);
+								DBGLOG("user", "using it off %llX pageOff %llX new %lX segOff %llX", sectOff, pageOff, vmpage, segOff);
 								
 								// We need binary entry, i.e. the page our patch belong to
 								LookupStorage *entry = nullptr;
@@ -588,7 +588,7 @@ bool UserPatcher::loadFilesForPatching() {
 											entry->pageOff = pageOff;
 											// Now copy page data
 											lilu_os_memcpy(entry->page->p, reinterpret_cast<uint8_t *>(sectionptr) + pageOff, PAGE_SIZE);
-											DBGLOG("user @ first page bytes are %X %X %X %X %X %X %X %X",
+											DBGLOG("user", "first page bytes are %X %X %X %X %X %X %X %X",
 												   entry->page->p[0], entry->page->p[1], entry->page->p[2], entry->page->p[3],
 												   entry->page->p[4], entry->page->p[5], entry->page->p[6], entry->page->p[7]);
 											// Save entry in lookupStorage
@@ -597,7 +597,7 @@ bool UserPatcher::loadFilesForPatching() {
 									}
 									
 									if (!entry) {
-										SYSLOG("user @ failed to allocate memory for LookupStorage");
+										SYSLOG("user", "failed to allocate memory for LookupStorage");
 										continue;
 									}
 								}
@@ -611,13 +611,13 @@ bool UserPatcher::loadFilesForPatching() {
 									}
 								}
 								
-								DBGLOG("user @ ref find %d\n", ref != nullptr);
+								DBGLOG("user", "ref find %d\n", ref != nullptr);
 								
 								// Or add a new patch reference
 								if (!ref) {
 									ref = LookupStorage::PatchRef::create();
 									if (!ref) {
-										SYSLOG("user @ failed to allocate memory for PatchRef");
+										SYSLOG("user", "failed to allocate memory for PatchRef");
 										continue;
 									}
 									ref->i = p; // Set the reference patch
@@ -625,7 +625,7 @@ bool UserPatcher::loadFilesForPatching() {
 								}
 								
 								if (ref) {
-									DBGLOG("user @ pushing off %llX to patch", valueOff);
+									DBGLOG("user", "pushing off %llX to patch", valueOff);
 									// These values belong to the current ref
 									ref->pageOffs.push_back(valueOff);
 									ref->segOffs.push_back(segOff);
@@ -638,7 +638,7 @@ bool UserPatcher::loadFilesForPatching() {
 						start++;
 					}
 				} else {
-					SYSLOG("user @ failed to obtain a corresponding section");
+					SYSLOG("user", "failed to obtain a corresponding section");
 				}
 			}
 			
@@ -654,7 +654,7 @@ bool UserPatcher::loadLookups() {
 	for (size_t i = 0; i < Lookup::matchNum; i++) {
 		auto &lookupCurr = lookup.c[i];
 		
-		DBGLOG("user @ loading lookup %lu current off is %X", i, off);
+		DBGLOG("user", "loading lookup %lu current off is %X", i, off);
 		
 		auto obtainValues = [&lookupCurr, &off, this]() {
 			for (size_t p = 0; p < lookupStorage.size(); p++) {
@@ -687,7 +687,7 @@ bool UserPatcher::loadLookups() {
 				obtainValues();
 				
 				if (!hasSameValues()) {
-					DBGLOG("user @ successful finding at %X", off);
+					DBGLOG("user", "successful finding at %X", off);
 					lookup.offs[i] = off;
 					break;
 				}
@@ -696,16 +696,16 @@ bool UserPatcher::loadLookups() {
 			}
 		} else {
 			if (off == PAGE_SIZE) {
-				DBGLOG("user @ resetting off to 0");
+				DBGLOG("user", "resetting off to 0");
 				off = 0;
 			}
 			
 			if (off == lookup.offs[0]) {
-				DBGLOG("user @ matched off %X with 0th", off);
+				DBGLOG("user", "matched off %X with 0th", off);
 				off += sizeof(uint64_t);
 			}
 			
-			DBGLOG("user @ chose %X", off);
+			DBGLOG("user", "chose %X", off);
 				
 			obtainValues();
 			lookup.offs[i] = off;
@@ -740,7 +740,7 @@ bool UserPatcher::hookMemoryAccess() {
 		);
 		
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
-			SYSLOG("user @ failed to hook _cs_validate_range");
+			SYSLOG("user", "failed to hook _cs_validate_range");
 			patcher->clearError();
 			return false;
 		}
@@ -752,54 +752,54 @@ bool UserPatcher::hookMemoryAccess() {
 		);
 
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
-			SYSLOG("user @ failed to hook _cs_validate_page");
+			SYSLOG("user", "failed to hook _cs_validate_page");
 			patcher->clearError();
 			return false;
 		}
 	} else {
-		SYSLOG("user @ failed to resolve _cs_validate function");
+		SYSLOG("user", "failed to resolve _cs_validate function");
 		patcher->clearError();
 		return false;
 	}
 	
 	orgCurrentMap = reinterpret_cast<t_currentMap>(patcher->solveSymbol(KernelPatcher::KernelID, "_current_map"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
-		SYSLOG("user @ failed to resolve _current_map");
+		SYSLOG("user", "failed to resolve _current_map");
 		patcher->clearError();
 		return false;
 	}
 	
 	orgGetMapMin = reinterpret_cast<t_getMapMin>(patcher->solveSymbol(KernelPatcher::KernelID, "_get_map_min"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
-		SYSLOG("user @ failed to resolve _get_map_min");
+		SYSLOG("user", "failed to resolve _get_map_min");
 		patcher->clearError();
 		return false;
 	}
 	
 	orgGetTaskMap = reinterpret_cast<t_getTaskMap>(patcher->solveSymbol(KernelPatcher::KernelID, "_get_task_map"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
-		SYSLOG("user @ failed to resolve _get_task_map");
+		SYSLOG("user", "failed to resolve _get_task_map");
 		patcher->clearError();
 		return false;
 	}
 	
 	orgVmMapCheckProtection = reinterpret_cast<t_vmMapCheckProtection>(patcher->solveSymbol(KernelPatcher::KernelID, "_vm_map_check_protection"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
-		SYSLOG("user @ failed to resolve _vm_map_check_protection");
+		SYSLOG("user", "failed to resolve _vm_map_check_protection");
 		patcher->clearError();
 		return false;
 	}
 	
 	orgVmMapReadUser = reinterpret_cast<t_vmMapReadUser>(patcher->solveSymbol(KernelPatcher::KernelID, "_vm_map_read_user"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
-		SYSLOG("user @ failed to resolve _vm_map_read_user");
+		SYSLOG("user", "failed to resolve _vm_map_read_user");
 		patcher->clearError();
 		return false;
 	}
 	
 	orgVmMapWriteUser = reinterpret_cast<t_vmMapWriteUser>(patcher->solveSymbol(KernelPatcher::KernelID, "_vm_map_write_user"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
-		SYSLOG("user @ failed to resolve _vm_map_write_user");
+		SYSLOG("user", "failed to resolve _vm_map_write_user");
 		patcher->clearError();
 		return false;
 	}
@@ -815,13 +815,13 @@ bool UserPatcher::hookMemoryAccess() {
 			);
 			
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("user @ failed to hook _proc_exec_switch_task");
+				SYSLOG("user", "failed to hook _proc_exec_switch_task");
 				patcher->clearError();
 				return false;
 			}
 			
 		} else {
-			DBGLOG("user @ failed to resolve _proc_exec_switch_task");
+			DBGLOG("user", "failed to resolve _proc_exec_switch_task");
 			patcher->clearError();
 			// This is not an error, early 10.12 versions have no such function
 		}
@@ -836,13 +836,13 @@ bool UserPatcher::hookMemoryAccess() {
 			);
 			
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("user @ failed to hook _vm_shared_region_map_file");
+				SYSLOG("user", "failed to hook _vm_shared_region_map_file");
 				patcher->clearError();
 				return false;
 			}
 			
 		} else {
-			SYSLOG("user @ failed to resolve _vm_shared_region_map_file");
+			SYSLOG("user", "failed to resolve _vm_shared_region_map_file");
 			patcher->clearError();
 			return false;
 		}
@@ -855,13 +855,13 @@ bool UserPatcher::hookMemoryAccess() {
 			);
 			
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("user @ failed to hook _vm_shared_region_slide");
+				SYSLOG("user", "failed to hook _vm_shared_region_slide");
 				patcher->clearError();
 				return false;
 			}
 			
 		} else {
-			SYSLOG("user @ failed to resolve _vm_shared_region_slide");
+			SYSLOG("user", "failed to resolve _vm_shared_region_slide");
 			patcher->clearError();
 			return false;
 		}

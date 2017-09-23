@@ -85,7 +85,7 @@ namespace Patch {
 				case Variant::U32: return u32.patch();
 				case Variant::U64: return u64.patch();
 				case Variant::U128: return u128.patch();
-				default: SYSLOG("patcher @ unsupported patch type %d, cannot patch", static_cast<int>(u8.type));
+				default: SYSLOG("patcher", "unsupported patch type %d, cannot patch", static_cast<int>(u8.type));
 			}
 		}
 		
@@ -96,7 +96,7 @@ namespace Patch {
 				case Variant::U32: return u32.restore();
 				case Variant::U64: return u64.restore();
 				case Variant::U128: return u128.restore();
-				default: SYSLOG("patcher @ unsupported patch type %d, cannot restore", static_cast<int>(u8.type));
+				default: SYSLOG("patcher", "unsupported patch type %d, cannot restore", static_cast<int>(u8.type));
 			}
 		}
 	};
