@@ -27,7 +27,7 @@ class MachInfo {
 	uint8_t *file_buf {nullptr};             // read file data
 	OSDictionary *prelink_dict {nullptr};    // read prealinked kext dictionary
 	uint8_t *prelink_addr {nullptr};         // prelink text base address
-	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address
+	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address (for kexts this is their actual slide)
 	uint32_t file_buf_size {0};              // read file data size
 	uint8_t *linkedit_buf {nullptr};         // pointer to __LINKEDIT buffer containing symbols to solve
 	uint64_t linkedit_fileoff {0};           // __LINKEDIT file offset so we can read
@@ -40,6 +40,7 @@ class MachInfo {
 	size_t memory_size {HeaderSize};         // memory size
 	bool kaslr_slide_set {false};            // kaslr can be null, used for disambiguation
 	bool allow_decompress {true};            // allows mach decompression
+	bool prelink_slid {false};               // assume kaslr-slid kext addresses
 
 	/**
 	 *  16 byte IDT descriptor, used for 32 and 64 bits kernels (64 bit capable cpus!)
@@ -127,10 +128,11 @@ class MachInfo {
 	 *
 	 *  @param identifier  identifier
 	 *  @param imageSize   size of the returned buffer
+	 *  @param slide       actual slide for symbols (normally kaslr or 0)
 	 *
 	 *  @return pointer to const buffer on success or nullptr
 	 */
-	uint8_t *findImage(const char *identifier, uint32_t &imageSize);
+	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide);
 	
 	MachInfo(bool asKernel, const char *id) : isKernel(asKernel), objectId(id) {
 		DBGLOG("mach", "MachInfo asKernel %d object constructed", asKernel);

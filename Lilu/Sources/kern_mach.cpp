@@ -47,15 +47,19 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 	// Attempt to get linkedit from prelink
 	if (prelink && objectId) {
-		file_buf = prelink->findImage(objectId, file_buf_size);
+		file_buf = prelink->findImage(objectId, file_buf_size, prelink_vmaddr);
 
 		if (file_buf && file_buf_size >= HeaderSize) {
 			processMachHeader(file_buf);
 			if (linkedit_fileoff && symboltable_fileoff) {
 				// read linkedit from prelink
 				error = readLinkedit(NULLVP, nullptr);
-				if (error != KERN_SUCCESS)
+				if (error == KERN_SUCCESS) {
+					// for prelinked kexts assume that we have slide (this is true for modern os)
+					prelink_slid = true;
+				} else {
 					SYSLOG("mach", "could not read the linkedit segment from prelink");
+				}
 			} else {
 				SYSLOG("mach", "couldn't find the necessary mach segments or sections in prelink (linkedit %llX, sym %X)",
 					   linkedit_fileoff, symboltable_fileoff);
@@ -64,6 +68,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 			SYSLOG("mach", "unable to load image from prelink");
 		}
 
+		kaslr_slide = 0;
 		file_buf = nullptr;
 	}
 
@@ -439,7 +444,7 @@ void MachInfo::freeFileBufferResources() {
 	}
 
 	if (prelink_dict) {
-		prelink_dict->free();
+		prelink_dict->release();
 		prelink_dict = nullptr;
 	}
 }
@@ -502,9 +507,11 @@ void MachInfo::updatePrelinkInfo() {
 				if (tmpSectSize){
 					prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
 					prelink_vmaddr = tmpSect;
+					// If _PrelinkLinkKASLROffsets is set, then addresses are already slid
+					prelink_slid = prelink_dict->getObject("_PrelinkLinkKASLROffsets");
 				} else {
 					SYSLOG("mach", "unable to get prelink offset");
-					prelink_dict->free();
+					prelink_dict->release();
 					prelink_dict = nullptr;
 				}
 			} else if (objData) {
@@ -519,7 +526,7 @@ void MachInfo::updatePrelinkInfo() {
 	}
 }
 
-uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize) {
+uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide) {
 	updatePrelinkInfo();
 
 	if (prelink_dict) {
@@ -536,17 +543,21 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize) {
 					auto imageID = OSDynamicCast(OSString, image->getObject("CFBundleIdentifier"));
 					if (imageID && imageID->isEqualTo(identifier)) {
 						DBGLOG("mach", "found kext %s at %u of prelink", identifier, i);
-						auto addr = OSDynamicCast(OSNumber, image->getObject("_PrelinkExecutableSourceAddr"));
+						auto saddr = OSDynamicCast(OSNumber, image->getObject("_PrelinkExecutableSourceAddr"));
+						auto laddr = OSDynamicCast(OSNumber, image->getObject("_PrelinkExecutableLoadAddr"));
 						auto size = OSDynamicCast(OSNumber, image->getObject("_PrelinkExecutableSize"));
 
-						if (addr && size) {
+						if (saddr && laddr && size) {
 							imageSize = size->unsigned32BitValue();
-							uint8_t *imageaddr = (addr->unsigned64BitValue() - prelink_vmaddr) + prelink_addr;
+							uint8_t *imageaddr = (saddr->unsigned64BitValue() - prelink_vmaddr) + prelink_addr;
 							auto startoff = imageaddr >= file_buf ? imageaddr - file_buf : file_buf_size;
-							if (file_buf_size > startoff && file_buf_size - startoff >= imageSize)
+							if (file_buf_size > startoff && file_buf_size - startoff >= imageSize) {
+								// Normally all the kexts are off by kaslr slide unless already slid
+								slide = !prelink_slid ? kaslr_slide : 0;
 								return imageaddr;
-							else
+							} else {
 								SYSLOG("mach", "invalid addresses of kext %s at %u of prelink", identifier, i);
+							}
 						}
 
 						SYSLOG("mach", "unable to obtain addr and size for %s at %u of prelink", identifier, i);
@@ -607,11 +618,10 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 	
 	// compute kaslr slide
 	if (running_text_addr && running_mh) {
-		if (!slide) {
+		if (!slide) // This is kernel image
 			kaslr_slide = running_text_addr - disk_text_addr;
-		} else {
-			kaslr_slide = slide;
-		}
+		else // This is kext image
+			kaslr_slide = prelink_slid ? prelink_vmaddr : slide;
 		kaslr_slide_set = true;
 		
 		DBGLOG("mach", "aslr/load slide is 0x%llx", kaslr_slide);
