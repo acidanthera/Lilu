@@ -129,10 +129,11 @@ class MachInfo {
 	 *  @param identifier  identifier
 	 *  @param imageSize   size of the returned buffer
 	 *  @param slide       actual slide for symbols (normally kaslr or 0)
+	 *  @param missing     set to true on successful prelink parsing when image is not needed
 	 *
 	 *  @return pointer to const buffer on success or nullptr
 	 */
-	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide);
+	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
 	
 	MachInfo(bool asKernel, const char *id) : isKernel(asKernel), objectId(id) {
 		DBGLOG("mach", "MachInfo asKernel %d object constructed", asKernel);

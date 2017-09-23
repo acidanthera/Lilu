@@ -90,14 +90,20 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 	MachInfo *prelink = nullptr;
 	if (!fsonly && !isKernel && kinfos.size() > KernelID)
 		prelink = kinfos[KernelID];
-	
+
+	kern_return_t error;
 	auto info = MachInfo::create(isKernel, id);
 	if (!info) {
 		SYSLOG("patcher", "failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
-	} else if (info->init(paths, num, prelink) != KERN_SUCCESS) {
-		SYSLOG_COND(ADDPR(debugEnabled), "patcher", "failed to init MachInfo for %s", id);
-		code = Error::NoKinfoFound;
+	} else if ((error = info->init(paths, num, prelink)) != KERN_SUCCESS) {
+		if (error != KERN_NOT_SUPPORTED) {
+			SYSLOG_COND(ADDPR(debugEnabled), "patcher", "failed to init MachInfo for %s", id);
+			code = Error::NoKinfoFound;
+		} else {
+			DBGLOG("patcher", "ignoring %s because it is unused", id);
+			code = Error::Unsupported;
+		}
 	} else if (!kinfos.push_back(info)) {
 		SYSLOG("patcher", "unable to store loaded MachInfo for %s", id);
 		code = Error::MemoryIssue;

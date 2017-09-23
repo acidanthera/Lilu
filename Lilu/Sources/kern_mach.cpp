@@ -47,7 +47,8 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 	// Attempt to get linkedit from prelink
 	if (prelink && objectId) {
-		file_buf = prelink->findImage(objectId, file_buf_size, prelink_vmaddr);
+		bool missing = false;
+		file_buf = prelink->findImage(objectId, file_buf_size, prelink_vmaddr, missing);
 
 		if (file_buf && file_buf_size >= HeaderSize) {
 			processMachHeader(file_buf);
@@ -65,11 +66,14 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 					   linkedit_fileoff, symboltable_fileoff);
 			}
 		} else {
-			SYSLOG("mach", "unable to load image from prelink");
+			DBGLOG("mach", "unable to load missing %d image %s from prelink", missing, objectId);
 		}
 
-		kaslr_slide = 0;
 		file_buf = nullptr;
+		// Do not load unnecessary images on modern OS, since they always rebuild kext cache
+		// In theory it should be ok to do it on older OS as well, but there is a risk one reboots without building kext cache
+		if (missing && getKernelVersion() >= KernelVersion::Yosemite)
+			return KERN_NOT_SUPPORTED;
 	}
 
 	// Attempt to load directly from the filesystem
@@ -523,11 +527,15 @@ void MachInfo::updatePrelinkInfo() {
 		} else {
 			SYSLOG("mach", "unable to find prelink info section");
 		}
+	} else {
+		//DBGLOG("mach", "dict present %d kernel %d buf present %d", prelink_dict != nullptr, isKernel, file_buf != nullptr);
 	}
 }
 
-uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide) {
+uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing) {
 	updatePrelinkInfo();
+
+	//DBGLOG("mach", "looking up %s kext in prelink", identifier);
 
 	if (prelink_dict) {
 		static OSArray *imageArr = nullptr;
@@ -556,15 +564,22 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 								slide = !prelink_slid ? kaslr_slide : 0;
 								return imageaddr;
 							} else {
-								SYSLOG("mach", "invalid addresses of kext %s at %u of prelink", identifier, i);
+								SYSLOG("mach", "invalid addresses of kext %s at %u of %u prelink", identifier, i, imageNum);
 							}
 						}
 
-						SYSLOG("mach", "unable to obtain addr and size for %s at %u of prelink", identifier, i);
+						SYSLOG("mach", "unable to obtain addr and size for %s at %u of %u prelink", identifier, i, imageNum);
 						return nullptr;
+					} else {
+						//DBGLOG("mach", "prelink %u of %u contains %s id", i, imageNum, imageID ? imageID->getCStringNoCopy() : "(null)");
 					}
+				} else {
+					SYSLOG("mach", "prelink %u of %u is not a dictionary", i, imageNum);
 				}
 			}
+
+			// We optimise our boot process by ignoring unused kexts
+			missing = true;
 		} else {
 			SYSLOG("mach", "unable to find prelink info array");
 		}
