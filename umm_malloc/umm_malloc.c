@@ -55,7 +55,7 @@
 #ifdef UMM_DEBUG
 #define DBGLOG_DEBUG(format, ...) IOLog(format, ## __VA_ARGS__)
 #else
-#define DBGLOG_DEBUG(format, ...)
+#define DBGLOG_DEBUG(format, ...) do { } while (0)
 #endif
 
 #define UMM_H_ATTPACKPRE
