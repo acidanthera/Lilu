@@ -121,7 +121,9 @@ bool Configuration::getBootArguments() {
 	installOrRecovery |= PE_parse_boot_argn("container-dmg", tmp, sizeof(tmp));
 	installOrRecovery |= PE_parse_boot_argn("root-dmg", tmp, sizeof(tmp));
 	installOrRecovery |= PE_parse_boot_argn("auth-root-dmg", tmp, sizeof(tmp));
-	
+
+	safeMode = PE_parse_boot_argn("-x", tmp, sizeof(tmp));
+
 	preferSlowMode = getKernelVersion() <= KernelVersion::Mavericks || installOrRecovery;
 
 	if (PE_parse_boot_argn(bootargSlow, tmp, sizeof(tmp))) {

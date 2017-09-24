@@ -16,6 +16,13 @@ LiluAPI lilu;
 
 void LiluAPI::init() {
 	access = IOLockAlloc();
+
+	if (config.installOrRecovery)
+		currentRunMode |= AllowInstallerRecovery;
+	else if (config.safeMode)
+		currentRunMode |= AllowSafeMode;
+	else
+		currentRunMode |= AllowNormal;
 }
 
 void LiluAPI::deinit() {
@@ -52,13 +59,16 @@ LiluAPI::Error LiluAPI::releaseAccess() {
 	return Error::NoError;
 }
 
-LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug) {
+LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t runmode, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug) {
 	
 	DBGLOG("api", "got load request from %s (%lu)", product, version);
 	
 	char tmp[16];
 	printDebug = false;
-	
+
+	if (!(runmode & currentRunMode))
+		return Error::Disabled;
+
 	for (size_t i = 0; i < disableArgNum; i++) {
 		if (PE_parse_boot_argn(disableArg[i], tmp, sizeof(tmp)))
 			return Error::Disabled;
