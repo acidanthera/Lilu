@@ -102,6 +102,11 @@ public:
 	 *  Install or recovery
 	 */
 	bool installOrRecovery {false};
+
+	/**
+	 *  Safe mode
+	 */
+	bool safeMode {false};
 	
 	/**
 	 *  Beta for all plugins and Lilu itself

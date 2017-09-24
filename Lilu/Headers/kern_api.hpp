@@ -64,12 +64,24 @@ public:
 	 *  @return Error::NoError on success
 	 */
 	EXPORT Error releaseAccess();
-	
+
+	/**
+	 *  You are supposed declare that your plugins work in at least one of these modes
+	 *  It is assumed that single user mode is equal to normal, because it is generally
+	 *  used to continue the load of a complete OS, and by default Lilu itself ignores it.
+	 */
+	enum Requirements : uint32_t {
+		AllowNormal             = 1,
+		AllowInstallerRecovery  = 2,
+		AllowSafeMode           = 4
+	};
+
 	/**
 	 *  Decides whether you are eligible to continue
 	 *
 	 *  @param product       product name
 	 *  @param version       product version
+	 *  @param runmode       bitmask of allowed enviornments
 	 *  @param disableArg    pointer to disabling boot arguments array
 	 *  @param disableArgNum number of disabling boot arguments
 	 *  @param debugArg      pointer to debug boot arguments array
@@ -82,7 +94,7 @@ public:
 	 *
 	 *  @return Error::NoError on success
 	 */
-	EXPORT Error shouldLoad(const char *product, size_t version, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug);
+	EXPORT Error shouldLoad(const char *product, size_t version, uint32_t runmode, const char **disableArg, size_t disableArgNum, const char **debugArg, size_t debugArgNum, const char **betaArg, size_t betaArgNum, KernelVersion min, KernelVersion max, bool &printDebug);
 	
 	/**
 	 *  Kernel patcher loaded callback
@@ -189,7 +201,12 @@ private:
 	 *  Api lock
 	 */
 	IOLock *access {nullptr};
-	
+
+	/**
+	 *  Defines current running modes
+	 */
+	uint32_t currentRunMode {};
+
 	/**
 	 *  No longer accept any requests
 	 */

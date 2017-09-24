@@ -16,6 +16,7 @@
 struct PluginConfiguration {
 	const char *product;        // Product name (e.g. xStringify(PRODUCT_NAME))
 	size_t version;             // Product version (e.g. parseModuleVersion(xStringify(MODULE_VERSION)))
+	uint32_t runmode;           // Product supported environments (e.g. LiluAPI::AllowNormal)
 	const char **disableArg;    // Pointer to disabling boot arguments array
 	size_t disableArgNum;       // Number of disabling boot arguments
 	const char **debugArg;      // Pointer to debug boot arguments array
