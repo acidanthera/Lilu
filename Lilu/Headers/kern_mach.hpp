@@ -172,13 +172,14 @@ public:
 	/**
 	 *  Resolve mach data in the kernel
 	 *
-	 *  @param paths   filesystem paths for lookup
-	 *  @param num     the number of paths passed
-	 *  @param prelink prelink information source (i.e. Kernel MachInfo)
+	 *  @param paths      filesystem paths for lookup
+	 *  @param num        the number of paths passed
+	 *  @param prelink    prelink information source (i.e. Kernel MachInfo)
+	 *  @param fsfallback fallback to reading from filesystem if prelink failed
 	 *
 	 *  @return KERN_SUCCESS if loaded
 	 */
-	EXPORT kern_return_t init(const char * const paths[], size_t num = 1, MachInfo *prelink=nullptr);
+	EXPORT kern_return_t init(const char * const paths[], size_t num = 1, MachInfo *prelink=nullptr, bool fsfallback=false);
 	
 	/**
 	 *  Release the allocated memory, must be called regardless of the init error

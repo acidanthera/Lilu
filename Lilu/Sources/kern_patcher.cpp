@@ -78,7 +78,7 @@ void KernelPatcher::deinit() {
 	}
 }
 
-size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel, bool fsonly) {
+size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size_t num, bool isKernel, bool fsonly, bool fsfallback) {
 	for (size_t i = 0; i < kinfos.size(); i++) {
 		if (kinfos[i]->objectId && !strcmp(kinfos[i]->objectId, id)) {
 			DBGLOG("patcher", "found an already loaded MachInfo for %s at %lu", id, i);
@@ -96,7 +96,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 	if (!info) {
 		SYSLOG("patcher", "failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
-	} else if ((error = info->init(paths, num, prelink)) != KERN_SUCCESS) {
+	} else if ((error = info->init(paths, num, prelink, fsfallback)) != KERN_SUCCESS) {
 		if (error != KERN_NOT_SUPPORTED) {
 			SYSLOG_COND(ADDPR(debugEnabled), "patcher", "failed to init MachInfo for %s", id);
 			code = Error::NoKinfoFound;
@@ -132,7 +132,8 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 		return info->loadIndex;
 	}
 	
-	auto idx = loadKinfo(info->id, info->paths, info->pathNum, false, info->sys[KextInfo::FSOnly]);
+	auto idx = loadKinfo(info->id, info->paths, info->pathNum, false,
+	                     info->sys[KextInfo::FSOnly], info->sys[KextInfo::FSFallback]);
 	if (getError() == Error::NoError || getError() == Error::AlreadyDone) {
 		info->loadIndex = idx;
 		DBGLOG("patcher", "loaded kinfo %s at %lu index", info->id, idx);
