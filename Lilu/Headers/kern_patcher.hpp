@@ -85,6 +85,8 @@ public:
 			Reloadable,  // allow the kext to unload and get patched again
 			Disabled,    // do not load this kext (formerly achieved pathNum = 0, this no longer works)
 			FSOnly,      // do not use prelinkedkernel (kextcache) as a symbol source
+			FSFallback,  // perform fs fallback if kextcache failed
+			Reserved,
 			SysFlagNum,
 			UserFlagNum = sizeof(size_t)-SysFlagNum
 		};
@@ -96,20 +98,23 @@ public:
 		bool user[UserFlagNum] {};
 		size_t loadIndex {Unloaded}; // Updated after loading
 	};
+
+	static_assert(sizeof(KextInfo) == 5 * sizeof(size_t), "KextInfo is no longer ABI compatible");
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 	/**
 	 *  Loads and stores kinfo information locally
 	 *
-	 *  @param id       kernel item identifier
-	 *  @param paths    item filesystem path array
-	 *  @param num      number of path entries
-	 *  @param isKernel kinfo is kernel info
-	 *  @param fsonly   avoid using prelinkedkernel for kexts
+	 *  @param id         kernel item identifier
+	 *  @param paths      item filesystem path array
+	 *  @param num        number of path entries
+	 *  @param isKernel   kinfo is kernel info
+	 *  @param fsonly     avoid using prelinkedkernel for kexts
+	 *  @param fsfallback fallback to reading from filesystem if prelink failed
 	 *
 	 *  @return loaded kinfo id
 	 */
-	EXPORT size_t loadKinfo(const char *id, const char * const paths[], size_t num=1, bool isKernel=false, bool fsonly=false);
+	EXPORT size_t loadKinfo(const char *id, const char * const paths[], size_t num=1, bool isKernel=false, bool fsonly=false, bool fsfallback=false);
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**
