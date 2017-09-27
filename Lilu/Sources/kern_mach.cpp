@@ -72,7 +72,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 		file_buf = nullptr;
 		// Do not load unnecessary images on modern OS, since they always rebuild kext cache
 		// In theory it should be ok to do it on older OS as well, but there is a risk one reboots without building kext cache
-		if (missing && !fsfallback && getKernelVersion() >= KernelVersion::Yosemite)
+		if (missing && !config.installOrRecovery && !fsfallback && getKernelVersion() >= KernelVersion::Yosemite)
 			return KERN_NOT_SUPPORTED;
 	}
 
