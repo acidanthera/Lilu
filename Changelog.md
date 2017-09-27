@@ -1,9 +1,26 @@
 Lilu Changelog
 ==============
 
-#### v1.1.8
+#### v1.2.0
 - Added more handy reporting macros
-- Enabled Lilu in safe mode by default
+- Enabled Lilu in safe mode by default with all plugins required to declare supported environments
+- Added lzss compression API
+- Added crypto and nvram API
+- Added support for solving kext symbols from kextcache
+- Added memfunc wrappers (e.g. lilu_os_memcpy) to avoid undefined builtins from 10.13 SDK
+- Changed compression API logic to support preallocated buffers
+- Changed memory allocation logic in certain APIs
+- Changed kernel protection API to accept a lock for cpu preemption control
+- Changed KextInfo structure to handle disabled and fsonly kexts
+- Changed logging API to enforce more proper style
+- Disabled advanced disassembly APIs by default (create an issue if you need them)
+- Fixed a memory issue in WIOKit::getComputerInfo introduced in 1.1.7
+- Fixed several assertions triggering in 10.13 development kernel
+- Fixed Xcode 9 compiled binary compatibility with older OS
+- Fixed FAT_CIGAM and FAT_MAGIC parsing issues
+- Fixed a number of potential memory issues in mach parsing code
+- Fixed debug and development kextcache loading issues
+- Fixed shutdown issues in `-lilulowmem` mode
 
 #### v1.1.7
 - Merged advanced disassembly API (thx Pb and others)
