@@ -77,9 +77,22 @@
 		CE744A8E1F42100E0077C377 /* hde64.c in Sources */ = {isa = PBXBuildFile; fileRef = CE744A8A1F42100E0077C377 /* hde64.c */; };
 		CE744A8F1F42100E0077C377 /* hde64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8B1F42100E0077C377 /* hde64.h */; };
 		CE744A911F42100E0077C377 /* table64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8D1F42100E0077C377 /* table64.h */; };
+		CE74B2501F75D1FB00F90A08 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = CE74B24E1F75CFEB00F90A08 /* sha256.c */; };
 		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
 		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
 		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
+		CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */; };
+		CEB6D9831F69B42D005B6AC3 /* cc.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9781F69B42D005B6AC3 /* cc.h */; };
+		CEB6D9841F69B42D005B6AC3 /* cc_config.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9791F69B42D005B6AC3 /* cc_config.h */; };
+		CEB6D9851F69B42D005B6AC3 /* ccaes.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D97A1F69B42D005B6AC3 /* ccaes.h */; };
+		CEB6D9861F69B42D005B6AC3 /* cccmac.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D97B1F69B42D005B6AC3 /* cccmac.h */; };
+		CEB6D9871F69B42D005B6AC3 /* ccmode.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D97C1F69B42D005B6AC3 /* ccmode.h */; };
+		CEB6D9881F69B42D005B6AC3 /* ccmode_impl.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D97D1F69B42D005B6AC3 /* ccmode_impl.h */; };
+		CEB6D9891F69B42D005B6AC3 /* ccmode_siv.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D97E1F69B42D005B6AC3 /* ccmode_siv.h */; };
+		CEB6D98A1F69B42D005B6AC3 /* ccn.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D97F1F69B42D005B6AC3 /* ccn.h */; };
+		CEB6D98B1F69B42D005B6AC3 /* aes.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9821F69B42D005B6AC3 /* aes.h */; };
+		CEB6D9931F69D8B9005B6AC3 /* kern_nvram.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */; };
+		CEB6D9951F69D8CF005B6AC3 /* kern_nvram.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -170,9 +183,25 @@
 		CE744A8B1F42100E0077C377 /* hde64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hde64.h; sourceTree = "<group>"; };
 		CE744A8C1F42100E0077C377 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CE744A8D1F42100E0077C377 /* table64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = table64.h; sourceTree = "<group>"; };
+		CE74B24C1F72D64000F90A08 /* kern_compat.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_compat.hpp; sourceTree = "<group>"; };
+		CE74B24E1F75CFEB00F90A08 /* sha256.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sha256.c; sourceTree = "<group>"; };
+		CE74B24F1F75CFEB00F90A08 /* sha256.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sha256.h; sourceTree = "<group>"; };
 		CE75B9541EFB619C00D29B40 /* _label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _label.h; sourceTree = "<group>"; };
 		CE75B9551EFB619C00D29B40 /* mac_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_framework.h; sourceTree = "<group>"; };
 		CE75B9561EFB619C00D29B40 /* mac_policy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_policy.h; sourceTree = "<group>"; };
+		CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_crypto.cpp; path = Lilu/Sources/kern_crypto.cpp; sourceTree = "<group>"; };
+		CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_crypto.hpp; sourceTree = "<group>"; };
+		CEB6D9781F69B42D005B6AC3 /* cc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cc.h; sourceTree = "<group>"; };
+		CEB6D9791F69B42D005B6AC3 /* cc_config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cc_config.h; sourceTree = "<group>"; };
+		CEB6D97A1F69B42D005B6AC3 /* ccaes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccaes.h; sourceTree = "<group>"; };
+		CEB6D97B1F69B42D005B6AC3 /* cccmac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cccmac.h; sourceTree = "<group>"; };
+		CEB6D97C1F69B42D005B6AC3 /* ccmode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccmode.h; sourceTree = "<group>"; };
+		CEB6D97D1F69B42D005B6AC3 /* ccmode_impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccmode_impl.h; sourceTree = "<group>"; };
+		CEB6D97E1F69B42D005B6AC3 /* ccmode_siv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccmode_siv.h; sourceTree = "<group>"; };
+		CEB6D97F1F69B42D005B6AC3 /* ccn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ccn.h; sourceTree = "<group>"; };
+		CEB6D9821F69B42D005B6AC3 /* aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aes.h; sourceTree = "<group>"; };
+		CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_nvram.cpp; path = Lilu/Sources/kern_nvram.cpp; sourceTree = "<group>"; };
+		CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_nvram.hpp; sourceTree = "<group>"; };
 		CEC962431D835DE000E3E772 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		CEC962461D835DE000E3E772 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CEC962471D835DE000E3E772 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -279,6 +308,7 @@
 				1C3E7AC91C84B5E500A6448A /* capstone */,
 				CE744A891F42100E0077C377 /* hde */,
 				CE2E7BBB1E2C6D24009AC62A /* FastCompression */,
+				CE74B24D1F75CFEB00F90A08 /* sha256 */,
 				CE10961B1F22876B00B623FC /* umm_malloc */,
 				1C748C281C21952C0024EED2 /* Products */,
 			);
@@ -306,11 +336,14 @@
 			children = (
 				CE2E7BE91E2C7583009AC62A /* kern_api.hpp */,
 				CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */,
+				CE74B24C1F72D64000F90A08 /* kern_compat.hpp */,
 				CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */,
+				CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */,
 				CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */,
 				CE2E7B891E2C6A73009AC62A /* kern_file.hpp */,
 				CE2E7B8A1E2C6A73009AC62A /* kern_iokit.hpp */,
 				CE2E7B8B1E2C6A73009AC62A /* kern_mach.hpp */,
+				CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */,
 				CE2E7B8C1E2C6A73009AC62A /* kern_patcher.hpp */,
 				CE2E7B8D1E2C6A73009AC62A /* kern_policy.hpp */,
 				CE2E7B901E2C6A73009AC62A /* kern_user.hpp */,
@@ -326,10 +359,12 @@
 			children = (
 				CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */,
 				CE2E7BA41E2C6BAA009AC62A /* kern_compression.cpp */,
+				CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */,
 				CE2E7BA51E2C6BAA009AC62A /* kern_disasm.cpp */,
 				CE2E7BA61E2C6BAA009AC62A /* kern_file.cpp */,
 				CE2E7BA71E2C6BAA009AC62A /* kern_iokit.cpp */,
 				CE2E7BA81E2C6BAA009AC62A /* kern_mach.cpp */,
+				CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */,
 				CE2E7BA91E2C6BAA009AC62A /* kern_patcher.cpp */,
 				CE2E7BAA1E2C6BAA009AC62A /* kern_policy.cpp */,
 				CE2E7BAB1E2C6BAA009AC62A /* kern_start.cpp */,
@@ -363,6 +398,8 @@
 		CE2E7BE21E2C73B1009AC62A /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				CEB6D9771F69B42D005B6AC3 /* corecrypto */,
+				CEB6D9801F69B42D005B6AC3 /* libkern */,
 				CE75B9531EFB619C00D29B40 /* security */,
 				CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */,
 				CE2E7BE41E2C73B1009AC62A /* libkmod.a */,
@@ -383,6 +420,15 @@
 			path = hde;
 			sourceTree = "<group>";
 		};
+		CE74B24D1F75CFEB00F90A08 /* sha256 */ = {
+			isa = PBXGroup;
+			children = (
+				CE74B24E1F75CFEB00F90A08 /* sha256.c */,
+				CE74B24F1F75CFEB00F90A08 /* sha256.h */,
+			);
+			path = sha256;
+			sourceTree = "<group>";
+		};
 		CE75B9531EFB619C00D29B40 /* security */ = {
 			isa = PBXGroup;
 			children = (
@@ -391,6 +437,37 @@
 				CE75B9561EFB619C00D29B40 /* mac_policy.h */,
 			);
 			path = security;
+			sourceTree = "<group>";
+		};
+		CEB6D9771F69B42D005B6AC3 /* corecrypto */ = {
+			isa = PBXGroup;
+			children = (
+				CEB6D9781F69B42D005B6AC3 /* cc.h */,
+				CEB6D9791F69B42D005B6AC3 /* cc_config.h */,
+				CEB6D97A1F69B42D005B6AC3 /* ccaes.h */,
+				CEB6D97B1F69B42D005B6AC3 /* cccmac.h */,
+				CEB6D97C1F69B42D005B6AC3 /* ccmode.h */,
+				CEB6D97D1F69B42D005B6AC3 /* ccmode_impl.h */,
+				CEB6D97E1F69B42D005B6AC3 /* ccmode_siv.h */,
+				CEB6D97F1F69B42D005B6AC3 /* ccn.h */,
+			);
+			path = corecrypto;
+			sourceTree = "<group>";
+		};
+		CEB6D9801F69B42D005B6AC3 /* libkern */ = {
+			isa = PBXGroup;
+			children = (
+				CEB6D9811F69B42D005B6AC3 /* crypto */,
+			);
+			path = libkern;
+			sourceTree = "<group>";
+		};
+		CEB6D9811F69B42D005B6AC3 /* crypto */ = {
+			isa = PBXGroup;
+			children = (
+				CEB6D9821F69B42D005B6AC3 /* aes.h */,
+			);
+			path = crypto;
 			sourceTree = "<group>";
 		};
 		CEC962481D835DE400E3E772 /* Docs */ = {
@@ -415,14 +492,17 @@
 				CE2E7B961E2C6A73009AC62A /* kern_iokit.hpp in Headers */,
 				CE2E7B9C1E2C6A73009AC62A /* kern_user.hpp in Headers */,
 				CE2E7B971E2C6A73009AC62A /* kern_mach.hpp in Headers */,
+				CEB6D9861F69B42D005B6AC3 /* cccmac.h in Headers */,
 				CE2E7B991E2C6A73009AC62A /* kern_policy.hpp in Headers */,
 				CE2E7B941E2C6A73009AC62A /* kern_disasm.hpp in Headers */,
 				CE2E7B931E2C6A73009AC62A /* kern_compression.hpp in Headers */,
 				CE75B9571EFB619C00D29B40 /* _label.h in Headers */,
+				CEB6D98A1F69B42D005B6AC3 /* ccn.h in Headers */,
 				CE2E7B951E2C6A73009AC62A /* kern_file.hpp in Headers */,
 				CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */,
 				CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */,
 				CE2E7BE51E2C73B1009AC62A /* LegacyIOService.h in Headers */,
+				CEB6D9841F69B42D005B6AC3 /* cc_config.h in Headers */,
 				CE2E7B981E2C6A73009AC62A /* kern_patcher.hpp in Headers */,
 				CE2E7BBE1E2C6D24009AC62A /* FastCompression.hpp in Headers */,
 				1C3E7AE91C84B61700A6448A /* utils.h in Headers */,
@@ -441,15 +521,22 @@
 				1C3E7B271C84B65400A6448A /* X86Disassembler.h in Headers */,
 				1C3E7ADC1C84B61700A6448A /* LEB128.h in Headers */,
 				1C3E7AE11C84B61700A6448A /* MCInst.h in Headers */,
+				CEB6D98B1F69B42D005B6AC3 /* aes.h in Headers */,
 				CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */,
 				CE744A911F42100E0077C377 /* table64.h in Headers */,
+				CEB6D9891F69B42D005B6AC3 /* ccmode_siv.h in Headers */,
 				1C3E7ADD1C84B61700A6448A /* MathExtras.h in Headers */,
+				CEB6D9881F69B42D005B6AC3 /* ccmode_impl.h in Headers */,
 				1C3E7AF81C84B63000A6448A /* sparc.h in Headers */,
 				1C3E7AF91C84B63000A6448A /* ppc.h in Headers */,
 				1C3E7AFC1C84B63000A6448A /* capstone.h in Headers */,
+				CEB6D9951F69D8CF005B6AC3 /* kern_nvram.hpp in Headers */,
 				1C3E7AFD1C84B63000A6448A /* arm64.h in Headers */,
 				1C3E7AF71C84B63000A6448A /* systemz.h in Headers */,
+				CEB6D9831F69B42D005B6AC3 /* cc.h in Headers */,
+				CEB6D9871F69B42D005B6AC3 /* ccmode.h in Headers */,
 				1C3E7B241C84B65400A6448A /* X86DisassemblerDecoderCommon.h in Headers */,
+				CEB6D9851F69B42D005B6AC3 /* ccaes.h in Headers */,
 				1C3E7ADA1C84B61700A6448A /* cs_priv.h in Headers */,
 				1C3E7AF61C84B63000A6448A /* x86.h in Headers */,
 				1C3E7AE31C84B61700A6448A /* MCInstrDesc.h in Headers */,
@@ -536,7 +623,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "if [ \"${CONFIGURATION}\" == \"Debug\" ]; then\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    mkdir -p \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Headers\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Library\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\nfi\n\nexit 0";
+			shellScript = "if [ \"${CONFIGURATION}\" == \"Debug\" ]; then\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    mkdir -p \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Headers\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Library\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/corecrypto\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/libkern\"\nfi\n\nexit 0";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -555,6 +642,7 @@
 				1C3E7AE01C84B61700A6448A /* MCInst.c in Sources */,
 				1C3E7B161C84B65400A6448A /* X86Module.c in Sources */,
 				1C3E7AE41C84B61700A6448A /* MCRegisterInfo.c in Sources */,
+				CEB6D9931F69D8B9005B6AC3 /* kern_nvram.cpp in Sources */,
 				1C3E7B2A1C84B65400A6448A /* X86ATTInstPrinter.c in Sources */,
 				CE744A8E1F42100E0077C377 /* hde64.c in Sources */,
 				1C3E7B191C84B65400A6448A /* X86IntelInstPrinter.c in Sources */,
@@ -570,7 +658,9 @@
 				CE2E7BBF1E2C6D24009AC62A /* lzvn_decode.c in Sources */,
 				1C3E7B181C84B65400A6448A /* X86Mapping.c in Sources */,
 				CE2E7BB21E2C6BAA009AC62A /* kern_iokit.cpp in Sources */,
+				CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */,
 				1C3E7AE81C84B61700A6448A /* utils.c in Sources */,
+				CE74B2501F75D1FB00F90A08 /* sha256.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
