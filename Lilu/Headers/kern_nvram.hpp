@@ -25,7 +25,7 @@
 /**
  *  Prefix variable name with a GUID
  */
-#define NVRAM_PREFIX(x, y) x ## ":" ## y
+#define NVRAM_PREFIX(x, y) x ":" y
 
 class NVStorage {
 	/**
