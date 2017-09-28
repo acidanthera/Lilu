@@ -13,6 +13,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/**
+ *  Some of the most common GUIDs used for variable storage on macOS
+ */
+#define NVRAM_GLOBAL_GUID "8BE4DF61-93CA-11D2-AA0D-00E098032B8C"
+#define NVRAM_APPLE_BOOT_GUID "7C436110-AB2A-4BBB-A880-FE41995C9F82"
+#define NVRAM_APPLE_VENDOR_GUID "4D1EDE05-38C7-4A6A-9CC6-4BCCA8B38C14"
+#define NVRAM_APPLE_FILEVAULT_GUID "8D63D4FE-BD3C-4AAD-881D-86FD974BC1DF"
+#define NVRAM_APPLE_PASSWORD_UI_GUID "9EBA2D25-BBE3-4AC2-A2C6-C87F44A1278C"
+
+/**
+ *  Prefix variable name with a GUID
+ */
+#define NVRAM_PREFIX(x, y) x ## ":" ## y
+
 class NVStorage {
 	/**
 	 *  Local nvram controller reference
@@ -65,7 +79,7 @@ public:
 	 *  uint32_t crc32; CRC32 cheksum             (if OptChecksum is set)
 	 */
 	struct PACKED Header {
-		static constexpr uint16_t Magic = 0x9696;
+		static constexpr uint16_t Magic = 0xC717;
 		static constexpr uint8_t MaxVer = 1;
 		using Checksum = uint32_t;
 		
