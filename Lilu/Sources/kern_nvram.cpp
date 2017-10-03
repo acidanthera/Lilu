@@ -135,6 +135,16 @@ uint8_t *NVStorage::read(const char *key, uint32_t &size, uint8_t opts, const ui
 	return buf;
 }
 
+OSData *NVStorage::read(const char *key, uint8_t opts, const uint8_t *enckey) {
+	uint32_t size = 0;
+	uint8_t *buf = read(key, size, opts, enckey);
+	if (!buf)
+		return nullptr;
+	auto data = OSData::withBytes(buf, size);
+	Buffer::deleter(buf);
+	return data;
+}
+
 bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_t opts, const uint8_t *enckey) {
 	if (!src || size == 0) {
 		SYSLOG("nvram", "write invalid size %u", size);
@@ -205,6 +215,15 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 	}
 
 	return false;
+}
+
+bool NVStorage::write(const char *key, const OSData *data, uint8_t opts, const uint8_t *enckey) {
+	if (!data) {
+		SYSLOG("nvram", "write invalid data object");
+		return nullptr;
+	}
+
+	return write(key, static_cast<const uint8_t *>(data->getBytesNoCopy()), data->getLength(), opts, enckey);
 }
 
 bool NVStorage::remove(const char *key, bool sensitive) {

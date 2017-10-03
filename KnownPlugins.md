@@ -16,7 +16,7 @@ Please note that improperly written immature plugins will not be listed there.
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Enable lid wake for Intel Graphics Card | NO
 [HibernationFixup](https://sourceforge.net/p/hibernationfixup) | Enable 3 & 25 mode hibernation on certain hardware | Source code
 [IntelGraphicsFixup](https://sourceforge.net/p/intelgraphicsfixup) | Various patches necessary for certain Intel GPUs | Source code
-[IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Patches for DVMT problem on Broadwell/Skylake Intel Graphics | NO
+[IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Patches for DVMT problem on Broadwell/Skylake Intel Graphics | Source code
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models | NO
 [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) | Various patches necessary for certain NVIDIA GPUs | Source code
 [Shiki](https://github.com/vit9696/Shiki) | Dynamic userspace patcher for macOS | Source code

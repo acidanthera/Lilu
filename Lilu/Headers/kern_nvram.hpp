@@ -111,7 +111,18 @@ public:
 	 *  @return pointer to data (must be freed via Buffer::deleter), nullptr on failure
 	 */
 	EXPORT uint8_t *read(const char *key, uint32_t &size, uint8_t opts=OptAuto, const uint8_t *enckey=nullptr);
-	
+
+	/**
+	 *  Read data from nvram
+	 *
+	 *  @param key    key name
+	 *  @param opts   bitmask of Options, may set option requirements
+	 *  @param enckey encryption key (platform-defined if OptEncrypted is set)
+	 *
+	 *  @return pointer to data (must be freed via OSData::release), nullptr on failure
+	 */
+	EXPORT OSData *read(const char *key, uint8_t opts=OptAuto, const uint8_t *enckey=nullptr);
+
 	/**
 	 *  Write data to nvram
 	 *
@@ -124,7 +135,19 @@ public:
 	 *  @return true on success
 	 */
 	EXPORT bool write(const char *key, const uint8_t *src, uint32_t sz, uint8_t opts=OptAuto, const uint8_t *enckey=nullptr);
-	
+    
+	/**
+	 *  Write data to nvram
+	 *
+	 *  @param key    key name
+	 *  @param data   data object to write
+	 *  @param opts   bitmask of Options
+	 *  @param enckey encryption key (platform-defined if OptEncrypted is set)
+	 *
+	 *  @return true on success
+	 */
+	EXPORT bool write(const char *key, const OSData *data, uint8_t opts=OptAuto, const uint8_t *enckey=nullptr);
+
 	/**
 	 *  Delete key from nvram
 	 *
