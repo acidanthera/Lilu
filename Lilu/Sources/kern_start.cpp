@@ -95,7 +95,8 @@ bool Configuration::getBootArguments() {
 	char tmp[16];
 	
 	betaForAll = PE_parse_boot_argn(bootargBetaAll, tmp, sizeof(tmp));
-	
+	debugForAll = PE_parse_boot_argn(bootargDebugAll, tmp, sizeof(tmp));
+
 	isDisabled |= PE_parse_boot_argn(bootargOff, tmp, sizeof(tmp));
 	if (!PE_parse_boot_argn(bootargForce, tmp, sizeof(tmp))) {
 		isDisabled |= PE_parse_boot_argn("-s", tmp, sizeof(tmp));
@@ -111,9 +112,10 @@ bool Configuration::getBootArguments() {
 	} else if (!isDisabled) {
 		SYSLOG("config", "force enabling due to force flag");
 	}
-	
-	ADDPR(debugEnabled) = PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
-	
+
+	ADDPR(debugEnabled) = debugForAll;
+	ADDPR(debugEnabled) |= PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
+
 	allowDecompress = !PE_parse_boot_argn(bootargLowMem, tmp, sizeof(tmp));
 	
 	installOrRecovery |= PE_parse_boot_argn("rp0", tmp, sizeof(tmp));

@@ -89,11 +89,15 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t
 			SYSLOG("api", "force enabling %s (%lu) on an unsupported operating system due to beta flag", product, version);
 		}
 	}
-	
-	for (size_t i = 0; i < debugArgNum; i++) {
-		if (PE_parse_boot_argn(debugArg[i], tmp, sizeof(tmp))) {
-			printDebug = true;
-			break;
+
+	if (config.debugForAll) {
+		printDebug = true;
+	} else {
+		for (size_t i = 0; i < debugArgNum; i++) {
+			if (PE_parse_boot_argn(debugArg[i], tmp, sizeof(tmp))) {
+				printDebug = true;
+				break;
+			}
 		}
 	}
 	
