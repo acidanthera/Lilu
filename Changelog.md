@@ -8,6 +8,7 @@ Lilu Changelog
 - Added crypto and nvram API
 - Added support for solving kext symbols from kextcache
 - Added memfunc wrappers (e.g. lilu_os_memcpy) to avoid undefined builtins from 10.13 SDK
+- Added `-liludbgall` boot argument (to be on par with `-lilubetaall`)
 - Changed compression API logic to support preallocated buffers
 - Changed memory allocation logic in certain APIs
 - Changed kernel protection API to accept a lock for cpu preemption control

@@ -20,8 +20,9 @@ class Configuration {
 	static constexpr const char *bootargOff {"-liluoff"};			// Disable the kext
 	static constexpr const char *bootargBeta {"-lilubeta"};			// Force enable the kext on unsupported os
 	static constexpr const char *bootargBetaAll {"-lilubetaall"};	// Force enable the kext and all plugins on unsupported os
-	static constexpr const char *bootargForce {"-liluforce"};		// Force enable the kext (including safe mode)
+	static constexpr const char *bootargForce {"-liluforce"};		// Force enable the kext (including single user mode)
 	static constexpr const char *bootargDebug {"-liludbg"};			// Enable debug logging
+	static constexpr const char *bootargDebugAll {"-liludbgall"};	// Enable debug logging (for Lilu and all the plugins)
 	static constexpr const char *bootargSlow {"-liluslow"};			// Prefer less destructive userspace measures
 	static constexpr const char *bootargFast {"-lilufast"};			// Prefer faster userspace measures
 	static constexpr const char *bootargLowMem {"-lilulowmem"};		// Disable decompression
@@ -112,6 +113,11 @@ public:
 	 *  Beta for all plugins and Lilu itself
 	 */
 	bool betaForAll {false};
+
+	/**
+	 *  Debug for all plugins and Lilu itself
+	 */
+	bool debugForAll {false};
 	
 	/**
 	 *  Initialisation status

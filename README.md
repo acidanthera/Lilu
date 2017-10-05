@@ -28,6 +28,7 @@ To compile a plugin copy the debug version of Lilu.kext into its directory.
 
 #### Configuration
 Add `-liludbg` to enable debug printing (available in DEBUG binaries).  
+Add `-liludbgall` to enable debug printing in Lilu and all loaded plugins (available in DEBUG binaries).  
 Add `-liluoff` to disable Lilu.  
 Add `-liluslow` to enable legacy user patcher.  
 Add `-lilulowmem` to disable kernel unpack (disables Lilu in recovery mode).  
