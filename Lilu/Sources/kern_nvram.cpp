@@ -141,6 +141,7 @@ OSData *NVStorage::read(const char *key, uint8_t opts, const uint8_t *enckey) {
 	if (!buf)
 		return nullptr;
 	auto data = OSData::withBytes(buf, size);
+	if (opts & OptSensitive) Crypto::zeroMemory(size, buf);
 	Buffer::deleter(buf);
 	return data;
 }
