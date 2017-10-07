@@ -39,7 +39,8 @@ public:
 		UnsupportedFeature,
 		IncompatibleOS,
 		Disabled,
-		TooLate
+		TooLate,
+		Offline
 	};
 	
 	/**

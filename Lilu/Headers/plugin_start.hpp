@@ -41,7 +41,6 @@ extern bool ADDPR(startSuccess);
 class EXPORT PRODUCT_NAME : public IOService {
 	OSDeclareDefaultStructors(PRODUCT_NAME)
 public:
-	bool init(OSDictionary *dict) override;
 	IOService *probe(IOService *provider, SInt32 *score) override;
 	bool start(IOService *provider) override;
 	void stop(IOService *provider) override;
