@@ -32,6 +32,8 @@ struct PluginConfiguration {
 
 extern PluginConfiguration ADDPR(config);
 
+extern bool ADDPR(startSuccess);
+
 #endif /* LILU_CUSTOM_KMOD_INIT */
 
 #ifndef LILU_CUSTOM_IOKIT_INIT
@@ -40,6 +42,7 @@ class EXPORT PRODUCT_NAME : public IOService {
 	OSDeclareDefaultStructors(PRODUCT_NAME)
 public:
 	bool init(OSDictionary *dict) override;
+	IOService *probe(IOService *provider, SInt32 *score) override;
 	bool start(IOService *provider) override;
 	void stop(IOService *provider) override;
 };

@@ -23,6 +23,7 @@ Lilu Changelog
 - Fixed a number of potential memory issues in mach parsing code
 - Fixed debug and development kextcache loading issues
 - Fixed shutdown issues in `-lilulowmem` mode
+- Fixed seldom boot slowdown when disabling the plugins via boot arguments
 
 #### v1.1.7
 - Merged advanced disassembly API (thx Pb and others)
