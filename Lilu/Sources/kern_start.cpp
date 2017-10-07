@@ -18,13 +18,9 @@
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
-bool PRODUCT_NAME::init(OSDictionary *dict) {
-	if (!IOService::init(dict)) {
-		SYSLOG("init", "failed to initalise the parent");
-		return false;
-	}
-	
-	return config.getBootArguments();
+IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
+	auto service = IOService::probe(provider, score);
+	return config.startSuccess ? service : nullptr;
 }
 
 bool PRODUCT_NAME::start(IOService *provider) {
@@ -33,7 +29,7 @@ bool PRODUCT_NAME::start(IOService *provider) {
 		return false;
 	}
 	
-	return true;
+	return config.startSuccess;
 }
 
 void PRODUCT_NAME::stop(IOService *provider) {
@@ -170,16 +166,15 @@ extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
 		
 		lilu.init();
 		
-		if (config.policy.registerPolicy()) {
-			return KERN_SUCCESS;
-		}
-			
-		SYSLOG("init", "failed to register the policy");
+		if (config.policy.registerPolicy())
+			config.startSuccess = true;
+		else
+			SYSLOG("init", "failed to register the policy");
 	}
 	
-	return KERN_FAILURE;
+	return KERN_SUCCESS;
 }
 
 extern "C" kern_return_t kern_stop(kmod_info_t *ki, void *d) {
-	return KERN_FAILURE;
+	return config.startSuccess ? KERN_FAILURE : KERN_SUCCESS;
 }

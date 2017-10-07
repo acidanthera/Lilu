@@ -22,15 +22,6 @@ bool ADDPR(debugEnabled) = false;
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
-bool PRODUCT_NAME::init(OSDictionary *dict) {
-	if (!IOService::init(dict)) {
-		SYSLOG("init", "failed to initalise the parent");
-		return false;
-	}
-	
-	return true;
-}
-
 IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
 	auto service = IOService::probe(provider, score);
 	return ADDPR(startSuccess) ? service : nullptr;

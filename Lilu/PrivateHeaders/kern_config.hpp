@@ -118,12 +118,17 @@ public:
 	 *  Debug for all plugins and Lilu itself
 	 */
 	bool debugForAll {false};
-	
+
 	/**
-	 *  Initialisation status
+	 *  Load status (are we allowed to do anything?)
+	 */
+	bool startSuccess {false};
+
+	/**
+	 *  Initialisation status (are we done initialising?)
 	 */
 	bool initialised {false};
-	
+
 	/**
 	 *  User patcher
 	 */

@@ -33,6 +33,9 @@ void LiluAPI::deinit() {
 }
 
 LiluAPI::Error LiluAPI::requestAccess(size_t version, bool check) {
+	if (!config.startSuccess)
+		return Error::Offline;
+
 	constexpr size_t currversion = parseModuleVersion(xStringify(MODULE_VERSION));
 	if (version > currversion) {
 		return Error::UnsupportedFeature;
