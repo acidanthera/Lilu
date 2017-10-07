@@ -189,18 +189,24 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 	if (len >= currentMinProcLength) {
 		for (uint32_t i = 0; i < procInfoSize; i++) {
 			auto p = procInfo[i];
-			if (p->len == len && !strncmp(p->path, path, len)) {
-				DBGLOG("user", "caught %s performing injection", path);
-				if (orgProcExecSwitchTask) {
-					DBGLOG("user", "requesting proc_exec_switch_task patch");
-					lilu_os_strlcpy(pendingPath, path, MAXPATHLEN);
-					pendingPathLen = len;
-					pendingPatchCallback = true;
-				} else {
-					patchBinary(orgCurrentMap(), path, len);
+			if (len >= p->len) {
+				auto match = p->flags & ProcInfo::MatchMask;
+				if ((match == ProcInfo::MatchExact && len == p->len && !strncmp(p->path, path, len)) ||
+					(match == ProcInfo::MatchPrefix && !strncmp(p->path, path, p->len)) ||
+					(match == ProcInfo::MatchSuffix && !strncmp(p->path, path + (len - p->len), p->len+1)) ||
+					(match == ProcInfo::MatchAny && strstr(path, p->path))) {
+					DBGLOG("user", "caught %s performing injection", path);
+					if (orgProcExecSwitchTask) {
+						DBGLOG("user", "requesting proc_exec_switch_task patch");
+						lilu_os_strlcpy(pendingPath, path, MAXPATHLEN);
+						pendingPathLen = len;
+						pendingPatchCallback = true;
+					} else {
+						patchBinary(orgCurrentMap(), path, len);
+					}
+
+					return;
 				}
-				
-				return;
 			}
 		}
 	}

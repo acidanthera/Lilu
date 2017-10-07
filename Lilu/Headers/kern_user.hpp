@@ -114,14 +114,26 @@ public:
 		vm_address_t startDATA;
 		vm_address_t endDATA;
 	};
-	
+
 	/**
 	 *  Structure describing relevant processes run
 	 */
 	struct ProcInfo {
+		/**
+		 *  Process matching flags
+		 */
+		enum ProcFlags {
+			MatchExact  = 0,
+			MatchAny    = 1,
+			MatchPrefix = 2,
+			MatchSuffix = 4,
+			MatchMask   = MatchExact | MatchAny | MatchPrefix | MatchSuffix
+		};
+
 		const char *path;
 		uint32_t len;
 		uint32_t section;
+		uint32_t flags {MatchExact};
 	};
 	
 	/**
