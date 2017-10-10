@@ -6,19 +6,19 @@ Please note that improperly written immature plugins will not be listed there.
 
 | Name | Short description | Lilu 1.2.0 compatibility |
 |:-----|:------------------|:----|
-[AirportBrcmFixup](https://sourceforge.net/p/airportbrcmfixup) | Various patches for Broadcom Airport Wi-Fi cards | Source code
+[AirportBrcmFixup](https://sourceforge.net/p/airportbrcmfixup) | Various patches for Broadcom Airport Wi-Fi cards | 1.1.0+
 [AppleALC](https://github.com/vit9696/AppleALC) | Native macOS HD audio for not officially supported codecs | 1.2.0+
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards | NO
 [AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) | Additional Intel HD 4600 patches for some laptops on 10.12.4+ | NO
-[BT4LEContiunityFixup](https://sourceforge.net/p/bt4lecontiunityfixup) | Enable BT4LE-Handoff-Hotspot features | Source code
+[BT4LEContiunityFixup](https://sourceforge.net/p/bt4lecontiunityfixup) | Enable BT4LE-Handoff-Hotspot features | 1.1.0+
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Non Iris Intel graphics high resolution support | 1.3.0+
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection | 1.1.0+
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Enable lid wake for Intel Graphics Card | NO
-[HibernationFixup](https://sourceforge.net/p/hibernationfixup) | Enable 3 & 25 mode hibernation on certain hardware | Source code
-[IntelGraphicsFixup](https://sourceforge.net/p/intelgraphicsfixup) | Various patches necessary for certain Intel GPUs | Source code
+[HibernationFixup](https://sourceforge.net/p/hibernationfixup) | Enable 3 & 25 mode hibernation on certain hardware | 1.2.0+
+[IntelGraphicsFixup](https://sourceforge.net/p/intelgraphicsfixup) | Various patches necessary for certain Intel GPUs | 1.2.0+
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Patches for DVMT problem on Broadwell/Skylake Intel Graphics | Source code
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models | NO
-[NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) | Various patches necessary for certain NVIDIA GPUs | Source code
+[NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) | Various patches necessary for certain NVIDIA GPUs | 1.2.0+
 [Shiki](https://github.com/vit9696/Shiki) | Dynamic userspace patcher for macOS | 2.1.0+
 [WhateverGreen](https://github.com/vit9696/WhateverGreen) | Various patches necessary for certain ATI/AMD GPUs | 1.1.0+
 
