@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.2.1
+- Fixed a rare kernel panic when running Lilu with `-liludbg`
+
 #### v1.2.0
 - Added more handy reporting macros
 - Enabled Lilu in safe mode by default with all plugins required to declare supported environments
