@@ -42,7 +42,7 @@ namespace Patch {
 
 	template <typename T>
 	static void writeType(mach_vm_address_t addr, T value) {
-		// Completely forbiddeon to IOLog with disabled interrupts as of High Sierra
+		// Completely forbidden to IOLog with disabled interrupts as of High Sierra
 		// DBGLOG("private @ writing to %X value of %lu which is %X", static_cast<uint32_t>(addr), sizeof(T), (unsigned int)value);
 		*reinterpret_cast<T *>(addr) = value;
 	}

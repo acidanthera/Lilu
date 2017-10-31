@@ -149,7 +149,14 @@ void MachInfo::deinit() {
 mach_vm_address_t MachInfo::findKernelBase() {
 	// calculate the address of the int80 handler
 	mach_vm_address_t tmp = calculateInt80Address();
-	
+
+	//FIXME: This is a termporary workaround for 10.13.2, which IDT handlers above the Mach-O kernel.
+	// We should redo the kernel lookup logic...
+	if (getKernelVersion() > KernelVersion::HighSierra ||
+		(getKernelVersion() == KernelVersion::HighSierra && getKernelMinorVersion() >= 3)) {
+		tmp += 0x100000;
+	}
+
 	// search backwards for the kernel base address (mach-o header)
 	segment_command_64 *segmentCommand;
 	while (tmp > 0) {
@@ -701,20 +708,19 @@ mach_vm_address_t MachInfo::getIDTAddress() {
 
 mach_vm_address_t MachInfo::calculateInt80Address() {
 	// retrieve the address of the IDT
-	mach_vm_address_t idtAddr = getIDTAddress();
+	auto idtAddr = reinterpret_cast<descriptor_idt *>(getIDTAddress());
 	
 	// find the address of interrupt 0x80 - EXCEP64_SPC_USR(0x80,hi64_unix_scall) @ osfmk/i386/idt64.s
-	descriptor_idt *int80Descr = nullptr;
+	auto &int80Descr = idtAddr[0x80];
 	mach_vm_address_t int80Addr = 0;
 	// we need to compute the address, it's not direct
 	// extract the stub address
 	
 	// retrieve the descriptor for interrupt 0x80
 	// the IDT is an array of descriptors
-	int80Descr = reinterpret_cast<descriptor_idt *>(idtAddr+sizeof(descriptor_idt)*0x80);
-	uint64_t high = static_cast<uint64_t>(int80Descr->offset_high) << 32;
-	uint32_t middle = static_cast<uint32_t>(int80Descr->offset_middle) << 16;
-	int80Addr = static_cast<mach_vm_address_t>(high + middle + int80Descr->offset_low);
+	uint64_t high = static_cast<uint64_t>(int80Descr.offset_high) << 32;
+	uint32_t middle = static_cast<uint32_t>(int80Descr.offset_middle) << 16;
+	int80Addr = static_cast<mach_vm_address_t>(high + middle + int80Descr.offset_low);
 	DBGLOG("mach", "address of interrupt 80 stub is 0x%llx", int80Addr);
 	
 	return int80Addr;
