@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.2.1
 - Fixed a rare kernel panic when running Lilu with `-liludbg`
+- Added a workaround for 10.13.2 beta issues
 
 #### v1.2.0
 - Added more handy reporting macros
