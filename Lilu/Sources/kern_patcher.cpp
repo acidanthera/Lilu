@@ -36,7 +36,9 @@ void KernelPatcher::init() {
 #ifdef LILU_COMPRESSION_SUPPORT
 	if (WIOKit::usingPrelinkedCache())
 		id = loadKinfo("kernel", prelinkKernelPaths, arrsize(prelinkKernelPaths), true);
+	else
 #endif
+		code = Error::NoKinfoFound;
 
 	if (getError() != Error::NoError || id != KernelID) {
 		DBGLOG("patcher", "got %d prelink error and %lu kernel id", getError(), id);
