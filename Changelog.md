@@ -5,6 +5,7 @@ Lilu Changelog
 - Fixed a rare kernel panic when running Lilu with `-liludbg`
 - Added a workaround for 10.13.2 beta issues
 - Fixed compilation with Xcode 8.2
+- Added prelink usage detection to avoid confusing different kernels
 
 #### v1.2.0
 - Added more handy reporting macros

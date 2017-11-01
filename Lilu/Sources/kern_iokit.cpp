@@ -128,4 +128,21 @@ namespace WIOKit {
 			DBGLOG("iokit", "failed to find %s", prefix);
 		return proc ? nullptr : res;
 	}
+
+	bool usingPrelinkedCache() {
+		auto root = IORegistryEntry::getRegistryRoot();
+		if (root) {
+			auto count = OSDynamicCast(OSNumber, root->getProperty("OSPrelinkKextCount"));
+			if (count) {
+				DBGLOG("iokit", "OSPrelinkKextCount equals to %d", count->unsigned32BitValue());
+				return count->unsigned32BitValue() > 0;
+			} else {
+				DBGLOG("iokit", "missing OSPrelinkKextCount property!");
+			}
+		} else {
+			SYSLOG("iokit", "missing registry root!");
+		}
+
+		return false;
+	}
 }

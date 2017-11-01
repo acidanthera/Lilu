@@ -138,6 +138,13 @@ namespace WIOKit {
 	 *  @return entry pointer (must NOT be released) or nullptr (on failure or in proc mode)
 	 */
 	EXPORT IORegistryEntry *findEntryByPrefix(IORegistryEntry *entry, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *)=nullptr, bool brute=false, void *user=nullptr);
+
+	/**
+	 *  Check if we are using prelinked kernel/kexts or not
+	 *
+	 *  @return true when confirmed that we definitely are
+	 */
+	EXPORT bool usingPrelinkedCache();
 }
 
 #endif /* kern_iokit_hpp */
