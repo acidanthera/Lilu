@@ -9,6 +9,7 @@
 #include <Headers/kern_compat.hpp>
 #include <PrivateHeaders/kern_patcher.hpp>
 #include <Headers/kern_patcher.hpp>
+#include <Headers/kern_iokit.hpp>
 
 #include <mach/mach_types.h>
 
@@ -19,6 +20,8 @@ static SInt32 updateSummariesEntryCount;
 
 IOSimpleLock *KernelPatcher::kernelWriteLock {nullptr};
 
+#include <Library/LegacyIOService.h>
+
 KernelPatcher::Error KernelPatcher::getError() {
 	return code;
 }
@@ -28,11 +31,21 @@ void KernelPatcher::clearError() {
 }
 
 void KernelPatcher::init() {
-	size_t id = loadKinfo("kernel", reinterpret_cast<const char **>(&kernelPaths), kernelPathsNum, true);
-	
+	size_t id = INVALID;
+
+#ifdef LILU_COMPRESSION_SUPPORT
+	if (WIOKit::usingPrelinkedCache())
+		id = loadKinfo("kernel", prelinkKernelPaths, arrsize(prelinkKernelPaths), true);
+#endif
+
 	if (getError() != Error::NoError || id != KernelID) {
-		DBGLOG("patcher", "got %d error and %lu kernel id", getError(), id);
-		return;
+		DBGLOG("patcher", "got %d prelink error and %lu kernel id", getError(), id);
+		clearError();
+		id = loadKinfo("kernel", kernelPaths, arrsize(kernelPaths), true);
+		if (getError() != Error::NoError || id != KernelID) {
+			DBGLOG("patcher", "got %d error and %lu kernel id", getError(), id);
+			return;
+		}
 	}
 	
 	if (!kernelWriteLock) {
