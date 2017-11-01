@@ -43,32 +43,10 @@ class MachInfo {
 	bool prelink_slid {false};               // assume kaslr-slid kext addresses
 
 	/**
-	 *  16 byte IDT descriptor, used for 32 and 64 bits kernels (64 bit capable cpus!)
+	 *  Kernel slide is aligned by 20 bits
 	 */
-	struct descriptor_idt {
-		uint16_t offset_low;
-		uint16_t seg_selector;
-		uint8_t reserved;
-		uint8_t flag;
-		uint16_t offset_middle;
-		uint32_t offset_high;
-		uint32_t reserved2;
-	};
-	
-	/**
-	 *  Retrieve the address of the IDT
-	 *
-	 *  @return always returns the IDT address
-	 */
-	mach_vm_address_t getIDTAddress();
-	
-	/**
-	 *  Calculate the address of the kernel int80 handler
-	 *
-	 *  @return always returns the int80 handler address
-	 */
-	mach_vm_address_t calculateInt80Address();
-	
+	static constexpr size_t KASLRAlignment {0x100000};
+
 	/**
 	 *  Retrieve LC_UUID command value from a mach header
 	 *
@@ -187,7 +165,7 @@ public:
 	EXPORT void deinit();
 
 	/**
-	 *  retrieve the mach header and __TEXT addresses
+	 *  Retrieve the mach header and __TEXT addresses
 	 *
 	 *  @param slide load slide if calculating for kexts
 	 *  @param size  memory size
@@ -208,7 +186,7 @@ public:
 	EXPORT kern_return_t setRunningAddresses(mach_vm_address_t slide=0, size_t size=0);
 
 	/**
-	 *  retrieve running mach positions
+	 *  Retrieve running mach positions
 	 *
 	 *  @param header pointer to header
 	 *  @param size   file size
@@ -216,7 +194,7 @@ public:
 	EXPORT void getRunningPosition(uint8_t * &header, size_t &size);
 
 	/**
-	 *  solve a mach symbol (running addresses must be calculated)
+	 *  Solve a mach symbol (running addresses must be calculated)
 	 *
 	 *  @param symbol symbol to solve
 	 *
@@ -225,15 +203,14 @@ public:
 	EXPORT mach_vm_address_t solveSymbol(const char *symbol);
 
 	/**
-	 *  find the kernel base address (mach-o header)
-	 *  by searching backwards using the int80 handler as starting point
+	 *  Find the kernel base address (mach-o header)
 	 *
 	 *  @return kernel base address or 0
 	 */
 	EXPORT mach_vm_address_t findKernelBase();
 
 	/**
-	 *  enable/disable interrupt handling
+	 *  Enable/disable interrupt handling
 	 *  this is similar to ml_set_interrupts_enabled except the return value
 	 *
 	 *  @param enable the desired value
@@ -243,7 +220,7 @@ public:
 	EXPORT static bool setInterrupts(bool enable);
 	
 	/**
-	 *  enable/disable kernel memory write protection
+	 *  Enable/disable kernel memory write protection
 	 *
 	 *  @param enable  the desired value
 	 *  @param lock    use spinlock to disable cpu preemption (see KernelPatcher::kernelWriteLock)
