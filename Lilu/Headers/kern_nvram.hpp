@@ -10,7 +10,7 @@
 
 #include <Library/LegacyIOService.h>
 #include <libkern/c++/OSSymbol.h>
-#include <stddef.h>
+#include <libkern/libkern.h>
 #include <stdint.h>
 
 /**

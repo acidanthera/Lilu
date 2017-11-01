@@ -15,7 +15,7 @@ extern "C" {
 
 /*************************** HEADER FILES ***************************/
 #include <stdint.h>
-#include <stddef.h>
+#include <libkern/libkern.h>
 
 /****************************** MACROS ******************************/
 #define SHA256_BLOCK_SIZE 32            // SHA256 outputs a 32 byte digest
