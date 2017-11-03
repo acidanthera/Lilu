@@ -31,19 +31,20 @@ void KernelPatcher::clearError() {
 }
 
 void KernelPatcher::init() {
-	size_t id = INVALID;
-
 #ifdef LILU_COMPRESSION_SUPPORT
-	if (WIOKit::usingPrelinkedCache())
-		id = loadKinfo("kernel", prelinkKernelPaths, arrsize(prelinkKernelPaths), true);
-	else
+	if (WIOKit::usingPrelinkedCache()) {
+		size_t id = loadKinfo("kernel", prelinkKernelPaths, arrsize(prelinkKernelPaths), true);
+		if (getError() == Error::NoError && id == KernelID) {
+			prelinkInfo = kinfos[KernelID];
+		} else {
+			DBGLOG("patcher", "got %d prelink error and %lu kernel id", getError(), id);
+			clearError();
+		}
+	}
 #endif
-		code = Error::NoKinfoFound;
 
-	if (getError() != Error::NoError || id != KernelID) {
-		DBGLOG("patcher", "got %d prelink error and %lu kernel id", getError(), id);
-		clearError();
-		id = loadKinfo("kernel", kernelPaths, arrsize(kernelPaths), true);
+	if (!prelinkInfo) {
+		size_t id = loadKinfo("kernel", kernelPaths, arrsize(kernelPaths), true);
 		if (getError() != Error::NoError || id != KernelID) {
 			DBGLOG("patcher", "got %d error and %lu kernel id", getError(), id);
 			return;
@@ -104,7 +105,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 
 	MachInfo *prelink = nullptr;
 	if (!fsonly && !isKernel && kinfos.size() > KernelID)
-		prelink = kinfos[KernelID];
+		prelink = prelinkInfo;
 
 	kern_return_t error;
 	auto info = MachInfo::create(isKernel, id);

@@ -328,9 +328,9 @@ private:
 #endif /* LILU_KEXTPATCH_SUPPORT */
 	
 	/**
-	 *  Local disassmebler instance, initialised on demand
+	 *  Kernel prelink image in case prelink is used
 	 */
-	Disassembler disasm;
+	MachInfo *prelinkInfo {nullptr};
 
 	/**
 	 *  Loaded kernel items
