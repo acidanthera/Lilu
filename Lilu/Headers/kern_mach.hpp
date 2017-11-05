@@ -118,6 +118,25 @@ class MachInfo {
 	}
 	MachInfo(const MachInfo &) = delete;
 	MachInfo &operator =(const MachInfo &) = delete;
+
+	/**
+	 *  Resolve mach data in the kernel via prelinked cache
+	 *
+	 *  @param prelink    prelink information source (i.e. Kernel MachInfo)
+	 *
+	 *  @return KERN_SUCCESS if loaded
+	 */
+	kern_return_t initFromPrelinked(MachInfo *prelink);
+
+	/**
+	 *  Resolve mach data in the kernel via filesystem access
+	 *
+	 *  @param paths      filesystem paths for lookup
+	 *  @param num        the number of paths passed
+	 *
+	 *  @return KERN_SUCCESS if loaded
+	 */
+	kern_return_t initFromFileSystem(const char * const paths[], size_t num);
 	
 public:
 
