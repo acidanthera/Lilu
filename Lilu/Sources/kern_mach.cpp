@@ -45,6 +45,39 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 		return error;
 	}
 
+	// Attempt to load directly from the filesystem
+	(void)fsfallback;
+
+	//FIXME: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
+	// We are fine to detect prelinked usage (#27), but prelinked may not contain certain kexts and even more
+	// it may contain different kexts (#30). In theory we should be able to compare _PrelinkInterfaceUUID with
+	// LC_UUID like OSKext::registerIdentifier does, but this would overcomplicate the logic with no practical
+	// performance gain.
+	// For this reason we always try to read the kext from the filesystem and if we failed, then we fallback
+	// to prelinked. This does not solve the main problem of distinguishing kexts, but the only practical cases
+	// of our failure are missing kexts in both places and AirPort drivers in installer/recovery only present
+	// in prelinked. For this reason we are fine.
+	error = initFromFileSystem(paths, num);
+
+	// Attempt to get linkedit from prelink
+	if (!linkedit_buf)
+		error = initFromPrelinked(prelink);
+
+	return error;
+}
+
+void MachInfo::deinit() {
+	freeFileBufferResources();
+
+	if (linkedit_buf) {
+		Buffer::deleter(linkedit_buf);
+		linkedit_buf = nullptr;
+	}
+}
+
+kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
+	kern_return_t error = KERN_FAILURE;
+
 	// Attempt to get linkedit from prelink
 	if (prelink && objectId) {
 		bool missing = false;
@@ -70,80 +103,70 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 		}
 
 		file_buf = nullptr;
-		// Do not load unnecessary images on modern OS, since they always rebuild kext cache
-		//FIXME: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
-		//if (missing && !config.installOrRecovery && !fsfallback)
-		//	return KERN_NOT_SUPPORTED;
 	}
 
-	// Attempt to load directly from the filesystem
-	if (!linkedit_buf) {
-		// Allocate some data for header
-		auto machHeader = Buffer::create<uint8_t>(HeaderSize);
-		if (!machHeader) {
-			SYSLOG("mach", "can't allocate header memory.");
-			return error;
-		}
-
-		vnode_t vnode = NULLVP;
-		vfs_context_t ctxt = nullptr;
-		bool found = false;
-
-		for (size_t i = 0; i < num; i++) {
-			vnode = NULLVP;
-			ctxt = vfs_context_create(nullptr);
-
-			errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
-			if (!err) {
-				DBGLOG("mach", "readMachHeader for %s", paths[i]);
-				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
-				if (readError == KERN_SUCCESS && (!isKernel || (isKernel && isCurrentKernel(machHeader)))) {
-					DBGLOG("mach", "found executable at path: %s", paths[i]);
-					found = true;
-					break;
-				}
-
-				vnode_put(vnode);
-			}
-
-			vfs_context_rele(ctxt);
-		}
-
-		if (!found) {
-			DBGLOG("mach", "couldn't find a suitable executable");
-			Buffer::deleter(machHeader);
-			return error;
-		}
-
-		processMachHeader(machHeader);
-		if (linkedit_fileoff && symboltable_fileoff) {
-			// read linkedit from filesystem
-			error = readLinkedit(vnode, ctxt);
-			if (error != KERN_SUCCESS)
-				SYSLOG("mach", "could not read the linkedit segment");
-		} else {
-			SYSLOG("mach", "couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
-				   linkedit_fileoff, symboltable_fileoff);
-		}
-
-		vfs_context_rele(ctxt);
-		// drop the iocount due to vnode_lookup()
-		// we must do this or the machine gets stuck on shutdown/reboot
-		vnode_put(vnode);
-
-		Buffer::deleter(machHeader);
-	}
-	
 	return error;
 }
 
-void MachInfo::deinit() {
-	freeFileBufferResources();
+kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t num) {
+	kern_return_t error = KERN_FAILURE;
 
-	if (linkedit_buf) {
-		Buffer::deleter(linkedit_buf);
-		linkedit_buf = nullptr;
+	// Allocate some data for header
+	auto machHeader = Buffer::create<uint8_t>(HeaderSize);
+	if (!machHeader) {
+		SYSLOG("mach", "can't allocate header memory.");
+		return error;
 	}
+
+	vnode_t vnode = NULLVP;
+	vfs_context_t ctxt = nullptr;
+	bool found = false;
+
+	for (size_t i = 0; i < num; i++) {
+		vnode = NULLVP;
+		ctxt = vfs_context_create(nullptr);
+
+		errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
+		if (!err) {
+			DBGLOG("mach", "readMachHeader for %s", paths[i]);
+			kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
+			if (readError == KERN_SUCCESS && (!isKernel || (isKernel && isCurrentKernel(machHeader)))) {
+				DBGLOG("mach", "found executable at path: %s", paths[i]);
+				found = true;
+				break;
+			}
+
+			vnode_put(vnode);
+		}
+
+		vfs_context_rele(ctxt);
+	}
+
+	if (!found) {
+		DBGLOG("mach", "couldn't find a suitable executable");
+		Buffer::deleter(machHeader);
+		return error;
+	}
+
+	processMachHeader(machHeader);
+	if (linkedit_fileoff && symboltable_fileoff) {
+		// read linkedit from filesystem
+		error = readLinkedit(vnode, ctxt);
+		if (error != KERN_SUCCESS)
+			SYSLOG("mach", "could not read the linkedit segment");
+	} else {
+		SYSLOG("mach", "couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
+			   linkedit_fileoff, symboltable_fileoff);
+	}
+
+	vfs_context_rele(ctxt);
+	// drop the iocount due to vnode_lookup()
+	// we must do this or the machine gets stuck on shutdown/reboot
+	vnode_put(vnode);
+
+	Buffer::deleter(machHeader);
+
+	return error;
 }
 
 mach_vm_address_t MachInfo::findKernelBase() {

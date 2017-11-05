@@ -6,6 +6,7 @@ Lilu Changelog
 - Added a workaround for 10.13.2 beta issues
 - Fixed compilation with Xcode 8.2
 - Added prelink usage detection to avoid confusing different kernels
+- Disabled prelink usage for kext address solving by default since it caused many issues
 
 #### v1.2.0
 - Added more handy reporting macros
