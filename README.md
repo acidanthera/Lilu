@@ -38,7 +38,7 @@ Add `-liluforce` to enable Lilu regardless of the mode, OS, installer, or recove
 
 #### Peculiarities
 Most of the plugins cease to function in safe (`-x`) mode.  
-By default Lilu itself does not function in single-user (`-s`) mode.
+By default Lilu itself does not function in single-user (`-s`) mode, unless `-liluforce` is present.
 
 #### Discussion
 [InsanelyMac topic](http://www.insanelymac.com/forum/topic/321371-lilu-—-kext-and-process-patcher/) in English  
