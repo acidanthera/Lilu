@@ -1,6 +1,10 @@
 Lilu Changelog
 ==============
 
+#### v1.2.2
+- Acknowledged macOS Install Data and com.apple.recovery.boot prelinkedkernel paths (thx Piker-Alpha)
+- Fixed ignoring `kcsuffix=<suffix>` for kexts and less common names
+
 #### v1.2.1
 - Fixed a rare kernel panic when running Lilu with `-liludbg`
 - Added a workaround for 10.13.2 beta issues
