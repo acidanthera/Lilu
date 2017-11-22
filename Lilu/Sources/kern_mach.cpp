@@ -119,31 +119,50 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	}
 
 	vnode_t vnode = NULLVP;
-	vfs_context_t ctxt = nullptr;
+	vfs_context_t ctxt = vfs_context_create(nullptr);
 	bool found = false;
+	// Starting with 10.10 macOS supports kcsuffix that may be appended to processes, kernels, and kexts
+	char suffix[32];
+	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix));
 
 	for (size_t i = 0; i < num; i++) {
-		vnode = NULLVP;
-		ctxt = vfs_context_create(nullptr);
+		auto path = paths[i];
+		auto pathlen = static_cast<uint32_t>(strlen(path));
 
-		errno_t err = vnode_lookup(paths[i], 0, &vnode, ctxt);
-		if (!err) {
-			DBGLOG("mach", "readMachHeader for %s", paths[i]);
-			kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
-			if (readError == KERN_SUCCESS && (!isKernel || (isKernel && isCurrentKernel(machHeader)))) {
-				DBGLOG("mach", "found executable at path: %s", paths[i]);
-				found = true;
-				break;
-			}
-
-			vnode_put(vnode);
+		if (pathlen == 0 || pathlen >= PATH_MAX) {
+			SYSLOG("mach", "invalid path for mach info %s", path);
+			continue;
 		}
 
-		vfs_context_rele(ctxt);
+		for (size_t j = 0; j <= suffixnum; j++) {
+			char tmppath[PATH_MAX];
+			// Prefer the suffixed version
+			if (suffixnum - j > 0) {
+				snprintf(tmppath, sizeof(tmppath), "%s.%s", path, suffix);
+				path = tmppath;
+			}
+
+			vnode = NULLVP;
+			errno_t err = vnode_lookup(path, 0, &vnode, ctxt);
+			if (!err) {
+				DBGLOG("mach", "readMachHeader for %s", path);
+				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
+				if (readError == KERN_SUCCESS && (!isKernel || (isKernel && isCurrentKernel(machHeader)))) {
+					DBGLOG("mach", "found executable at path: %s", path);
+					found = true;
+					break;
+				}
+
+				vnode_put(vnode);
+			} else {
+				DBGLOG("mach", "vnode_lookup failed for %s with %d", path, err);
+			}
+		}
 	}
 
 	if (!found) {
 		DBGLOG("mach", "couldn't find a suitable executable");
+		vfs_context_rele(ctxt);
 		Buffer::deleter(machHeader);
 		return error;
 	}

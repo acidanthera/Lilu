@@ -376,21 +376,17 @@ private:
 	 *  Possible kernel paths
 	 */
 #ifdef LILU_COMPRESSION_SUPPORT
-	const char *prelinkKernelPaths[6] {
+	const char *prelinkKernelPaths[4] {
 		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache",
 		"/System/Library/PrelinkedKernels/prelinkedkernel",
-		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache.debug",
-		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache.development",
-		"/System/Library/PrelinkedKernels/prelinkedkernel.debug",
-		"/System/Library/PrelinkedKernels/prelinkedkernel.development"
+		"/macOS Install Data/Locked Files/Boot Files/prelinkedkernel",
+		"/com.apple.recovery.boot/prelinkedkernel"
 	};
 #endif
 
-	const char *kernelPaths[4] {
+	const char *kernelPaths[2] {
 		"/System/Library/Kernels/kernel",	//since 10.10
-		"/mach_kernel",
-		"/System/Library/Kernels/kernel.debug",
-		"/System/Library/Kernels/kernel.development"
+		"/mach_kernel"
 	};
 };
 
