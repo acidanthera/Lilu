@@ -126,15 +126,14 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix));
 
 	for (size_t i = 0; i < num; i++) {
-		auto path = paths[i];
-		auto pathlen = static_cast<uint32_t>(strlen(path));
-
+		auto pathlen = static_cast<uint32_t>(strlen(paths[i]));
 		if (pathlen == 0 || pathlen >= PATH_MAX) {
-			SYSLOG("mach", "invalid path for mach info %s", path);
+			SYSLOG("mach", "invalid path for mach info %s", paths[i]);
 			continue;
 		}
 
 		for (size_t j = 0; j <= suffixnum; j++) {
+			auto path = paths[i];
 			char tmppath[PATH_MAX];
 			// Prefer the suffixed version
 			if (suffixnum - j > 0) {
