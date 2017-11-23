@@ -125,7 +125,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	char suffix[32];
 	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix));
 
-	for (size_t i = 0; i < num; i++) {
+	for (size_t i = 0; i < num && !found; i++) {
 		auto pathlen = static_cast<uint32_t>(strlen(paths[i]));
 		if (pathlen == 0 || pathlen >= PATH_MAX) {
 			SYSLOG("mach", "invalid path for mach info %s", paths[i]);
@@ -177,10 +177,10 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 			   linkedit_fileoff, symboltable_fileoff);
 	}
 
+	vnode_put(vnode);
 	vfs_context_rele(ctxt);
 	// drop the iocount due to vnode_lookup()
 	// we must do this or the machine gets stuck on shutdown/reboot
-	vnode_put(vnode);
 
 	Buffer::deleter(machHeader);
 
