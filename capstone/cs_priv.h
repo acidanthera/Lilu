@@ -22,7 +22,7 @@ typedef const char *(*GetName_t)(csh handle, unsigned int id);
 typedef void (*GetID_t)(cs_struct *h, cs_insn *insn, unsigned int id);
 
 // return register name, given register ID
-typedef char *(*GetRegisterName_t)(unsigned RegNo);
+typedef const char *(*GetRegisterName_t)(unsigned RegNo);
 
 // for ARM only
 typedef struct ARM_ITStatus {
@@ -37,7 +37,6 @@ struct cs_struct {
 	void *printer_info; // aux info for printer
 	Disasm_t disasm;	// disassembler
 	void *getinsn_info; // auxiliary info for printer
-	bool big_endian;
 	GetName_t reg_name;
 	GetName_t insn_name;
 	GetName_t group_name;
@@ -53,10 +52,13 @@ struct cs_struct {
 	bool skipdata;	// set this to True if we skip data when disassembling
 	uint8_t skipdata_size;	// how many bytes to skip
 	cs_opt_skipdata skipdata_setup;	// user-defined skipdata setup
-	uint8_t *regsize_map;	// map to register size (x86-only for now)
+	const uint8_t *regsize_map;	// map to register size (x86-only for now)
 };
 
 #define MAX_ARCH 8
+
+// Returns a bool (0 or 1) whether big endian is enabled for a mode
+#define MODE_IS_BIG_ENDIAN(mode) (((mode) & CS_MODE_BIG_ENDIAN) != 0)
 
 // constructor initialization for all archs
 extern cs_err (*arch_init[MAX_ARCH]) (cs_struct *);
@@ -66,6 +68,10 @@ extern cs_err (*arch_option[MAX_ARCH]) (cs_struct*, cs_opt_type, size_t value);
 
 // deinitialized functions: to be called when cs_close() is called
 extern void (*arch_destroy[MAX_ARCH]) (cs_struct*);
+
+// bitmask for finding disallowed modes for an arch:
+// to be called in cs_open()/cs_option()
+extern cs_mode arch_disallowed_mode_mask[MAX_ARCH];
 
 extern unsigned int all_arch;
 
