@@ -462,7 +462,7 @@ static DecodeStatus _ARM_getInstruction(cs_struct *ud, MCInst *MI, const uint8_t
 
 	memcpy(bytes, code, 4);
 
-	if (ud->big_endian)
+	if (MODE_IS_BIG_ENDIAN(ud->mode))
 		insn = (bytes[3] << 0) |
 			(bytes[2] << 8) |
 			(bytes[1] <<  16) |
@@ -554,7 +554,7 @@ static DecodeStatus _ARM_getInstruction(cs_struct *ud, MCInst *MI, const uint8_t
 // that as a post-pass.
 static void AddThumb1SBit(MCInst *MI, bool InITBlock)
 {
-	MCOperandInfo *OpInfo = ARMInsts[MCInst_getOpcode(MI)].OpInfo;
+	const MCOperandInfo *OpInfo = ARMInsts[MCInst_getOpcode(MI)].OpInfo;
 	unsigned short NumOps = ARMInsts[MCInst_getOpcode(MI)].NumOperands;
 	unsigned i;
 
@@ -578,7 +578,7 @@ static void AddThumb1SBit(MCInst *MI, bool InITBlock)
 static DecodeStatus AddThumbPredicate(cs_struct *ud, MCInst *MI)
 {
 	DecodeStatus S = MCDisassembler_Success;
-	MCOperandInfo *OpInfo;
+	const MCOperandInfo *OpInfo;
 	unsigned short NumOps;
 	unsigned int i;
 	unsigned CC;
@@ -658,7 +658,7 @@ static void UpdateThumbVFPPredicate(cs_struct *ud, MCInst *MI)
 {
 	unsigned CC;
 	unsigned short NumOps;
-	MCOperandInfo *OpInfo;
+	const MCOperandInfo *OpInfo;
 	unsigned i;
 
 	CC = ITStatus_getITCC(&(ud->ITBlock));
@@ -704,7 +704,7 @@ static DecodeStatus _Thumb_getInstruction(cs_struct *ud, MCInst *MI, const uint8
 
 	memcpy(bytes, code, 2);
 
-	if (ud->big_endian)
+	if (MODE_IS_BIG_ENDIAN(ud->mode))
 		insn16 = (bytes[0] << 8) | bytes[1];
 	else
 		insn16 = (bytes[1] << 8) | bytes[0];
@@ -757,7 +757,7 @@ static DecodeStatus _Thumb_getInstruction(cs_struct *ud, MCInst *MI, const uint8
 
 	memcpy(bytes, code, 4);
 
-	if (ud->big_endian)
+	if (MODE_IS_BIG_ENDIAN(ud->mode))
 		insn32 = (bytes[3] <<  0) |
 			(bytes[2] <<  8) |
 			(bytes[1] << 16) |

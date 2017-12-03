@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-#ifdef CAPSTONE_HAS_OSXKERNEL
+#if defined(CAPSTONE_HAS_OSXKERNEL)
 #include <Headers/kern_compat.hpp>
 #endif
 
