@@ -12,7 +12,7 @@
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_policy.hpp>
 
-#include "Library/LegacyIOService.h"
+#include <Library/LegacyIOService.h>
 
 class EXPORT PRODUCT_NAME : public IOService {
 	OSDeclareDefaultStructors(PRODUCT_NAME)

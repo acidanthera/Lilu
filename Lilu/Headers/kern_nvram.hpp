@@ -56,7 +56,6 @@ public:
 	 */
 	EXPORT uint8_t *decompress(const uint8_t *src, uint32_t &size, bool sensitive=false);
 	
-public:
 	/**
 	 *  Value storage options
 	 */

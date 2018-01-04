@@ -10,8 +10,8 @@
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
+#include <Library/LegacyIOService.h>
 
-#include "Library/LegacyIOService.h"
 #include <libkern/c++/OSSerialize.h>
 #include <IOKit/IORegistryEntry.h>
 #include <IOKit/IODeviceTreeSupport.h>
