@@ -83,8 +83,10 @@ extern proc_t kernproc;
  */
 #define SYSTRACE_COND(cond, module, str, ...)                                                                        \
 	do {                                                                                                             \
-		if (cond)                                                                                                    \
+		if (cond) {                                                                                                  \
+			SYSLOG(module, str, ## __VA_ARGS__);                                                                     \
 			OSReportWithBacktrace( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+		}                                                                                                            \
 	} while (0)
 
 /**
