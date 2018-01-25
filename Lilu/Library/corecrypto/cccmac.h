@@ -175,7 +175,8 @@ int cccmac_one_shot_verify(const struct ccmode_cbc *cbc,
 int cccmac_init(const struct ccmode_cbc *cbc,
                   cccmac_ctx_t ctx,
                   size_t key_nbytes, const void *key)
-__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration", "define 'CC_CHANGEFUNCTION_28544056_cccmac_init' and use new cccmac_init with parameter key_nbytes")));
+__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration"
+/*, "define 'CC_CHANGEFUNCTION_28544056_cccmac_init' and use new cccmac_init with parameter key_nbytes"*/)));
 // If you see this deprecate warning
 // Define CC_CHANGEFUNCTION_28544056_cccmac_init and use "cccmac_init(...,...,16,...)"
 // This will be removed with 28544056
@@ -263,7 +264,8 @@ int cccmac_final_verify(cccmac_ctx_t ctx,
 
 CC_INLINE void cccmac_block_update(CC_UNUSED const struct ccmode_cbc *cbc, cccmac_ctx_t ctx,
                          size_t nblocks, const void *data)
-__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration", "cccmac_update")));
+__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration"
+/*, "cccmac_update"*/)));
 
 CC_INLINE void cccmac_block_update(CC_UNUSED const struct ccmode_cbc *cbc, cccmac_ctx_t ctx,
                                    size_t nblocks, const void *data) {
@@ -276,7 +278,8 @@ CC_INLINE void cccmac_block_update(CC_UNUSED const struct ccmode_cbc *cbc, cccma
  */
 CC_INLINE void cccmac_final(CC_UNUSED const struct ccmode_cbc *cbc, cccmac_ctx_t ctx,
                             size_t nbytes, const void *in, void *out)
-__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration", "cccmac_final_generate or cccmac_final_verify")));
+__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration"
+/*, "cccmac_final_generate or cccmac_final_verify"*/)));
 
 CC_INLINE void cccmac_final(CC_UNUSED const struct ccmode_cbc *cbc, cccmac_ctx_t ctx,
                  size_t nbytes, const void *in, void *out) {
@@ -291,7 +294,8 @@ CC_INLINE void cccmac_final(CC_UNUSED const struct ccmode_cbc *cbc, cccmac_ctx_t
 CC_INLINE void cccmac(const struct ccmode_cbc *cbc,
                       const void *key,
                       size_t data_len, const void *data, void *mac)
-__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration", "cccmac_one_shot_generate or cccmac_one_shot_verify")));
+__attribute__((deprecated("see guidelines in corecrypto/cccmac.h for migration"
+/*, "cccmac_one_shot_generate or cccmac_one_shot_verify"*/)));
 
 CC_INLINE void cccmac(const struct ccmode_cbc *cbc,
            const void *key,
