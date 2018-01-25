@@ -4,6 +4,8 @@ Lilu Changelog
 #### v1.2.2
 - Acknowledged macOS Install Data and com.apple.recovery.boot prelinkedkernel paths (thx Piker-Alpha)
 - Fixed ignoring `kcsuffix=<suffix>` for kexts and less common names
+- Added extra logging for backtrace macros to ensure that they are not skipped
+- Fixed compilation issues with clang not supporting 2 args for deprecated attribute
 
 #### v1.2.1
 - Fixed a rare kernel panic when running Lilu with `-liludbg`
