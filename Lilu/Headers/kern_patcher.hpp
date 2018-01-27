@@ -88,8 +88,8 @@ public:
 			FSFallback,  // perform fs fallback if kextcache failed
 			Reserved,
 			SysFlagNum,
-			UserFlagNum = sizeof(size_t)-SysFlagNum
 		};
+		static constexpr size_t UserFlagNum {sizeof(size_t)-SysFlagNum};
 		static_assert(UserFlagNum > 0, "There should be at least one user flag");
 		const char *id {nullptr};
 		const char **paths {nullptr};
