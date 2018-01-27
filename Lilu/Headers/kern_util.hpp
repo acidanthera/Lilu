@@ -378,7 +378,7 @@ public:
 	 *
 	 *  @return element count
 	 */
-	const size_t size() const {
+	size_t size() const {
 		return cnt;
 	}
 	
@@ -397,7 +397,7 @@ public:
 	 *
 	 *  @return element id
 	 */
-	const size_t last() const {
+	size_t last() const {
 		return cnt-1;
 	}
 	
