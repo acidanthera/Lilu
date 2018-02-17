@@ -12,6 +12,8 @@
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_util.hpp>
 
+#include <Library/LegacyIOService.h>
+
 namespace CPUInfo {
 	/**
 	 *  Contents of CPUID(1) eax register contents describing model version
