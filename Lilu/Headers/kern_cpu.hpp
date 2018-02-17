@@ -106,7 +106,7 @@ namespace CPUInfo {
 		uint32_t ebx = 0, ecx = 0, edx = 0;
 		asm ("cpuid"
 			 : "=a" (ver), "=b" (ebx), "=c" (ecx), "=d" (edx)
-			 : "0" (0));
+			 : "0" (1));
 
 		uint32_t family = ver.family;
 		if (family == 15) family += ver.extendedFamily;
@@ -115,7 +115,7 @@ namespace CPUInfo {
 		uint32_t model = ver.model;
 		if (family == 15 || family == 6)
 			model |= ver.extendedModel << 4;
-		if (omodel) *omodel = family;
+		if (omodel) *omodel = model;
 
 		if (ver.family == 6) {
 			switch (model) {
@@ -202,6 +202,8 @@ namespace CPUInfo {
 					source = "(not found)";
 			}
 			DBGLOG("cpu", "found %s with frame id %08x via %s", sect->getName(), platform, source);
+		} else {
+			DBGLOG("cpu", "failed to detect built-in GPU");
 		}
 
 		return platform;
