@@ -147,6 +147,7 @@
 		1C748C2E1C21952C0024EED2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Lilu/Info.plist; sourceTree = "<group>"; };
 		CE10961E1F22876B00B623FC /* umm_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = umm_malloc.c; sourceTree = "<group>"; };
 		CE10961F1F22876B00B623FC /* umm_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = umm_malloc.h; sourceTree = "<group>"; };
+		CE22EA372037A4BB002A88A5 /* kern_cpu.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cpu.hpp; sourceTree = "<group>"; };
 		CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
 		CE2E7B891E2C6A73009AC62A /* kern_file.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_file.hpp; sourceTree = "<group>"; };
@@ -338,6 +339,7 @@
 				CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */,
 				CE74B24C1F72D64000F90A08 /* kern_compat.hpp */,
 				CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */,
+				CE22EA372037A4BB002A88A5 /* kern_cpu.hpp */,
 				CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */,
 				CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */,
 				CE2E7B891E2C6A73009AC62A /* kern_file.hpp */,
@@ -802,7 +804,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.2;
+				MODULE_VERSION = 1.2.3;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -858,7 +860,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.2;
+				MODULE_VERSION = 1.2.3;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

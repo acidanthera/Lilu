@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.2.3
+- Added some CPU information API (abi indepedent)
+
 #### v1.2.2
 - Acknowledged macOS Install Data and com.apple.recovery.boot prelinkedkernel paths (thx Piker-Alpha)
 - Fixed ignoring `kcsuffix=<suffix>` for kexts and less common names
