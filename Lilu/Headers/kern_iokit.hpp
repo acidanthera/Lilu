@@ -12,6 +12,7 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
 
+#include <Library/LegacyIOService.h>
 #include <libkern/c++/OSSerialize.h>
 #include <IOKit/IORegistryEntry.h>
 
@@ -34,7 +35,7 @@ namespace WIOKit {
 	 *  @return true on success
 	 */
 	template <typename T>
-	bool getOSDataValue(const OSObject *obj, const char *name, T &value) {
+	inline bool getOSDataValue(const OSObject *obj, const char *name, T &value) {
 		if (obj) {
 			auto data = OSDynamicCast(OSData, obj);
 			if (data && data->getLength() == sizeof(T)) {
@@ -56,7 +57,7 @@ namespace WIOKit {
 	 *  @see getOSDataValue
 	 */
 	template <typename T>
-	bool getOSDataValue(const IORegistryEntry *sect, const char *name, T &value) {
+	inline bool getOSDataValue(const IORegistryEntry *sect, const char *name, T &value) {
 		return getOSDataValue(sect->getProperty(name), name, value);
 	}
 	
@@ -66,7 +67,7 @@ namespace WIOKit {
 	 *  @see getOSDataValue
 	 */
 	template <typename T>
-	bool getOSDataValue(const OSDictionary *dict, const char *name, T &value) {
+	inline bool getOSDataValue(const OSDictionary *dict, const char *name, T &value) {
 		return getOSDataValue(dict->getObject(name), name, value);
 	}
 
@@ -145,6 +146,59 @@ namespace WIOKit {
 	 *  @return true when confirmed that we definitely are
 	 */
 	EXPORT bool usingPrelinkedCache();
+
+	/**
+	 *  Properly rename the device
+	 *
+	 *  @param  service device to rename
+	 *  @param  name    new name
+	 *  @param  compat  correct compatible
+	 *
+	 *  @return true on success
+	 */
+	inline bool renameDevice(IOService *service, const char *name, bool compat=true) {
+		if (!service || !name)
+			return false;
+
+		service->setName(name);
+
+		if (!compat)
+			return true;
+
+		auto compatibleProp = OSDynamicCast(OSData, service->getProperty("compatible"));
+		if (!compatibleProp)
+			return true;
+
+		uint32_t compatibleSz = compatibleProp->getLength();
+		auto compatibleStr = static_cast<const char *>(compatibleProp->getBytesNoCopy());
+		DBGLOG("iokit", "compatible property starts with %s and is %u bytes", compatibleStr ? compatibleStr : "(null)", compatibleSz);
+
+		if (compatibleStr) {
+			for (uint32_t i = 0; i < compatibleSz; i++) {
+				if (!strcmp(&compatibleStr[i], name)) {
+					DBGLOG("iokit", "found %s in compatible, ignoring", name);
+					return true;
+				}
+
+				i += strlen(&compatibleStr[i]);
+			}
+
+			uint32_t nameSize = static_cast<uint32_t>(strlen(name)+1);
+			uint32_t compatibleBufSz = compatibleSz + nameSize;
+			uint8_t *compatibleBuf = Buffer::create<uint8_t>(compatibleBufSz);
+			if (compatibleBuf) {
+				DBGLOG("iokit", "fixing compatible to have %s", name);
+				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
+				lilu_os_memcpy(&compatibleBuf[compatibleSz], name, nameSize);
+				service->setProperty("compatible", OSData::withBytes(compatibleBuf, compatibleBufSz));
+				return true;
+			} else {
+				SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);
+			}
+		}
+
+		return false;
+	}
 }
 
 #endif /* kern_iokit_hpp */
