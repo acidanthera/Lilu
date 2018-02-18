@@ -173,6 +173,46 @@ namespace CPUInfo {
 	static constexpr uint32_t DefaultKabyLakePlatformId {0x59160000};
 
 	/**
+	 *  Framebuffers without any ports used for hardware acceleration only
+	 *  Note: Broadwell framebuffers all have connectors added.
+	 */
+	static constexpr uint32_t ConnectorLessSandyBridgePlatformId1 {0x00030030};
+	static constexpr uint32_t ConnectorLessSandyBridgePlatformId2 {0x00050000};
+	static constexpr uint32_t ConnectorLessIvyBridgePlatformId1 {0x01620006};
+	static constexpr uint32_t ConnectorLessIvyBridgePlatformId2 {0x01620007};
+	static constexpr uint32_t ConnectorLessHaswellPlatformId1 {0x04120004};
+	static constexpr uint32_t ConnectorLessHaswellPlatformId2 {0x0412000B};
+	static constexpr uint32_t ConnectorLessSkylakePlatformId1 {0x19020001};
+	static constexpr uint32_t ConnectorLessSkylakePlatformId2 {0x19170001};
+	static constexpr uint32_t ConnectorLessSkylakePlatformId3 {0x19120001};
+	static constexpr uint32_t ConnectorLessSkylakePlatformId4 {0x19320001};
+	static constexpr uint32_t ConnectorLessKabyLakePlatformId1 {0x59180002};
+	static constexpr uint32_t ConnectorLessKabyLakePlatformId2 {0x59120003};
+
+	/**
+	 *  Check whether IGPU platform id contains any connectors
+	 *
+	 *  @param id  IGPU platform id
+	 *
+	 *  @return true if the specified platform id has no connectors
+	 */
+	inline bool isConnectorLessPlatformId(uint32_t id) {
+		return
+		id == ConnectorLessSandyBridgePlatformId1 ||
+		id == ConnectorLessSandyBridgePlatformId2 ||
+		id == ConnectorLessIvyBridgePlatformId1 ||
+		id == ConnectorLessIvyBridgePlatformId2 ||
+		id == ConnectorLessHaswellPlatformId1 ||
+		id == ConnectorLessHaswellPlatformId2 ||
+		id == ConnectorLessSkylakePlatformId1 ||
+		id == ConnectorLessSkylakePlatformId2 ||
+		id == ConnectorLessSkylakePlatformId3 ||
+		id == ConnectorLessSkylakePlatformId4 ||
+		id == ConnectorLessKabyLakePlatformId1 ||
+		id == ConnectorLessKabyLakePlatformId2;
+	}
+
+	/**
 	 *  Return running IGPU platform id.
 	 *
 	 *  @return valid platform id or DefaultInvalidPlatformId
@@ -181,9 +221,10 @@ namespace CPUInfo {
 		auto sect = WIOKit::findEntryByPrefix("/AppleACPIPlatformExpert", "PCI", gIOServicePlane);
 		if (sect) sect = WIOKit::findEntryByPrefix(sect, "AppleACPIPCI", gIOServicePlane);
 		if (sect) {
-			sect = WIOKit::findEntryByPrefix(sect, "IGPU", gIOServicePlane);
+			auto igpu = WIOKit::findEntryByPrefix(sect, "IGPU", gIOServicePlane);
 			// Try GFX0, since recent IntelGraphicsFixup may rename it later.
-			if (!sect) sect = WIOKit::findEntryByPrefix(sect, "GFX0", gIOServicePlane);
+			if (!igpu) sect = WIOKit::findEntryByPrefix(sect, "GFX0", gIOServicePlane);
+			else sect = igpu;
 		}
 
 		uint32_t platform = DefaultInvalidPlatformId;
