@@ -12,7 +12,6 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
 
-#include <Library/LegacyIOService.h>
 #include <libkern/c++/OSSerialize.h>
 #include <IOKit/IORegistryEntry.h>
 
@@ -50,7 +49,7 @@ namespace WIOKit {
 		}
 		return false;
 	}
-	
+
 	/**
 	 *  Read typed OSData from IORegistryEntry
 	 *
@@ -60,7 +59,7 @@ namespace WIOKit {
 	inline bool getOSDataValue(const IORegistryEntry *sect, const char *name, T &value) {
 		return getOSDataValue(sect->getProperty(name), name, value);
 	}
-	
+
 	/**
 	 *  Read typed OSData from IORegistryEntry
 	 *
@@ -80,7 +79,7 @@ namespace WIOKit {
 	 *  @return property object (must be released) or nullptr
 	 */
 	EXPORT OSSerialize *getProperty(IORegistryEntry *entry, const char *property);
-	
+
 	/**
 	 *  Model variants
 	 */
@@ -92,14 +91,14 @@ namespace WIOKit {
 			ComputerAny = ComputerLaptop | ComputerDesktop
 		};
 	};
-	
+
 	/**
 	 *  Retrieve the computer type
 	 *
 	 *  @return valid computer type or ComputerAny
 	 */
 	EXPORT int getComputerModel();
-	
+
 	/**
 	 *  Retrieve computer model and/or board-id properties
 	 *
@@ -111,7 +110,7 @@ namespace WIOKit {
 	 *  @return true if relevant properties already are available, otherwise buffers are unchanged
 	 */
 	EXPORT bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz);
-	
+
 	/**
 	 *  Retrieve an ioreg entry by path/prefix
 	 *
@@ -125,7 +124,7 @@ namespace WIOKit {
 	 *  @return entry pointer (must NOT be released) or nullptr (on failure or in proc mode)
 	 */
 	EXPORT IORegistryEntry *findEntryByPrefix(const char *path, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *)=nullptr, bool brute=false, void *user=nullptr);
-	
+
 	/**
 	 *  Retrieve an ioreg entry by path/prefix
 	 *
@@ -150,22 +149,22 @@ namespace WIOKit {
 	/**
 	 *  Properly rename the device
 	 *
-	 *  @param  service device to rename
+	 *  @param  entry   device to rename
 	 *  @param  name    new name
 	 *  @param  compat  correct compatible
 	 *
 	 *  @return true on success
 	 */
-	inline bool renameDevice(IOService *service, const char *name, bool compat=true) {
-		if (!service || !name)
+	inline bool renameDevice(IORegistryEntry *entry, const char *name, bool compat=true) {
+		if (!entry || !name)
 			return false;
 
-		service->setName(name);
+		entry->setName(name);
 
 		if (!compat)
 			return true;
 
-		auto compatibleProp = OSDynamicCast(OSData, service->getProperty("compatible"));
+		auto compatibleProp = OSDynamicCast(OSData, entry->getProperty("compatible"));
 		if (!compatibleProp)
 			return true;
 
@@ -190,7 +189,7 @@ namespace WIOKit {
 				DBGLOG("iokit", "fixing compatible to have %s", name);
 				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
 				lilu_os_memcpy(&compatibleBuf[compatibleSz], name, nameSize);
-				service->setProperty("compatible", OSData::withBytes(compatibleBuf, compatibleBufSz));
+				entry->setProperty("compatible", OSData::withBytes(compatibleBuf, compatibleBufSz));
 				return true;
 			} else {
 				SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);
