@@ -276,12 +276,12 @@ constexpr size_t parseModuleVersion(const char *version) {
  */
 namespace Buffer {
 	template <typename T>
-	T *create(size_t size) {
+	inline T *create(size_t size) {
 		return static_cast<T *>(kern_os_malloc(sizeof(T) * size));
 	}
 	
 	template <typename T>
-	bool resize(T *&buf, size_t size) {
+	inline bool resize(T *&buf, size_t size) {
 		auto nbuf = static_cast<T *>(kern_os_realloc(buf, sizeof(T) * size));
 		if (nbuf) {
 			buf = nbuf;
@@ -292,7 +292,7 @@ namespace Buffer {
 	}
 	
 	template <typename T>
-	void deleter(T *buf) {
+	inline void deleter(T *buf) {
 		lilu_os_free(buf);
 	}
 }
