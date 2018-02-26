@@ -93,6 +93,17 @@ namespace WIOKit {
 	};
 
 	/**
+	 *  PCI GPU Vendor identifiers
+	 */
+	struct VendorID {
+		enum : uint16_t {
+			ATIAMD = 0x1002,
+			NVIDIA = 0x10de,
+			Intel = 0x8086
+		};
+	};
+
+	/**
 	 *  Retrieve the computer type
 	 *
 	 *  @return valid computer type or ComputerAny
