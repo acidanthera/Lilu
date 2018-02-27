@@ -104,6 +104,17 @@ namespace WIOKit {
 	};
 
 	/**
+	 *  PCI class codes
+	 */
+	struct ClassCode {
+		enum : uint32_t {
+			VGAController = 0x30000,
+			DisplayController = 0x38000,
+			PCIBridge = 0x60400,
+		};
+	};
+
+	/**
 	 *  Retrieve the computer type
 	 *
 	 *  @return valid computer type or ComputerAny
