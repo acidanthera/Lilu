@@ -267,6 +267,28 @@ public:
 	 */
 	EXPORT mach_vm_address_t routeBlock(mach_vm_address_t from, const uint8_t *opcodes, size_t opnum, bool buildWrapper=false, bool kernelRoute=true);
 
+	/**
+	 *  Route virtual function to function
+	 *
+	 *  @param obj      OSObject-compatible instance
+	 *  @param off      function offset in a virtual table (arch-neutral, i.e. divided by sizeof(uintptr_t)
+	 *  @param func     function to replace with
+	 *  @param orgFunc  pointer to store the original function
+	 *
+	 *  @return true on success
+	 */
+	template <typename T>
+	static inline bool routeVirtual(void *obj, size_t off, T func, T *orgFunc=nullptr) {
+		// First OSObject (and similar) field is its virtual table.
+		auto vt = obj ? reinterpret_cast<T **>(obj)[0] : nullptr;
+		if (vt) {
+			if (orgFunc) *orgFunc = vt[off];
+			vt[off] = func;
+			return true;
+		}
+		return false;
+	}
+
 private:
 
 	/**
