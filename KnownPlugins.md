@@ -19,7 +19,7 @@ Please note that improperly written immature plugins will not be listed there.
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Patches for DVMT problem on Broadwell/Skylake Intel Graphics | 1.2.0+
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models | 2.2+
 [NvidiaGraphicsFixup](https://sourceforge.net/p/nvidiagraphicsfixup) | Various patches necessary for certain NVIDIA GPUs | 1.2.0+
-[Shiki](https://github.com/vit9696/Shiki) | Dynamic userspace patcher for macOS | 2.1.0+
+[Shiki](https://github.com/vit9696/Shiki) | Protected video playback support and hardware video acceleration on various hardware | 2.1.0+
 [WhateverGreen](https://github.com/vit9696/WhateverGreen) | Various patches necessary for certain ATI/AMD GPUs | 1.1.0+
 
 Plugins which functionality was merged into other plugins:
