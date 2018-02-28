@@ -115,6 +115,148 @@ namespace WIOKit {
 	};
 
 	/**
+	 *  Definitions of PCI Config Registers
+	 */
+	enum PCIRegister : uint8_t {
+		kIOPCIConfigVendorID                = 0x00,
+		kIOPCIConfigDeviceID                = 0x02,
+		kIOPCIConfigCommand                 = 0x04,
+		kIOPCIConfigStatus                  = 0x06,
+		kIOPCIConfigRevisionID              = 0x08,
+		kIOPCIConfigClassCode               = 0x09,
+		kIOPCIConfigCacheLineSize           = 0x0C,
+		kIOPCIConfigLatencyTimer            = 0x0D,
+		kIOPCIConfigHeaderType              = 0x0E,
+		kIOPCIConfigBIST                    = 0x0F,
+		kIOPCIConfigBaseAddress0            = 0x10,
+		kIOPCIConfigBaseAddress1            = 0x14,
+		kIOPCIConfigBaseAddress2            = 0x18,
+		kIOPCIConfigBaseAddress3            = 0x1C,
+		kIOPCIConfigBaseAddress4            = 0x20,
+		kIOPCIConfigBaseAddress5            = 0x24,
+		kIOPCIConfigCardBusCISPtr           = 0x28,
+		kIOPCIConfigSubSystemVendorID       = 0x2C,
+		kIOPCIConfigSubSystemID             = 0x2E,
+		kIOPCIConfigExpansionROMBase        = 0x30,
+		kIOPCIConfigCapabilitiesPtr         = 0x34,
+		kIOPCIConfigInterruptLine           = 0x3C,
+		kIOPCIConfigInterruptPin            = 0x3D,
+		kIOPCIConfigMinimumGrant            = 0x3E,
+		kIOPCIConfigMaximumLatency          = 0x3F
+	};
+
+	/**
+	 *  Fixed offsets for PCI Config I/O virtual methods
+	 */
+	struct PCIConfigOffset {
+		enum : size_t {
+			ConfigRead32  = 0x850/sizeof(uintptr_t),
+			ConfigWrite32 = 0x858/sizeof(uintptr_t),
+			ConfigRead16  = 0x860/sizeof(uintptr_t),
+			ConfigWrite16 = 0x868/sizeof(uintptr_t),
+			ConfigRead8   = 0x870/sizeof(uintptr_t),
+			ConfigWrite8  = 0x878/sizeof(uintptr_t),
+		};
+	};
+
+	/**
+	 *  PCI Config I/O method prototypes
+	 */
+	using t_PCIConfigRead32 = uint32_t (*)(IORegistryEntry *service, uint32_t space, uint8_t offset);
+	using t_PCIConfigRead16 = uint16_t (*)(IORegistryEntry *service, uint32_t space, uint8_t offset);
+	using t_PCIConfigRead8  = uint8_t  (*)(IORegistryEntry *service, uint32_t space, uint8_t offset);
+	using t_PCIConfigWrite32 = void (*)(IORegistryEntry *service, uint32_t space, uint8_t offset, uint32_t data);
+	using t_PCIConfigWrite16 = void (*)(IORegistryEntry *service, uint32_t space, uint8_t offset, uint16_t data);
+	using t_PCIConfigWrite8  = void (*)(IORegistryEntry *service, uint32_t space, uint8_t offset, uint8_t data);
+
+	/**
+	 *  Read PCI Config register
+	 *
+	 *  @param service  IOPCIDevice-compatible service.
+	 *  @param reg      PCI config register
+	 *  @param space    adress space
+	 *  @param size     read size for reading custom registers
+	 */
+	inline uint32_t readPCIConfigValue(IORegistryEntry *service, uint32_t reg, uint32_t space = 0, uint32_t size = 0) {
+		auto read32 = reinterpret_cast<t_PCIConfigRead32 **>(service)[0][PCIConfigOffset::ConfigRead32];
+		auto read16 = reinterpret_cast<t_PCIConfigRead16 **>(service)[0][PCIConfigOffset::ConfigRead16];
+		auto read8  = reinterpret_cast<t_PCIConfigRead8  **>(service)[0][PCIConfigOffset::ConfigRead8];
+
+		if (space == 0) {
+			space = getMember<uint32_t>(service, 0xA8);
+			auto name = service->getName();
+			DBGLOG("igfx", "read pci config discovered %s space to be 0x%08X", name ? name : "(null)", space);
+		}
+
+		if (size != 0) {
+			switch (size) {
+				case 8:
+					return read8(service, space, reg);
+				case 16:
+					return read16(service, space, reg);
+				case 32:
+				default:
+					return read32(service, space, reg);
+			}
+		}
+
+		switch (reg) {
+			case kIOPCIConfigVendorID:
+				return read16(service, space, reg);
+			case kIOPCIConfigDeviceID:
+				return read16(service, space, reg);
+			case kIOPCIConfigCommand:
+				return read16(service, space, reg);
+			case kIOPCIConfigStatus:
+				return read16(service, space, reg);
+			case kIOPCIConfigRevisionID:
+				return read8(service, space, reg);
+			case kIOPCIConfigClassCode:
+				return read32(service, space, reg);
+			case kIOPCIConfigCacheLineSize:
+				return read8(service, space, reg);
+			case kIOPCIConfigLatencyTimer:
+				return read8(service, space, reg);
+			case kIOPCIConfigHeaderType:
+				return read8(service, space, reg);
+			case kIOPCIConfigBIST:
+				return read8(service, space, reg);
+			case kIOPCIConfigBaseAddress0:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress1:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress2:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress3:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress4:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress5:
+				return read32(service, space, reg);
+			case kIOPCIConfigCardBusCISPtr:
+				return read32(service, space, reg);
+			case kIOPCIConfigSubSystemVendorID:
+				return read16(service, space, reg);
+			case kIOPCIConfigSubSystemID:
+				return read16(service, space, reg);
+			case kIOPCIConfigExpansionROMBase:
+				return read32(service, space, reg);
+			case kIOPCIConfigCapabilitiesPtr:
+				return read32(service, space, reg);
+			case kIOPCIConfigInterruptLine:
+				return read8(service, space, reg);
+			case kIOPCIConfigInterruptPin:
+				return read8(service, space, reg);
+			case kIOPCIConfigMinimumGrant:
+				return read8(service, space, reg);
+			case kIOPCIConfigMaximumLatency:
+				return read8(service, space, reg);
+			default:
+				return read32(service, space, reg);
+		}
+	}
+
+	/**
 	 *  Retrieve the computer type
 	 *
 	 *  @return valid computer type or ComputerAny

@@ -272,6 +272,32 @@ constexpr size_t parseModuleVersion(const char *version) {
 }
 
 /**
+ *  Access struct member by its offset
+ *
+ *  @param T     pointer to the field you need
+ *  @param that  pointer to struct
+ *  @param off   offset in bytes to the member
+ *
+ *  @return reference to the struct member
+ */
+template <typename T>
+inline T &getMember(void *that, size_t off) {
+	return *reinterpret_cast<T *>(static_cast<uint8_t *>(that) + off);
+}
+
+/**
+ *  Align value by align (page size by default)
+ *
+ *  @param size  value
+ *
+ *  @return algined value
+ */
+template <typename T>
+inline T alignValue(T size, T align = 4096) {
+	return (size + align - 1) & (~(align - 1));
+}
+
+/**
  *  Typed buffer allocator
  */
 namespace Buffer {

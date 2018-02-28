@@ -2,8 +2,12 @@ Lilu Changelog
 ==============
 
 #### v1.2.3
-- Added some CPU information API (abi indepedent)
-- Added renameDevice API
+- Added CPU information API for cpu families and generations
+- Added IGPU information API for framebuffers and stuff
+- Added WIOKit::renameDevice API for device renaming with compatible fixing
+- Added KernelPatcher::routeVirtual API for virtual function swapping
+- Added PCI register manipulation API
+- Fixed several inline function definitions
 
 #### v1.2.2
 - Acknowledged macOS Install Data and com.apple.recovery.boot prelinkedkernel paths (thx Piker-Alpha)
