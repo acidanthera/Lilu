@@ -104,7 +104,7 @@ namespace WIOKit {
 					const char *resname = res->getName();
 					
 					//DBGLOG("iokit", "iterating over %s", resname);
-					if (!strncmp(prefix, resname, len)) {
+					if (resname && !strncmp(prefix, resname, len)) {
 						found = proc ? proc(user, res) : true;
 						if (found) {
 							if (bruteCount > 1)
