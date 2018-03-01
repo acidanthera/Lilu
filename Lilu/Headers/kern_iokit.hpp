@@ -184,8 +184,7 @@ namespace WIOKit {
 
 		if (space == 0) {
 			space = getMember<uint32_t>(service, 0xA8);
-			auto name = service->getName();
-			DBGLOG("igfx", "read pci config discovered %s space to be 0x%08X", name ? name : "(null)", space);
+			DBGLOG("igfx", "read pci config discovered %s space to be 0x%08X", safeString(service->getName()), space);
 		}
 
 		if (size != 0) {

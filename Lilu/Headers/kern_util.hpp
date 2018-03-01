@@ -298,6 +298,17 @@ inline T alignValue(T size, T align = 4096) {
 }
 
 /**
+ *  Returns non-null string when they can be null
+ *
+ *  @param str  original string
+ *
+ *  @return non-null string
+ */
+inline const char *safeString(const char *str) {
+	return str ? str : "(null)";
+}
+
+/**
  *  Typed buffer allocator
  */
 namespace Buffer {
