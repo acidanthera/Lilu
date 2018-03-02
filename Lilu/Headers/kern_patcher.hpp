@@ -282,6 +282,9 @@ public:
 		// First OSObject (and similar) field is its virtual table.
 		auto vt = obj ? reinterpret_cast<T **>(obj)[0] : nullptr;
 		if (vt) {
+			// Do not try to replace twice!
+			if (vt[off] == func)
+				return false;
 			if (orgFunc) *orgFunc = vt[off];
 			vt[off] = func;
 			return true;
