@@ -111,6 +111,8 @@ namespace WIOKit {
 			VGAController = 0x30000,
 			DisplayController = 0x38000,
 			PCIBridge = 0x60400,
+			// This does not seem to be documented. It works on Haswell at least.
+			IMEI = 0x78000
 		};
 	};
 
