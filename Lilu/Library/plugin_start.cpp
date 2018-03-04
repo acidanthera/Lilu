@@ -22,12 +22,16 @@ bool ADDPR(debugEnabled) = false;
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
+PRODUCT_NAME *ADDPR(selfInstance) = nullptr;
+
 IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
+	ADDPR(selfInstance) = this;
 	auto service = IOService::probe(provider, score);
 	return ADDPR(startSuccess) ? service : nullptr;
 }
 
 bool PRODUCT_NAME::start(IOService *provider) {
+	ADDPR(selfInstance) = this;
 	if (!IOService::start(provider)) {
 		SYSLOG("init", "failed to start the parent");
 		return false;
@@ -37,6 +41,7 @@ bool PRODUCT_NAME::start(IOService *provider) {
 }
 
 void PRODUCT_NAME::stop(IOService *provider) {
+	ADDPR(selfInstance) = nullptr;
 	IOService::stop(provider);
 }
 
