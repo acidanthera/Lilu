@@ -46,6 +46,8 @@ public:
 	void stop(IOService *provider) override;
 };
 
+extern PRODUCT_NAME *ADDPR(selfInstance);
+
 #endif /* LILU_CUSTOM_IOKIT_INIT */
 
 #endif /* kern_start_hpp */

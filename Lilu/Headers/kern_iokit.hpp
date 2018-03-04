@@ -152,12 +152,15 @@ namespace WIOKit {
 	 */
 	struct PCIConfigOffset {
 		enum : size_t {
-			ConfigRead32  = 0x850/sizeof(uintptr_t),
-			ConfigWrite32 = 0x858/sizeof(uintptr_t),
-			ConfigRead16  = 0x860/sizeof(uintptr_t),
-			ConfigWrite16 = 0x868/sizeof(uintptr_t),
-			ConfigRead8   = 0x870/sizeof(uintptr_t),
-			ConfigWrite8  = 0x878/sizeof(uintptr_t),
+			ConfigRead32      = 0x10A,
+			ConfigWrite32     = 0x10B,
+			ConfigRead16      = 0x10C,
+			ConfigWrite16     = 0x10D,
+			ConfigRead8       = 0x10E,
+			ConfigWrite8      = 0x10F,
+			GetBusNumber      = 0x11D,
+			GetDeviceNumber   = 0x11E,
+			GetFunctionNumber = 0x11F
 		};
 	};
 
@@ -170,6 +173,9 @@ namespace WIOKit {
 	using t_PCIConfigWrite32 = void (*)(IORegistryEntry *service, uint32_t space, uint8_t offset, uint32_t data);
 	using t_PCIConfigWrite16 = void (*)(IORegistryEntry *service, uint32_t space, uint8_t offset, uint16_t data);
 	using t_PCIConfigWrite8  = void (*)(IORegistryEntry *service, uint32_t space, uint8_t offset, uint8_t data);
+	using t_PCIGetBusNumber = uint8_t (*)(IORegistryEntry *service);
+	using t_PCIGetDeviceNumber = uint8_t (*)(IORegistryEntry *service);
+	using t_PCIGetFunctionNumber = uint8_t (*)(IORegistryEntry *service);
 
 	/**
 	 *  Read PCI Config register
@@ -255,6 +261,24 @@ namespace WIOKit {
 			default:
 				return read32(service, space, reg);
 		}
+	}
+
+	/**
+	 *  Retrieve PCI device address
+	 *
+	 *  @param service   IOPCIDevice-compatible service.
+	 *  @param bus       bus address
+	 *  @param device    device address
+	 *  @param function  function address
+	 */
+	inline void getDeviceAddress(IORegistryEntry *service, uint8_t &bus, uint8_t &device, uint8_t &function) {
+		auto getBus = reinterpret_cast<t_PCIGetBusNumber **>(service)[0][PCIConfigOffset::GetBusNumber];
+		auto getDevice = reinterpret_cast<t_PCIGetDeviceNumber **>(service)[0][PCIConfigOffset::GetDeviceNumber];
+		auto getFunction = reinterpret_cast<t_PCIGetFunctionNumber **>(service)[0][PCIConfigOffset::GetFunctionNumber];
+
+		bus = getBus(service);
+		device = getDevice(service);
+		function = getFunction(service);
 	}
 
 	/**
