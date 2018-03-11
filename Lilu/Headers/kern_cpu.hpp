@@ -37,7 +37,6 @@ namespace CPUInfo {
 	 *  Some details could be found on http://instlatx64.atw.hu and https://en.wikichip.org/wiki/64-bit_architecture#x86
 	 */
 	enum CpuModel {
-
 		CPU_MODEL_UNKNOWN        =  0x00,
 		CPU_MODEL_PENRYN         =  0x17,
 		CPU_MODEL_NEHALEM        =  0x1A,
@@ -249,11 +248,12 @@ namespace CPUInfo {
 	/**
 	 *  Return running IGPU platform id.
 	 *
-	 *  @param sect known IGPU entry.
+	 *  @param sect      known IGPU entry.
+	 *  @param specified set to true if the value was directly read from ioreg
 	 *
 	 *  @return valid platform id or DefaultInvalidPlatformId
 	 */
-	inline uint32_t getGpuPlatformId(IORegistryEntry *sect=nullptr) {
+	inline uint32_t getGpuPlatformId(IORegistryEntry *sect=nullptr, bool *specified=nullptr) {
 		if (!sect) {
 			sect = WIOKit::findEntryByPrefix("/AppleACPIPlatformExpert", "PCI", gIOServicePlane);
 			if (sect) sect = WIOKit::findEntryByPrefix(sect, "AppleACPIPCI", gIOServicePlane);
@@ -265,13 +265,16 @@ namespace CPUInfo {
 			}
 		}
 
+		if (specified) *specified = false;
 		uint32_t platform = DefaultInvalidPlatformId;
 		if (sect) {
 			const char *source = "CPU gen";
 			if (WIOKit::getOSDataValue(sect, "AAPL,ig-platform-id", platform)) {
 				source = "AAPL,ig-platform-id";
+				if (specified) *specified = true;
 			} else if (WIOKit::getOSDataValue(sect, "AAPL,snb-platform-id", platform)) {
 				source = "AAPL,snb-platform-id";
+				if (specified) *specified = true;
 			} else {
 				// Intel drivers for Skylake and higher provide default AAPL,ig-platform-id.
 				auto generation = getGeneration();
