@@ -7,8 +7,10 @@ Lilu Changelog
 - Added WIOKit::renameDevice API for device renaming with compatible fixing
 - Added KernelPatcher::routeVirtual API for virtual function swapping
 - Added PCI register and address manipulation API
+- Added basic process modification API
 - Added plugin IOService access
 - Fixed several inline function definitions
+- Fixed crash when loading user patches with no binary patches
 
 #### v1.2.2
 - Acknowledged macOS Install Data and com.apple.recovery.boot prelinkedkernel paths (thx Piker-Alpha)
