@@ -158,7 +158,28 @@ public:
 	 *  @param user     pointer that will be passed to the callback function
 	 */
 	bool registerPatches(ProcInfo **procs, size_t procNum, BinaryModInfo **mods, size_t modNum, t_BinaryLoaded callback, void *user);
-	
+
+	/**
+	 *  Disables dyld_shared_cache for the current process
+	 *
+	 *  @param map  vm map
+	 *
+	 *  @return false on mach image failure
+	 */
+	EXPORT bool injectRestrict(vm_map_t map);
+
+	/**
+	 *  Injects payload into the process right after the header with EP replacement.
+	 *
+	 *  @param map      vm map
+	 *  @param payload  code
+	 *  @param size     code size (up to PAGE_SIZE)
+	 *  @param ep       original entrypoint (may be written to code before copying)
+	 *
+	 *  @return false on mach image failure
+	 */
+	EXPORT bool injectPayload(vm_map_t map, uint8_t *payload, size_t size, uintptr_t *ep=nullptr);
+
 	/**
 	 *  Activates monitoring functions if necessary
 	 */
@@ -394,10 +415,10 @@ private:
 	};
 	
 	/**
-	 *  Temporary header for reading data
+	 *  Temporary buffer for reading image data
 	 */
-	mach_header_64 tmpHeader;
-	
+	uint8_t tmpBufferData[PAGE_SIZE*3];
+
 	/**
 	 *  Kernel auth listener handle
 	 */
@@ -463,16 +484,7 @@ private:
 	 *  @return true on success
 	 */
 	bool hookMemoryAccess();
-	
-	/**
-	 *  Disables dyld_shared_cache for the current process
-	 *
-	 *  @param map  vm map
-	 *
-	 *  @return false on mach image failure
-	 */
-	bool injectRestrict(vm_map_t map);
-	
+
 	/**
 	 *  Peforms the actual binary patching
 	 *

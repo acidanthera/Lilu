@@ -227,7 +227,8 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	auto baseAddr = orgGetMapMin(taskPort);
 	
 	DBGLOG("user", "get_map_min returned %llX", baseAddr);
-	
+
+	auto &tmpHeader = *reinterpret_cast<mach_header_64 *>(tmpBufferData);
 	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, &tmpHeader, sizeof(mach_header_64));
 	
 	if (err == KERN_SUCCESS){
@@ -312,6 +313,117 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 		return false;
 	}
 	
+	return true;
+}
+
+bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size, uintptr_t *ep) {
+	if (size > PAGE_SIZE) {
+		SYSLOG("user", "unreasonably large payload %lu", size);
+		return false;
+	}
+
+	// Get task's mach-o header and determine its cpu type
+	auto baseAddr = orgGetMapMin(taskPort);
+	DBGLOG("user", "get_map_min returned %llX", baseAddr);
+
+	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, tmpBufferData, sizeof(tmpBufferData));
+	auto machHeader = reinterpret_cast<mach_header_64 *>(tmpBufferData);
+	if (err == KERN_SUCCESS){
+		if ((machHeader->magic == MH_MAGIC_64 || machHeader->magic == MH_MAGIC)) {
+			size_t hdrSize = machHeader->magic == MH_MAGIC ? sizeof(mach_header) : sizeof(mach_header_64);
+			uintptr_t newEp = hdrSize + machHeader->sizeofcmds;
+			if (newEp + PAGE_SIZE > sizeof(tmpBufferData)) {
+				SYSLOG("user", "unpredictably large image header %lu", newEp);
+				return false;
+			}
+
+			uint32_t *entry32 = nullptr;
+			uint64_t *entry64 = nullptr;
+			bool vmEp = true;
+			uintptr_t vmBase = 0;
+
+			uint8_t *currPtr = tmpBufferData + hdrSize;
+			for (uint32_t i = 0; i < machHeader->ncmds; i++) {
+				auto cmd = reinterpret_cast<load_command *>(currPtr);
+
+				if (cmd->cmd == LC_MAIN) {
+					static constexpr size_t MainOff {0x8};
+					entry64 = reinterpret_cast<uint64_t *>(currPtr + MainOff);
+					vmEp = false;
+				} else if (cmd->cmd == LC_UNIXTHREAD) {
+					if (machHeader->magic == MH_MAGIC_64) {
+						static constexpr size_t UnixThreadOff64 {0x90};
+						entry64 = reinterpret_cast<uint64_t *>(currPtr + UnixThreadOff64);
+					} else {
+						static constexpr size_t UnixThreadOff32 {0x38};
+						entry32 = reinterpret_cast<uint32_t *>(currPtr + UnixThreadOff32);
+					}
+				} else if (cmd->cmd == LC_SEGMENT) {
+					auto seg = reinterpret_cast<segment_command *>(currPtr);
+					if (seg->fileoff == 0 && seg->filesize > 0)
+						vmBase = seg->vmaddr;
+				} else if (cmd->cmd == LC_SEGMENT_64) {
+					auto seg = reinterpret_cast<segment_command_64 *>(currPtr);
+					if (seg->fileoff == 0 && seg->filesize > 0)
+						vmBase = seg->vmaddr;
+				}
+				currPtr += cmd->cmdsize;
+			}
+
+			if (entry64) {
+				if (ep) *ep = *entry64;
+				*entry64 = newEp + (vmEp ? vmBase : 0);
+			} else if (entry32) {
+				if (ep) *ep = *entry32;
+				*entry32 = static_cast<uint32_t>(newEp + (vmEp ? vmBase : 0));
+			} else {
+				SYSLOG("user", "failed to find valid entrypoint");
+				return false;
+			}
+
+			vm_prot_t prots[sizeof(tmpBufferData)/PAGE_SIZE] {};
+
+			for (size_t i = 0; i < arrsize(prots); i++) {
+				prots[i] = getPageProtection(taskPort, baseAddr + i * PAGE_SIZE);
+
+				// Note, that we don't restore memory protection if we fail somewhere (no need to push something non-critical)
+				// Enable writing for the calculated regions
+				if (!(prots[i] & VM_PROT_WRITE)) {
+					auto res = vm_protect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]|VM_PROT_WRITE);
+					if (res != KERN_SUCCESS) {
+						SYSLOG("user", "failed to change memory protection (%lu, %d)", i, res);
+						return false;
+					}
+				}
+			}
+
+			// Write new ep
+			lilu_os_memcpy(tmpBufferData + newEp, payload, size);
+			auto res = orgVmMapWriteUser(taskPort, tmpBufferData, baseAddr, sizeof(tmpBufferData));
+			if (res != KERN_SUCCESS) {
+				SYSLOG("user", "failed to chage ep (%d)", res);
+				return false;
+			}
+
+			// Restore protection flags
+			for (size_t i = 0; i < arrsize(prots); i++) {
+				if (!(prots[i] & VM_PROT_WRITE)) {
+					res = vm_protect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]);
+					if (res != KERN_SUCCESS) {
+						SYSLOG("user", "failed to restore memory protection (%lu, %d)", i, res);
+						return true;
+					}
+				}
+			}
+
+		} else {
+			SYSLOG("user", "unknown header magic %X", machHeader->magic);
+		}
+	} else {
+		SYSLOG("user", "could not read target mach-o header (error %d)", err);
+		return false;
+	}
+
 	return true;
 }
 
@@ -468,7 +580,10 @@ size_t UserPatcher::mapAddresses(const char *mapBuf, MapEntry *mapEntries, size_
 
 bool UserPatcher::loadDyldSharedCacheMapping() {
 	DBGLOG("user", "loading files %lu", binaryModSize);
-	
+
+	if (binaryModSize == 0)
+		return true;
+
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
 	for (size_t i = 0; i < sharedCacheMapPathsNum; i++) {
