@@ -1,5 +1,5 @@
 #
-#  entry32.S
+#  entry64.S
 #  Lilu
 #
 #  Copyright © 2018 vit9696. All rights reserved.
