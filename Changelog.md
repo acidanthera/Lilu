@@ -9,6 +9,7 @@ Lilu Changelog
 - Added PCI register and address manipulation API
 - Added basic process modification API
 - Added plugin IOService access
+- Added address-printing macros
 - Fixed several inline function definitions
 - Fixed crash when loading user patches with no binary patches
 

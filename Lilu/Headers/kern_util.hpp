@@ -170,6 +170,14 @@ extern proc_t kernproc;
 #endif
 
 /**
+ *  Macros to bypass kernel address printing protection
+ */
+#define PRIKADDR "0x%08X%08X"
+#define CASTKADDR(x) \
+	static_cast<uint32_t>(reinterpret_cast<uint64_t>(x) >> 32), \
+	static_cast<uint32_t>(reinterpret_cast<uint64_t>(x))
+
+/**
  *  Export function or symbol for linking
  */
 #define EXPORT __attribute__((visibility("default")))

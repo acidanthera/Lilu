@@ -222,11 +222,23 @@ void UserPatcher::patchBinary(vm_map_t map, const char *path, uint32_t len) {
 	userCallback.first(userCallback.second, *this, map, path, len);
 }
 
+bool UserPatcher::getTaskHeader(vm_map_t taskPort, mach_header_64 &header) {
+	auto baseAddr = orgGetMapMin(taskPort);
+	DBGLOG("user", "getTaskHeader map min is " PRIKADDR, CASTKADDR(baseAddr));
+
+	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, &header, sizeof(mach_header_64));
+	if (err == KERN_SUCCESS)
+		return true;
+
+	SYSLOG("user", "failed to read image header %d", err);
+	return false;
+}
+
 bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	// Get task's mach-o header and determine its cpu type
 	auto baseAddr = orgGetMapMin(taskPort);
 	
-	DBGLOG("user", "get_map_min returned %llX", baseAddr);
+	DBGLOG("user", "injectRestrict map min is " PRIKADDR, CASTKADDR(baseAddr));
 
 	auto &tmpHeader = *reinterpret_cast<mach_header_64 *>(tmpBufferData);
 	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, &tmpHeader, sizeof(mach_header_64));
@@ -316,7 +328,35 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 	return true;
 }
 
-bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size, uintptr_t *ep) {
+vm_address_t UserPatcher::injectSegment(vm_map_t taskPort, vm_address_t addr, uint8_t *payload, size_t size, vm_prot_t prot) {
+	auto ret = vm_allocate(taskPort, &addr, size, VM_FLAGS_FIXED);
+	if (ret != KERN_SUCCESS) {
+		SYSLOG("user", "vm_allocate fail %d", ret);
+		return 0;
+	}
+
+	auto writeProt = prot|VM_PROT_READ|VM_PROT_WRITE;
+	ret = vm_protect(taskPort, addr, size, FALSE, writeProt);
+	if (ret == KERN_SUCCESS) {
+		ret = orgVmMapWriteUser(taskPort, payload, addr, size);
+		if (ret == KERN_SUCCESS) {
+			if (writeProt != prot)
+				ret = vm_protect(taskPort, addr, size, FALSE, prot);
+			if (ret == KERN_SUCCESS)
+				return addr;
+			else
+				SYSLOG("user", "vm_protect final %X fail %d", prot, ret);
+		} else {
+			SYSLOG("user", "vm_write_user fail %d", ret);
+		}
+	} else {
+		SYSLOG("user", "vm_protect initial %X fail %d", writeProt, ret);
+	}
+
+	return 0;
+}
+
+bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size, void *ep) {
 	if (size > PAGE_SIZE) {
 		SYSLOG("user", "unreasonably large payload %lu", size);
 		return false;
@@ -324,7 +364,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 
 	// Get task's mach-o header and determine its cpu type
 	auto baseAddr = orgGetMapMin(taskPort);
-	DBGLOG("user", "get_map_min returned %llX", baseAddr);
+	DBGLOG("user", "injectPayload map min is " PRIKADDR, CASTKADDR(baseAddr));
 
 	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, tmpBufferData, sizeof(tmpBufferData));
 	auto machHeader = reinterpret_cast<mach_header_64 *>(tmpBufferData);
@@ -370,15 +410,23 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 				currPtr += cmd->cmdsize;
 			}
 
+			uintptr_t orgEp = baseAddr - (vmEp ? vmBase : 0);
 			if (entry64) {
-				if (ep) *ep = *entry64;
+				orgEp += *entry64;
 				*entry64 = newEp + (vmEp ? vmBase : 0);
 			} else if (entry32) {
-				if (ep) *ep = *entry32;
+				orgEp += *entry32;
 				*entry32 = static_cast<uint32_t>(newEp + (vmEp ? vmBase : 0));
 			} else {
 				SYSLOG("user", "failed to find valid entrypoint");
 				return false;
+			}
+
+			if (ep) {
+				if (machHeader->magic == MH_MAGIC_64)
+					*static_cast<uint64_t *>(ep) = orgEp;
+				else
+					*static_cast<uint32_t *>(ep) = static_cast<uint32_t>(orgEp);
 			}
 
 			vm_prot_t prots[sizeof(tmpBufferData)/PAGE_SIZE] {};
