@@ -180,6 +180,10 @@
 		CE405ED51E4A005F00AA0B3D /* plugin_start.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = plugin_start.cpp; sourceTree = "<group>"; };
 		CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_config.hpp; sourceTree = "<group>"; };
 		CE5720AC1E54B7CA00C6B552 /* KnownPlugins.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = KnownPlugins.md; sourceTree = "<group>"; };
+		CE5E79D4205D803C0025560A /* entry32.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = entry32.S; sourceTree = "<group>"; };
+		CE5E79D5205D803C0025560A /* entry64.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = entry64.S; sourceTree = "<group>"; };
+		CE5E79D8205D9E470025560A /* build.tool */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = build.tool; sourceTree = "<group>"; };
+		CE5E79DA205DAEEB0025560A /* wrappers.inc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.pascal; path = wrappers.inc; sourceTree = "<group>"; };
 		CE744A8A1F42100E0077C377 /* hde64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hde64.c; sourceTree = "<group>"; };
 		CE744A8B1F42100E0077C377 /* hde64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hde64.h; sourceTree = "<group>"; };
 		CE744A8C1F42100E0077C377 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
@@ -403,12 +407,24 @@
 				CEB6D9771F69B42D005B6AC3 /* corecrypto */,
 				CEB6D9801F69B42D005B6AC3 /* libkern */,
 				CE75B9531EFB619C00D29B40 /* security */,
+				CE5E79D3205D803C0025560A /* wrappers */,
 				CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */,
 				CE2E7BE41E2C73B1009AC62A /* libkmod.a */,
 				CE405ED51E4A005F00AA0B3D /* plugin_start.cpp */,
 			);
 			name = Library;
 			path = Lilu/Library;
+			sourceTree = "<group>";
+		};
+		CE5E79D3205D803C0025560A /* wrappers */ = {
+			isa = PBXGroup;
+			children = (
+				CE5E79D4205D803C0025560A /* entry32.S */,
+				CE5E79D5205D803C0025560A /* entry64.S */,
+				CE5E79D8205D9E470025560A /* build.tool */,
+				CE5E79DA205DAEEB0025560A /* wrappers.inc */,
+			);
+			path = wrappers;
 			sourceTree = "<group>";
 		};
 		CE744A891F42100E0077C377 /* hde */ = {
@@ -559,7 +575,6 @@
 				1C748C221C21952C0024EED2 /* Sources */,
 				1C748C231C21952C0024EED2 /* Frameworks */,
 				1C748C241C21952C0024EED2 /* Headers */,
-				1C748C251C21952C0024EED2 /* Resources */,
 				CE3CFAEF1E509A7800336BF6 /* Copy SDK */,
 				CE131D691FB723FC0036C3A0 /* Archive */,
 			);
@@ -602,16 +617,6 @@
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXResourcesBuildPhase section */
-		1C748C251C21952C0024EED2 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		CE131D691FB723FC0036C3A0 /* Archive */ = {

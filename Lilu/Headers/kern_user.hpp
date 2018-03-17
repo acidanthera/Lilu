@@ -160,6 +160,16 @@ public:
 	bool registerPatches(ProcInfo **procs, size_t procNum, BinaryModInfo **mods, size_t modNum, t_BinaryLoaded callback, void *user);
 
 	/**
+	 *  Reads current process header
+	 *
+	 *  @param map     vm map
+	 *  @param header  Mach-O header
+	 *
+	 *  @return false on failure
+	 */
+	EXPORT bool getTaskHeader(vm_map_t map, mach_header_64 &header);
+
+	/**
 	 *  Disables dyld_shared_cache for the current process
 	 *
 	 *  @param map  vm map
@@ -178,7 +188,20 @@ public:
 	 *
 	 *  @return false on mach image failure
 	 */
-	EXPORT bool injectPayload(vm_map_t map, uint8_t *payload, size_t size, uintptr_t *ep=nullptr);
+	EXPORT bool injectPayload(vm_map_t map, uint8_t *payload, size_t size, void *ep=nullptr);
+
+	/**
+	 *  Allocates a new segment in the process.
+	 *
+	 *  @param map      vm map
+	 *  @param addr     allocation address (e.g. a little below SHARED_REGION_BASE_X86_64)
+	 *  @param payload  code
+	 *  @param size     code size (must be PAGE_SIZE-aligned)
+	 *  @param prot     segment protection
+	 *
+	 *  @return allocated address or 0 on failure
+	 */
+	EXPORT vm_address_t injectSegment(vm_map_t taskPort, vm_address_t addr, uint8_t *payload, size_t size, vm_prot_t prot);
 
 	/**
 	 *  Activates monitoring functions if necessary
