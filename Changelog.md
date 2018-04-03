@@ -10,8 +10,11 @@ Lilu Changelog
 - Added basic process modification API
 - Added plugin IOService access
 - Added address-printing macros
+- Added address validation API
+- Added strict kext UUID validation to workaround broken kextcache
 - Fixed several inline function definitions
 - Fixed crash when loading user patches with no binary patches
+- Reduced long patch length in function routing API
 
 #### v1.2.2
 - Acknowledged macOS Install Data and com.apple.recovery.boot prelinkedkernel paths (thx Piker-Alpha)

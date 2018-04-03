@@ -320,7 +320,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
 	
-	DBGLOG("patcher", "diff %llX argument %X", diff, newArgument);
+	DBGLOG("patcher", "from " PRIKADDR " to " PRIKADDR " diff " PRIKADDR " argument %X", CASTKADDR(from), CASTKADDR(from), CASTKADDR(diff), newArgument);
 	
 	bool absolute {false};
 	
@@ -336,19 +336,21 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		if (!trampoline) return EINVAL;
 	}
 	
-	Patch::All *opcode, *argument;
+	Patch::All *opcode = nullptr, *argument = nullptr, *disp = nullptr;
 	if (absolute) {
-		opcode = Patch::create<Patch::Variant::U64>(from, 0x0225FF);
-		argument = Patch::create<Patch::Variant::U64>(from+sizeof(uint64_t), to);
+		opcode = Patch::create<Patch::Variant::U16>(from, 0x25FF);
+		argument = Patch::create<Patch::Variant::U32>(from+2, 0);
+		disp = Patch::create<Patch::Variant::U64>(from+6, to);
 	} else {
 		opcode = Patch::create<Patch::Variant::U8>(from, 0xE9);
 		argument = Patch::create<Patch::Variant::U32>(from+1, newArgument);
 	}
 	
-	if (!opcode || !argument) {
+	if (!opcode || !argument || (absolute && !disp)) {
 		SYSLOG("patcher", "cannot create the necessary patches");
 		code = Error::MemoryIssue;
 		Patch::deleter(opcode); Patch::deleter(argument);
+		if (disp) Patch::deleter(disp);
 		return EINVAL;
 	}
 	
@@ -356,11 +358,13 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		SYSLOG("patcher", "cannot change kernel memory protection");
 		code = Error::MemoryProtection;
 		Patch::deleter(opcode); Patch::deleter(argument);
+		if (disp) Patch::deleter(disp);
 		return EINVAL;
 	}
 	
 	opcode->patch();
 	argument->patch();
+	if (disp) disp->patch();
 
 	if (kernelRoute) {
 		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
@@ -368,17 +372,20 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		if (revertible) {
 			auto oidx = kpatches.push_back(opcode);
 			auto aidx = kpatches.push_back(argument);
+			auto didx = disp ? kpatches.push_back(disp) : 0;
 
-			if (oidx && aidx)
+			if (oidx && aidx && (!disp || didx))
 				return trampoline;
 			
 			SYSLOG("patcher", "failed to store patches for later removal, you are in trouble");
 			if (oidx) kpatches.erase(oidx);
 			if (aidx) kpatches.erase(aidx);
+			if (didx) kpatches.erase(didx);
 		}
 	}
 	
 	Patch::deleter(opcode); Patch::deleter(argument);
+	if (disp) Patch::deleter(disp);
 	return trampoline;
 }
 
@@ -499,11 +506,16 @@ void KernelPatcher::onKextSummariesUpdated() {
 					DBGLOG("patcher", "last kext is %llX and its name is %.*s", last.address, KMOD_MAX_NAME, last.name);
 					// We may add khandlers items inside the handler
 					for (size_t i = 0; i < that->khandlers.size(); i++) {
-						if (!strncmp(that->khandlers[i]->id, last.name, KMOD_MAX_NAME)) {
-							DBGLOG("patcher", "caught the right kext at %llX, invoking handler", last.address);
-							that->khandlers[i]->address = last.address;
-							that->khandlers[i]->size = last.size;
-							that->khandlers[i]->handler(that->khandlers[i]);
+						auto handler = that->khandlers[i];
+						if (!strncmp(handler->id, last.name, KMOD_MAX_NAME)) {
+							DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(last.address));
+							if (!that->kinfos[handler->index]->isCurrentBinary(last.address)) {
+								SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", last.name, CASTKADDR(last.address));
+								continue;
+							}
+							handler->address = last.address;
+							handler->size = last.size;
+							handler->handler(handler);
 							// Remove the item
 							if (!that->khandlers[i]->reloadable)
 								that->khandlers.erase(i);
@@ -531,7 +543,11 @@ void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries
 			auto handler = khandlers[j];
 			if (handler->loaded) {
 				if (!strncmp(handler->id, curr.name, KMOD_MAX_NAME)) {
-					DBGLOG("patcher", "discovered the right kext %s at %llX, invoking handler", curr.name, curr.address);
+					DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", curr.name, CASTKADDR(curr.address));
+					if (!kinfos[handler->index]->isCurrentBinary(curr.address)) {
+						SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", curr.name, CASTKADDR(curr.address));
+						continue;
+					}
 					handler->address = curr.address;
 					handler->size = curr.size;
 					handler->handler(handler);

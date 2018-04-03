@@ -41,7 +41,8 @@ public:
 		PointerRange,
 		AlreadyDone,
 		LockError,
-		Unsupported
+		Unsupported,
+		InvalidSymbolFound
 	};
 	
 	/**
@@ -166,7 +167,36 @@ public:
 	 *  @return running symbol address or 0
 	 */
 	EXPORT mach_vm_address_t solveSymbol(size_t id, const char *symbol);
-	
+
+	/**
+	 *  Solve a kinfo symbol in range with designated type
+	 *
+	 *  @param id      loaded kinfo id
+	 *  @param symbol  symbol to solve
+	 *  @param start   start address range
+	 *  @param size    address range size
+	 *  @param crash   kernel panic on invalid non-zero address
+	 *
+	 *  @return running symbol address or 0 casted to type T (mach_vm_address_t)
+	 */
+	template <typename T = mach_vm_address_t>
+	inline T solveSymbol(size_t id, const char *symbol, mach_vm_address_t start, size_t size, bool crash=false) {
+		auto addr = solveSymbol(id, symbol);
+		if (addr) {
+			if (addr >= start && addr < start + size)
+				return (T)addr;
+
+			code = Error::InvalidSymbolFound;
+			SYSTRACE("patcher", "address " PRIKADDR " is out of range " PRIKADDR " with size %lX",
+				CASTKADDR(addr), CASTKADDR(start), size);
+
+			PANIC_COND(crash, "patcher", "address " PRIKADDR " is out of range " PRIKADDR " with size %lX",
+				CASTKADDR(addr), CASTKADDR(start), size);
+		}
+
+		return (T)nullptr;
+	}
+
 	/**
 	 *  Hook kext loading and unloading to access kexts at early stage
 	 */
@@ -395,7 +425,7 @@ private:
 	 *  Jump instruction sizes
 	 */
 	static constexpr size_t SmallJump {1 + sizeof(int32_t)};
-	static constexpr size_t LongJump {2 * sizeof(uint64_t)};
+	static constexpr size_t LongJump {6 + sizeof(uint64_t)};
 	
 	/**
 	 *  Possible kernel paths

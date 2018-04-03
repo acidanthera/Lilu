@@ -136,7 +136,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 			auto path = paths[i];
 			char tmppath[PATH_MAX];
 			// Prefer the suffixed version
-			if (suffixnum - j > 0) {
+			if (j != suffixnum) {
 				snprintf(tmppath, sizeof(tmppath), "%s.%s", path, suffix);
 				path = tmppath;
 			}
@@ -146,7 +146,8 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 			if (!err) {
 				DBGLOG("mach", "readMachHeader for %s", path);
 				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
-				if (readError == KERN_SUCCESS && (!isKernel || (isKernel && isCurrentKernel(machHeader)))) {
+				if (readError == KERN_SUCCESS && loadUUID(machHeader) &&
+					(!isKernel || isCurrentBinary())) {
 					DBGLOG("mach", "found executable at path: %s", path);
 					found = true;
 					break;
@@ -198,7 +199,7 @@ mach_vm_address_t MachInfo::findKernelBase() {
 		if (*reinterpret_cast<uint32_t *>(tmp) == MH_MAGIC_64) {
 			// make sure it's the header and not some reference to the MAGIC number
 			auto segmentCommand = reinterpret_cast<segment_command_64 *>(tmp + sizeof(mach_header_64));
-			if (!strncmp(segmentCommand->segname, "__TEXT", strlen("__TEXT"))) {
+			if (!strncmp(segmentCommand->segname, "__TEXT", sizeof(segmentCommand->segname))) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
 				return tmp;
 			}
@@ -514,10 +515,10 @@ void MachInfo::processMachHeader(void *header) {
 		if (loadCmd->cmd == LC_SEGMENT_64) {
 			segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
-			if (strncmp(segCmd->segname, "__TEXT", strlen("__TEXT")) == 0) {
+			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found TEXT");
 				disk_text_addr = segCmd->vmaddr;
-			} else if (strncmp(segCmd->segname, "__LINKEDIT", strlen("__LINKEDIT")) == 0) {
+			} else if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found LINKEDIT");
 				linkedit_fileoff = segCmd->fileoff;
 				linkedit_size = segCmd->filesize;
@@ -662,7 +663,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
-				if (strncmp(segCmd->segname, "__TEXT", 16) == 0) {
+				if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 					running_text_addr = segCmd->vmaddr;
 					running_mh = mh;
 					break;
@@ -704,10 +705,10 @@ void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 
 uint64_t *MachInfo::getUUID(void *header) {
 	if (!header) return nullptr;
-	
+
 	auto mh = static_cast<mach_header_64 *>(header);
 	size_t size = sizeof(mach_header_64);
-	
+
 	auto *addr = static_cast<uint8_t *>(header) + size;
 	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
 	for (uint32_t i = 0; i < mh->ncmds; i++) {
@@ -719,21 +720,39 @@ uint64_t *MachInfo::getUUID(void *header) {
 		}
 
 		if (loadCmd->cmd == LC_UUID)
-			return reinterpret_cast<uint64_t *>((reinterpret_cast<uuid_command *>(loadCmd))->uuid);
-		
+			return reinterpret_cast<uint64_t *>(reinterpret_cast<uuid_command *>(loadCmd)->uuid);
+
 		addr += loadCmd->cmdsize;
 	}
-	
+
 	return nullptr;
 }
 
-bool MachInfo::isCurrentKernel(void *kernelHeader) {
-	mach_vm_address_t kernelBase = findKernelBase();
-	
-	uint64_t *uuid1 = getUUID(kernelHeader);
-	uint64_t *uuid2 = getUUID(reinterpret_cast<void *>(kernelBase));
+bool MachInfo::loadUUID(void *header) {
+	auto p = getUUID(header);
+	if (p) {
+		self_uuid[0] = p[0];
+		self_uuid[1] = p[1];
+		return true;
+	}
+	return false;
+}
 
-	return uuid1 && uuid2 && uuid1[0] == uuid2[0] && uuid1[1] == uuid2[1];
+bool MachInfo::isCurrentBinary(mach_vm_address_t base) {
+	auto binaryBase = reinterpret_cast<void *>(base ? base : findKernelBase());
+	auto binaryUUID = binaryBase ? getUUID(binaryBase) : nullptr;
+
+	bool match = binaryUUID && self_uuid[0] == binaryUUID[0] && self_uuid[1] == binaryUUID[1];
+
+	if (!match) {
+		if (binaryUUID)
+			DBGLOG("mach", "binary UUID is " PRIUUID, CASTUUID(binaryUUID));
+		else
+			DBGLOG("mach", "binary UUID is missing");
+		DBGLOG("mach", "self UUID is " PRIUUID, CASTUUID(self_uuid));
+	}
+
+	return match;
 }
 
 kern_return_t MachInfo::setWPBit(bool enable) {
