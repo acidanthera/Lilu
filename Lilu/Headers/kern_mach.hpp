@@ -41,6 +41,7 @@ class MachInfo {
 	bool kaslr_slide_set {false};            // kaslr can be null, used for disambiguation
 	bool allow_decompress {true};            // allows mach decompression
 	bool prelink_slid {false};               // assume kaslr-slid kext addresses
+	uint64_t self_uuid[2] {};                // saved uuid of the loaded kext or kernel
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
@@ -55,6 +56,15 @@ class MachInfo {
 	 *  @return UUID or nullptr
 	 */
 	uint64_t *getUUID(void *header);
+
+	/**
+	 *  Retrieve and preserve LC_UUID command value from a mach header
+	 *
+	 *  @param header mach header pointer
+	 *
+	 *  @return true on success
+	 */
+	bool loadUUID(void *header);
 	
 	/**
 	 *  Enable/disable the Write Protection bit in CR0 register
@@ -137,7 +147,7 @@ class MachInfo {
 	 *  @return KERN_SUCCESS if loaded
 	 */
 	kern_return_t initFromFileSystem(const char * const paths[], size_t num);
-	
+
 public:
 
 	/**
@@ -229,6 +239,15 @@ public:
 	EXPORT mach_vm_address_t findKernelBase();
 
 	/**
+	 *  Compare the loaded kernel with the current UUID (see loadUUID)
+	 *
+	 *  @param base  image base, pass 0 to use kernel base
+	 *
+	 *  @return true if image uuids match
+	 */
+	EXPORT bool isCurrentBinary(mach_vm_address_t base=0);
+
+	/**
 	 *  Enable/disable interrupt handling
 	 *  this is similar to ml_set_interrupts_enabled except the return value
 	 *
@@ -247,15 +266,6 @@ public:
 	 *  @return KERN_SUCCESS if succeeded
 	 */
 	EXPORT static kern_return_t setKernelWriting(bool enable, IOSimpleLock *lock);
-	
-	/**
-	 *  Compare the loaded kernel with the passed kernel header
-	 *
-	 *  @param kernel_header 64-bit mach header of at least HeaderSize size
-	 *
-	 *  @return true if the kernel uuids match
-	 */
-	EXPORT bool isCurrentKernel(void *kernelHeader);
 	
 	/**
 	 *  Find section bounds in a passed binary for provided cpu

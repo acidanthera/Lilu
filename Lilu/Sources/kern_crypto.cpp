@@ -46,7 +46,7 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 	
 	uint8_t *pkey = nullptr;
 	if (!key && !(pkey = genPlatformKey())) {
-		SYSLOG("crypto", "encrypt unable to obtain key %d/%d", key != nullptr, pkey != nullptr);
+		SYSLOG("crypto", "encrypt unable to obtain platform key");
 		return nullptr;
 	}
 	
@@ -115,7 +115,7 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 	
 	uint8_t *pkey = nullptr;
 	if (!key && !(pkey = genPlatformKey())) {
-		SYSLOG("crypto", "decrypt unable to obtain key %d/%d", key != nullptr, pkey != nullptr);
+		SYSLOG("crypto", "decrypt unable to obtain platform key");
 		return nullptr;
 	}
 	

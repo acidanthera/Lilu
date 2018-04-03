@@ -178,6 +178,28 @@ extern proc_t kernproc;
 	static_cast<uint32_t>(reinterpret_cast<uint64_t>(x))
 
 /**
+ *  Macros to print the UUID
+ */
+#define PRIUUID "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X"
+#define CASTUUID(uuid) \
+	reinterpret_cast<const uint8_t *>(uuid)[0], \
+	reinterpret_cast<const uint8_t *>(uuid)[1], \
+	reinterpret_cast<const uint8_t *>(uuid)[2], \
+	reinterpret_cast<const uint8_t *>(uuid)[3], \
+	reinterpret_cast<const uint8_t *>(uuid)[4], \
+	reinterpret_cast<const uint8_t *>(uuid)[5], \
+	reinterpret_cast<const uint8_t *>(uuid)[6], \
+	reinterpret_cast<const uint8_t *>(uuid)[7], \
+	reinterpret_cast<const uint8_t *>(uuid)[8], \
+	reinterpret_cast<const uint8_t *>(uuid)[9], \
+	reinterpret_cast<const uint8_t *>(uuid)[10], \
+	reinterpret_cast<const uint8_t *>(uuid)[11], \
+	reinterpret_cast<const uint8_t *>(uuid)[12], \
+	reinterpret_cast<const uint8_t *>(uuid)[13], \
+	reinterpret_cast<const uint8_t *>(uuid)[14], \
+	reinterpret_cast<const uint8_t *>(uuid)[15]
+
+/**
  *  Export function or symbol for linking
  */
 #define EXPORT __attribute__((visibility("default")))
