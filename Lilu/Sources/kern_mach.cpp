@@ -86,13 +86,17 @@ kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
 		if (file_buf && file_buf_size >= HeaderSize) {
 			processMachHeader(file_buf);
 			if (linkedit_fileoff && symboltable_fileoff) {
-				// read linkedit from prelink
-				error = readLinkedit(NULLVP, nullptr);
-				if (error == KERN_SUCCESS) {
-					// for prelinked kexts assume that we have slide (this is true for modern os)
-					prelink_slid = true;
+				if (loadUUID(file_buf)) {
+					// read linkedit from prelink
+					error = readLinkedit(NULLVP, nullptr);
+					if (error == KERN_SUCCESS) {
+						// for prelinked kexts assume that we have slide (this is true for modern os)
+						prelink_slid = true;
+					} else {
+						SYSLOG("mach", "could not read the linkedit segment from prelink");
+					}
 				} else {
-					SYSLOG("mach", "could not read the linkedit segment from prelink");
+					SYSLOG("mach", "failed to get prelinked uuid");
 				}
 			} else {
 				SYSLOG("mach", "couldn't find the necessary mach segments or sections in prelink (linkedit %llX, sym %X)",
