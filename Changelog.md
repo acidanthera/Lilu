@@ -12,6 +12,7 @@ Lilu Changelog
 - Added address-printing macros
 - Added address validation API
 - Added strict kext UUID validation to workaround broken kextcache
+- Added version info reporting to IORegistry for Lilu and plugins
 - Fixed several inline function definitions
 - Fixed crash when loading user patches with no binary patches
 - Reduced long patch length in function routing API

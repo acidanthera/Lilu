@@ -20,12 +20,24 @@ bool ADDPR(debugEnabled) = false;
 
 #ifndef LILU_CUSTOM_IOKIT_INIT
 
+static const char kextVersion[] {
+#ifdef DEBUG
+	'D', 'B', 'G', '-',
+#else
+	'R', 'E', 'L', '-',
+#endif
+	xStringify(MODULE_VERSION)[0], xStringify(MODULE_VERSION)[2], xStringify(MODULE_VERSION)[4], '-',
+	getBuildYear<0>(), getBuildYear<1>(), getBuildYear<2>(), getBuildYear<3>(), '-',
+	getBuildMonth<0>(), getBuildMonth<1>(), '-', getBuildDay<0>(), getBuildDay<1>(), '\0'
+};
+
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
 PRODUCT_NAME *ADDPR(selfInstance) = nullptr;
 
 IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
 	ADDPR(selfInstance) = this;
+	setProperty("VersionInfo", kextVersion);
 	auto service = IOService::probe(provider, score);
 	return ADDPR(startSuccess) ? service : nullptr;
 }
