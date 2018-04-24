@@ -19,12 +19,12 @@
 bool NVStorage::init() {
 	dtEntry = IORegistryEntry::fromPath("/options", gIODTPlane);
 	if (!dtEntry) {
-		SYSLOG("nvram", "failed to get IODeviceTree:/options");
+		SYSLOG_COND(ADDPR(debugEnabled), "nvram", "failed to get IODeviceTree:/options");
 		return false;
 	}
 	
 	if (!OSDynamicCast(IODTNVRAM, dtEntry)) {
-		SYSLOG("nvram", "failed to get IODTNVRAM from IODeviceTree:/options");
+		SYSLOG_COND(ADDPR(debugEnabled), "nvram", "failed to get IODTNVRAM from IODeviceTree:/options");
 		dtEntry->release();
 		dtEntry = nullptr;
 		return false;

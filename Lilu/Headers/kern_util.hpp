@@ -328,6 +328,24 @@ inline T alignValue(T size, T align = 4096) {
 }
 
 /**
+ *  This is an ugly replacement to std::find_if, allowing you
+ *  to check whether a container consists only of value values.
+ *
+ *  @param in     container
+ *  @param size   container size
+ *  @param value  value to look for
+ *
+ *  @return true if an element different from value was found
+ */
+template <typename T, typename Y>
+inline bool findNotEquals(T &in, size_t size, Y value) {
+	for (size_t i = 0; i < size; i++)
+		if (in[i] != value)
+			return true;
+	return false;
+}
+
+/**
  *  Returns non-null string when they can be null
  *
  *  @param str  original string

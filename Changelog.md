@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.2.4
 - Internalize new APIs from 1.2.3
+- Added new EFI runtime API
 
 #### v1.2.3
 - Added CPU information API for cpu families and generations

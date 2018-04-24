@@ -94,6 +94,8 @@
 		CEB6D98B1F69B42D005B6AC3 /* aes.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9821F69B42D005B6AC3 /* aes.h */; };
 		CEB6D9931F69D8B9005B6AC3 /* kern_nvram.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */; };
 		CEB6D9951F69D8CF005B6AC3 /* kern_nvram.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */; };
+		CEC0C5EF208F99A6000BFE88 /* kern_efi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC0C5EE208F99A6000BFE88 /* kern_efi.cpp */; };
+		CEC0C5F2208F9A14000BFE88 /* kern_efi_trampoline.S in Sources */ = {isa = PBXBuildFile; fileRef = CEC0C5F1208F9A14000BFE88 /* kern_efi_trampoline.S */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -209,6 +211,9 @@
 		CEB6D9821F69B42D005B6AC3 /* aes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = aes.h; sourceTree = "<group>"; };
 		CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_nvram.cpp; path = Lilu/Sources/kern_nvram.cpp; sourceTree = "<group>"; };
 		CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_nvram.hpp; sourceTree = "<group>"; };
+		CEC0C5EE208F99A6000BFE88 /* kern_efi.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_efi.cpp; path = Lilu/Sources/kern_efi.cpp; sourceTree = "<group>"; };
+		CEC0C5F0208F99D8000BFE88 /* kern_efi.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_efi.hpp; sourceTree = "<group>"; };
+		CEC0C5F1208F9A14000BFE88 /* kern_efi_trampoline.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; name = kern_efi_trampoline.S; path = Lilu/Sources/kern_efi_trampoline.S; sourceTree = "<group>"; };
 		CEC962431D835DE000E3E772 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		CEC962461D835DE000E3E772 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CEC962471D835DE000E3E772 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -348,6 +353,7 @@
 				CE22EA372037A4BB002A88A5 /* kern_cpu.hpp */,
 				CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */,
 				CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */,
+				CEC0C5F0208F99D8000BFE88 /* kern_efi.hpp */,
 				CE2E7B891E2C6A73009AC62A /* kern_file.hpp */,
 				CE2E7B8A1E2C6A73009AC62A /* kern_iokit.hpp */,
 				CE2E7B8B1E2C6A73009AC62A /* kern_mach.hpp */,
@@ -370,6 +376,8 @@
 				CE3EEE0F208F6738003E1C0C /* kern_cpu.cpp */,
 				CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */,
 				CE2E7BA51E2C6BAA009AC62A /* kern_disasm.cpp */,
+				CEC0C5EE208F99A6000BFE88 /* kern_efi.cpp */,
+				CEC0C5F1208F9A14000BFE88 /* kern_efi_trampoline.S */,
 				CE2E7BA61E2C6BAA009AC62A /* kern_file.cpp */,
 				CE2E7BA71E2C6BAA009AC62A /* kern_iokit.cpp */,
 				CE2E7BA81E2C6BAA009AC62A /* kern_mach.cpp */,
@@ -663,6 +671,7 @@
 				1C3E7B281C84B65400A6448A /* X86Disassembler.c in Sources */,
 				CE2E7BB61E2C6BAA009AC62A /* kern_start.cpp in Sources */,
 				CE2E7BB01E2C6BAA009AC62A /* kern_disasm.cpp in Sources */,
+				CEC0C5EF208F99A6000BFE88 /* kern_efi.cpp in Sources */,
 				CE2E7BEB1E2C75CE009AC62A /* kern_api.cpp in Sources */,
 				1C3E7AE01C84B61700A6448A /* MCInst.c in Sources */,
 				1C3E7B161C84B65400A6448A /* X86Module.c in Sources */,
@@ -675,6 +684,7 @@
 				CE2E7BAF1E2C6BAA009AC62A /* kern_compression.cpp in Sources */,
 				1C3E7AE21C84B61700A6448A /* MCInstrDesc.c in Sources */,
 				CE2E7BB81E2C6BAA009AC62A /* kern_user.cpp in Sources */,
+				CEC0C5F2208F9A14000BFE88 /* kern_efi_trampoline.S in Sources */,
 				CE3EEE10208F6738003E1C0C /* kern_cpu.cpp in Sources */,
 				CE2E7BB91E2C6BAA009AC62A /* kern_util.cpp in Sources */,
 				CE2E7BB31E2C6BAA009AC62A /* kern_mach.cpp in Sources */,

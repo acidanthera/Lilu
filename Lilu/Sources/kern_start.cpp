@@ -11,6 +11,7 @@
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_api.hpp>
+#include <Headers/kern_efi.hpp>
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IORegistryEntry.h>
@@ -173,6 +174,9 @@ bool Configuration::getBootArguments() {
 }
 
 extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
+	// Make EFI runtime services available now, since they are standalone.
+	EfiRuntimeServices::activate();
+
 	if (config.getBootArguments()) {
 		DBGLOG("init", "initialising policy");
 		

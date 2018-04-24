@@ -23,6 +23,11 @@
 #define NVRAM_APPLE_PASSWORD_UI_GUID "9EBA2D25-BBE3-4AC2-A2C6-C87F44A1278C"
 
 /**
+ *  Custom GUID used for Lilu preferences
+ */
+#define LILU_CUSTOM_GUID "2660DD78-81D2-419D-8138-7B1F363F79A6"
+
+/**
  *  Prefix variable name with a GUID
  */
 #define NVRAM_PREFIX(x, y) x ":" y
