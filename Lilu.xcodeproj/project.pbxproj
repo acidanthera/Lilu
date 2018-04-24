@@ -71,6 +71,7 @@
 		CE2E7BE51E2C73B1009AC62A /* LegacyIOService.h in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */; };
 		CE2E7BE61E2C73B1009AC62A /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE2E7BE41E2C73B1009AC62A /* libkmod.a */; };
 		CE2E7BEB1E2C75CE009AC62A /* kern_api.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */; };
+		CE3EEE10208F6738003E1C0C /* kern_cpu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE3EEE0F208F6738003E1C0C /* kern_cpu.cpp */; };
 		CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */; };
 		CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */; };
 		CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */; };
@@ -174,6 +175,7 @@
 		CE2E7BE41E2C73B1009AC62A /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkmod.a; sourceTree = "<group>"; };
 		CE2E7BE91E2C7583009AC62A /* kern_api.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_api.hpp; sourceTree = "<group>"; };
 		CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_api.cpp; path = Lilu/Sources/kern_api.cpp; sourceTree = SOURCE_ROOT; };
+		CE3EEE0F208F6738003E1C0C /* kern_cpu.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_cpu.cpp; path = Lilu/Sources/kern_cpu.cpp; sourceTree = "<group>"; };
 		CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_config.hpp; sourceTree = "<group>"; };
 		CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_start.hpp; sourceTree = "<group>"; };
 		CE405ED41E4A005400AA0B3D /* plugin_start.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = plugin_start.hpp; sourceTree = "<group>"; };
@@ -365,6 +367,7 @@
 			children = (
 				CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */,
 				CE2E7BA41E2C6BAA009AC62A /* kern_compression.cpp */,
+				CE3EEE0F208F6738003E1C0C /* kern_cpu.cpp */,
 				CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */,
 				CE2E7BA51E2C6BAA009AC62A /* kern_disasm.cpp */,
 				CE2E7BA61E2C6BAA009AC62A /* kern_file.cpp */,
@@ -672,6 +675,7 @@
 				CE2E7BAF1E2C6BAA009AC62A /* kern_compression.cpp in Sources */,
 				1C3E7AE21C84B61700A6448A /* MCInstrDesc.c in Sources */,
 				CE2E7BB81E2C6BAA009AC62A /* kern_user.cpp in Sources */,
+				CE3EEE10208F6738003E1C0C /* kern_cpu.cpp in Sources */,
 				CE2E7BB91E2C6BAA009AC62A /* kern_util.cpp in Sources */,
 				CE2E7BB31E2C6BAA009AC62A /* kern_mach.cpp in Sources */,
 				CE2E7BB11E2C6BAA009AC62A /* kern_file.cpp in Sources */,
@@ -809,7 +813,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.3;
+				MODULE_VERSION = 1.2.4;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -865,7 +869,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.3;
+				MODULE_VERSION = 1.2.4;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

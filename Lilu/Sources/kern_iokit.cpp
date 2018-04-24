@@ -33,6 +33,94 @@ namespace WIOKit {
 		}
 		return nullptr;
 	}
+
+	uint32_t readPCIConfigValue(IORegistryEntry *service, uint32_t reg, uint32_t space, uint32_t size) {
+		auto read32 = reinterpret_cast<t_PCIConfigRead32 **>(service)[0][PCIConfigOffset::ConfigRead32];
+		auto read16 = reinterpret_cast<t_PCIConfigRead16 **>(service)[0][PCIConfigOffset::ConfigRead16];
+		auto read8  = reinterpret_cast<t_PCIConfigRead8  **>(service)[0][PCIConfigOffset::ConfigRead8];
+
+		if (space == 0) {
+			space = getMember<uint32_t>(service, 0xA8);
+			DBGLOG("igfx", "read pci config discovered %s space to be 0x%08X", safeString(service->getName()), space);
+		}
+
+		if (size != 0) {
+			switch (size) {
+				case 8:
+					return read8(service, space, reg);
+				case 16:
+					return read16(service, space, reg);
+				case 32:
+				default:
+					return read32(service, space, reg);
+			}
+		}
+
+		switch (reg) {
+			case kIOPCIConfigVendorID:
+				return read16(service, space, reg);
+			case kIOPCIConfigDeviceID:
+				return read16(service, space, reg);
+			case kIOPCIConfigCommand:
+				return read16(service, space, reg);
+			case kIOPCIConfigStatus:
+				return read16(service, space, reg);
+			case kIOPCIConfigRevisionID:
+				return read8(service, space, reg);
+			case kIOPCIConfigClassCode:
+				return read32(service, space, reg);
+			case kIOPCIConfigCacheLineSize:
+				return read8(service, space, reg);
+			case kIOPCIConfigLatencyTimer:
+				return read8(service, space, reg);
+			case kIOPCIConfigHeaderType:
+				return read8(service, space, reg);
+			case kIOPCIConfigBIST:
+				return read8(service, space, reg);
+			case kIOPCIConfigBaseAddress0:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress1:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress2:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress3:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress4:
+				return read32(service, space, reg);
+			case kIOPCIConfigBaseAddress5:
+				return read32(service, space, reg);
+			case kIOPCIConfigCardBusCISPtr:
+				return read32(service, space, reg);
+			case kIOPCIConfigSubSystemVendorID:
+				return read16(service, space, reg);
+			case kIOPCIConfigSubSystemID:
+				return read16(service, space, reg);
+			case kIOPCIConfigExpansionROMBase:
+				return read32(service, space, reg);
+			case kIOPCIConfigCapabilitiesPtr:
+				return read32(service, space, reg);
+			case kIOPCIConfigInterruptLine:
+				return read8(service, space, reg);
+			case kIOPCIConfigInterruptPin:
+				return read8(service, space, reg);
+			case kIOPCIConfigMinimumGrant:
+				return read8(service, space, reg);
+			case kIOPCIConfigMaximumLatency:
+				return read8(service, space, reg);
+			default:
+				return read32(service, space, reg);
+		}
+	}
+
+	void getDeviceAddress(IORegistryEntry *service, uint8_t &bus, uint8_t &device, uint8_t &function) {
+		auto getBus = reinterpret_cast<t_PCIGetBusNumber **>(service)[0][PCIConfigOffset::GetBusNumber];
+		auto getDevice = reinterpret_cast<t_PCIGetDeviceNumber **>(service)[0][PCIConfigOffset::GetDeviceNumber];
+		auto getFunction = reinterpret_cast<t_PCIGetFunctionNumber **>(service)[0][PCIConfigOffset::GetFunctionNumber];
+
+		bus = getBus(service);
+		device = getDevice(service);
+		function = getFunction(service);
+	}
 	
 	int getComputerModel() {
 		char model[64];
@@ -141,6 +229,50 @@ namespace WIOKit {
 			}
 		} else {
 			SYSLOG("iokit", "missing registry root!");
+		}
+
+		return false;
+	}
+
+	bool renameDevice(IORegistryEntry *entry, const char *name, bool compat) {
+		if (!entry || !name)
+			return false;
+
+		entry->setName(name);
+
+		if (!compat)
+			return true;
+
+		auto compatibleProp = OSDynamicCast(OSData, entry->getProperty("compatible"));
+		if (!compatibleProp)
+			return true;
+
+		uint32_t compatibleSz = compatibleProp->getLength();
+		auto compatibleStr = static_cast<const char *>(compatibleProp->getBytesNoCopy());
+		DBGLOG("iokit", "compatible property starts with %s and is %u bytes", compatibleStr ? compatibleStr : "(null)", compatibleSz);
+
+		if (compatibleStr) {
+			for (uint32_t i = 0; i < compatibleSz; i++) {
+				if (!strcmp(&compatibleStr[i], name)) {
+					DBGLOG("iokit", "found %s in compatible, ignoring", name);
+					return true;
+				}
+
+				i += strlen(&compatibleStr[i]);
+			}
+
+			uint32_t nameSize = static_cast<uint32_t>(strlen(name)+1);
+			uint32_t compatibleBufSz = compatibleSz + nameSize;
+			uint8_t *compatibleBuf = Buffer::create<uint8_t>(compatibleBufSz);
+			if (compatibleBuf) {
+				DBGLOG("iokit", "fixing compatible to have %s", name);
+				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
+				lilu_os_memcpy(&compatibleBuf[compatibleSz], name, nameSize);
+				entry->setProperty("compatible", OSData::withBytes(compatibleBuf, compatibleBufSz));
+				return true;
+			} else {
+				SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);
+			}
 		}
 
 		return false;
