@@ -18,6 +18,7 @@ Please note that improperly written immature plugins will not be listed there.
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Various patches necessary for certain Intel GPUs | 1.2.0+
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Patches for DVMT problem on Broadwell/Skylake Intel Graphics | 1.2.0+
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models | 2.2+
+[NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs | 1.0.0+
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Various patches necessary for certain NVIDIA GPUs | 1.2.0+
 [Shiki](https://github.com/vit9696/Shiki) | Protected video playback support and hardware video acceleration on various hardware | 2.1.0+
 [WhateverGreen](https://github.com/vit9696/WhateverGreen) | Various patches necessary for certain ATI/AMD GPUs | 1.1.0+
