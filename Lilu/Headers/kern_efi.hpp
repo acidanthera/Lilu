@@ -34,9 +34,11 @@ public:
 	static void activate();
 
 	/**
-	 *  LILU_CUSTOM_GUID binary export
+	 *  Lilu custom GUIDs exports, see Headers/Guid/LiluVariables.h
 	 */
-	EXPORT static EFI_GUID LiluGuid;
+	EXPORT static EFI_GUID LiluNormalGuid;
+	EXPORT static EFI_GUID LiluReadOnlyGuid;
+	EXPORT static EFI_GUID LiluWriteOnlyGuid;
 
 	/**
 	 *  Get EFI Runtime Services wrapper if supported

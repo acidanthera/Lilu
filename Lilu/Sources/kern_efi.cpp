@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_util.hpp>
+#include <Headers/Guid/LiluVariables.h>
 #include <Library/LegacyIOService.h>
 #include <pexpert/i386/efi.h>
 #include <IOKit/IODeviceTreeSupport.h>
@@ -14,9 +15,9 @@
 
 EfiRuntimeServices *EfiRuntimeServices::instance;
 
-EFI_GUID EfiRuntimeServices::LiluGuid {
-	0x2660DD78, 0x81D2, 0x419D, { 0x81, 0x38, 0x7B, 0x1F, 0x36, 0x3F, 0x79, 0xA6 }
-};
+EFI_GUID EfiRuntimeServices::LiluNormalGuid = LILU_NORMAL_VARIABLE_GUID;
+EFI_GUID EfiRuntimeServices::LiluReadOnlyGuid = LILU_READ_ONLY_VARIABLE_GUID;
+EFI_GUID EfiRuntimeServices::LiluWriteOnlyGuid = LILU_WRITE_ONLY_VARIABLE_GUID;
 
 /**
  * Load registers with these values.

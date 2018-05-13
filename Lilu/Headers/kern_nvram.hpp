@@ -23,9 +23,12 @@
 #define NVRAM_APPLE_PASSWORD_UI_GUID "9EBA2D25-BBE3-4AC2-A2C6-C87F44A1278C"
 
 /**
- *  Custom GUID used for Lilu preferences
+ *  Custom GUIDs used for Lilu preferences
+ *  Must be kept in sync to Headers/Guid/LiluVariables.h
  */
-#define LILU_CUSTOM_GUID "2660DD78-81D2-419D-8138-7B1F363F79A6"
+#define LILU_NORMAL_GUID "2660DD78-81D2-419D-8138-7B1F363F79A6"
+#define LILU_READ_ONLY_GUID "E09B9297-7928-4440-9AAB-D1F8536FBF0A"
+#define LILU_WRITE_ONLY_GUID "F0B9AF8F-2222-4840-8A37-ECF7CC8C12E1"
 
 /**
  *  Prefix variable name with a GUID

@@ -71,6 +71,7 @@
 		CE2E7BE51E2C73B1009AC62A /* LegacyIOService.h in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */; };
 		CE2E7BE61E2C73B1009AC62A /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE2E7BE41E2C73B1009AC62A /* libkmod.a */; };
 		CE2E7BEB1E2C75CE009AC62A /* kern_api.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */; };
+		CE335AE52097444900C60A5F /* kern_rtc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE335AE42097444900C60A5F /* kern_rtc.cpp */; };
 		CE3EEE10208F6738003E1C0C /* kern_cpu.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE3EEE0F208F6738003E1C0C /* kern_cpu.cpp */; };
 		CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */; };
 		CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */; };
@@ -177,6 +178,8 @@
 		CE2E7BE41E2C73B1009AC62A /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkmod.a; sourceTree = "<group>"; };
 		CE2E7BE91E2C7583009AC62A /* kern_api.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_api.hpp; sourceTree = "<group>"; };
 		CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_api.cpp; path = Lilu/Sources/kern_api.cpp; sourceTree = SOURCE_ROOT; };
+		CE335AE32097442500C60A5F /* kern_rtc.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_rtc.hpp; sourceTree = "<group>"; };
+		CE335AE42097444900C60A5F /* kern_rtc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_rtc.cpp; path = Lilu/Sources/kern_rtc.cpp; sourceTree = "<group>"; };
 		CE3EEE0F208F6738003E1C0C /* kern_cpu.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_cpu.cpp; path = Lilu/Sources/kern_cpu.cpp; sourceTree = "<group>"; };
 		CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_config.hpp; sourceTree = "<group>"; };
 		CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_start.hpp; sourceTree = "<group>"; };
@@ -217,6 +220,7 @@
 		CEC962431D835DE000E3E772 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		CEC962461D835DE000E3E772 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CEC962471D835DE000E3E772 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		CED5DBE520A8538D001FE8CF /* LiluVariables.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LiluVariables.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -346,6 +350,7 @@
 		CE2E7B861E2C6A73009AC62A /* Headers */ = {
 			isa = PBXGroup;
 			children = (
+				CED5DBE420A8538D001FE8CF /* Guid */,
 				CE2E7BE91E2C7583009AC62A /* kern_api.hpp */,
 				CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */,
 				CE74B24C1F72D64000F90A08 /* kern_compat.hpp */,
@@ -360,6 +365,7 @@
 				CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */,
 				CE2E7B8C1E2C6A73009AC62A /* kern_patcher.hpp */,
 				CE2E7B8D1E2C6A73009AC62A /* kern_policy.hpp */,
+				CE335AE32097442500C60A5F /* kern_rtc.hpp */,
 				CE2E7B901E2C6A73009AC62A /* kern_user.hpp */,
 				CE2E7B921E2C6A73009AC62A /* kern_util.hpp */,
 				CE405ED41E4A005400AA0B3D /* plugin_start.hpp */,
@@ -384,6 +390,7 @@
 				CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */,
 				CE2E7BA91E2C6BAA009AC62A /* kern_patcher.cpp */,
 				CE2E7BAA1E2C6BAA009AC62A /* kern_policy.cpp */,
+				CE335AE42097444900C60A5F /* kern_rtc.cpp */,
 				CE2E7BAB1E2C6BAA009AC62A /* kern_start.cpp */,
 				CE2E7BAD1E2C6BAA009AC62A /* kern_user.cpp */,
 				CE2E7BAE1E2C6BAA009AC62A /* kern_util.cpp */,
@@ -508,6 +515,14 @@
 				CEC962471D835DE000E3E772 /* README.md */,
 			);
 			name = Docs;
+			sourceTree = "<group>";
+		};
+		CED5DBE420A8538D001FE8CF /* Guid */ = {
+			isa = PBXGroup;
+			children = (
+				CED5DBE520A8538D001FE8CF /* LiluVariables.h */,
+			);
+			path = Guid;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -668,6 +683,7 @@
 				CE2E7BB51E2C6BAA009AC62A /* kern_policy.cpp in Sources */,
 				1C3E7B261C84B65400A6448A /* X86DisassemblerDecoder.c in Sources */,
 				CE2E7BB41E2C6BAA009AC62A /* kern_patcher.cpp in Sources */,
+				CE335AE52097444900C60A5F /* kern_rtc.cpp in Sources */,
 				1C3E7B281C84B65400A6448A /* X86Disassembler.c in Sources */,
 				CE2E7BB61E2C6BAA009AC62A /* kern_start.cpp in Sources */,
 				CE2E7BB01E2C6BAA009AC62A /* kern_disasm.cpp in Sources */,
