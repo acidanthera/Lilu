@@ -36,6 +36,9 @@ bool RTCStorage::checkExtendedMemory() {
 }
 
 bool RTCStorage::read(uint64_t off, uint32_t size, uint8_t *buffer) {
+	if (!rtcSrv)
+		return false;
+
 	IOUserClient *rtcHandler = nullptr;
 	auto ret = rtcSrv->newUserClient(current_task(), current_task(), 0x101beef, &rtcHandler);
 	if (ret == kIOReturnSuccess) {
@@ -56,13 +59,16 @@ bool RTCStorage::read(uint64_t off, uint32_t size, uint8_t *buffer) {
 			return true;
 		SYSLOG("rtc", "rtc read failure %d bytes from %d %X", size, static_cast<uint32_t>(off), ret);
 	} else {
-		DBGLOG("rtc", "successful rtc read client obtain");
+		SYSLOG("rtc", "rtc read client obtain failure %X", ret);
 	}
 
 	return false;
 }
 
 bool RTCStorage::write(uint64_t off, uint32_t size, uint8_t *buffer) {
+	if (!rtcSrv)
+		return false;
+
 	IOUserClient *rtcHandler = nullptr;
 	auto ret = rtcSrv->newUserClient(current_task(), current_task(), 0x101beef, &rtcHandler);
 	if (ret == kIOReturnSuccess) {
@@ -83,7 +89,7 @@ bool RTCStorage::write(uint64_t off, uint32_t size, uint8_t *buffer) {
 			return true;
 		SYSLOG("rtc", "rtc write failure %d bytes from %d %X", size, static_cast<uint32_t>(off), ret);
 	} else {
-		DBGLOG("rtc", "successful rtc read client obtain");
+		SYSLOG("rtc", "rtc write client obtain failure %X", ret);
 	}
 
 	return false;
