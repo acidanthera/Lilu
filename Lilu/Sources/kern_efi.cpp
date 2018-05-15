@@ -15,9 +15,9 @@
 
 EfiRuntimeServices *EfiRuntimeServices::instance;
 
-EFI_GUID EfiRuntimeServices::LiluNormalGuid = LILU_NORMAL_VARIABLE_GUID;
-EFI_GUID EfiRuntimeServices::LiluReadOnlyGuid = LILU_READ_ONLY_VARIABLE_GUID;
-EFI_GUID EfiRuntimeServices::LiluWriteOnlyGuid = LILU_WRITE_ONLY_VARIABLE_GUID;
+const EFI_GUID EfiRuntimeServices::LiluNormalGuid = LILU_NORMAL_VARIABLE_GUID;
+const EFI_GUID EfiRuntimeServices::LiluReadOnlyGuid = LILU_READ_ONLY_VARIABLE_GUID;
+const EFI_GUID EfiRuntimeServices::LiluWriteOnlyGuid = LILU_WRITE_ONLY_VARIABLE_GUID;
 
 /**
  * Load registers with these values.
@@ -114,7 +114,7 @@ void EfiRuntimeServices::resetSystem(EFI_RESET_TYPE type) {
 		DBGLOG("efi", "efi call failure %d", code);
 }
 
-EFI_UINT64 EfiRuntimeServices::getVariable(EFI_CHAR16 *name, EFI_GUID *guid, EFI_UINT32 *attr, EFI_UINT64 *size, void *data) {
+uint64_t EfiRuntimeServices::getVariable(const char16_t *name, const EFI_GUID *guid, uint32_t *attr, uint64_t *size, void *data) {
 	uint64_t function = static_cast<EFI_RUNTIME_SERVICES_64 *>(gPEEFIRuntimeServices)->GetVariable;
 	pal_efi_registers regs {};
 	regs.rcx = reinterpret_cast<uint64_t>(name);
@@ -133,7 +133,7 @@ EFI_UINT64 EfiRuntimeServices::getVariable(EFI_CHAR16 *name, EFI_GUID *guid, EFI
 	return status;
 }
 
-EFI_UINT64 EfiRuntimeServices::setVariable(EFI_CHAR16 *name, EFI_GUID *guid, EFI_UINT32 attr, EFI_UINT64 size, void *data) {
+uint64_t EfiRuntimeServices::setVariable(const char16_t *name, const EFI_GUID *guid, uint32_t attr, uint64_t size, void *data) {
 	uint64_t function = static_cast<EFI_RUNTIME_SERVICES_64 *>(gPEEFIRuntimeServices)->SetVariable;
 	pal_efi_registers regs {};
 	regs.rcx = reinterpret_cast<uint64_t>(name);

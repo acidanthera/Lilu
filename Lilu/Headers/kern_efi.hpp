@@ -13,11 +13,6 @@
 #include <pexpert/i386/efi.h>
 
 /**
- *  Cast string literal to EFI literal
- */
-#define EFI_STR16_LITERAL(x) (EFI_CHAR16 *)u ## x
-
-/**
  *  Convert 32-bit EFI errors provided by Apple to 64-bit EFI errors
  */
 #define EFI_ERROR64(x) (((x) & ~(1ULL << 31)) | (1ULL << 63))
@@ -36,9 +31,9 @@ public:
 	/**
 	 *  Lilu custom GUIDs exports, see Headers/Guid/LiluVariables.h
 	 */
-	EXPORT static EFI_GUID LiluNormalGuid;
-	EXPORT static EFI_GUID LiluReadOnlyGuid;
-	EXPORT static EFI_GUID LiluWriteOnlyGuid;
+	EXPORT static const EFI_GUID LiluNormalGuid;
+	EXPORT static const EFI_GUID LiluReadOnlyGuid;
+	EXPORT static const EFI_GUID LiluWriteOnlyGuid;
 
 	/**
 	 *  Get EFI Runtime Services wrapper if supported
@@ -72,7 +67,7 @@ public:
 	 *
 	 *  @return EFI_STATUS code
 	 */
-	EXPORT EFI_UINT64 getVariable(EFI_CHAR16 *name, EFI_GUID *guid, EFI_UINT32 *attr, EFI_UINT64 *size, void *data);
+	EXPORT uint64_t getVariable(const char16_t *name, const EFI_GUID *guid, uint32_t *attr, uint64_t *size, void *data);
 
 	/**
 	 *  Set EFI variable, invokes EFI_RUNTIME_SERVICES::SetVariable.
@@ -85,7 +80,7 @@ public:
 	 *
 	 *  @return EFI_STATUS code
 	 */
-	EXPORT EFI_UINT64 setVariable(EFI_CHAR16 *name, EFI_GUID *guid, EFI_UINT32 attr, EFI_UINT64 size, void *data);
+	EXPORT uint64_t setVariable(const char16_t *name, const EFI_GUID *guid, uint32_t attr, uint64_t size, void *data);
 };
 
 #endif /* kern_efi_h */

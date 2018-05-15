@@ -8,6 +8,7 @@
 #ifndef kern_nvram_hpp
 #define kern_nvram_hpp
 
+#include <Headers/kern_util.hpp>
 #include <Library/LegacyIOService.h>
 #include <libkern/c++/OSSymbol.h>
 #include <libkern/libkern.h>
