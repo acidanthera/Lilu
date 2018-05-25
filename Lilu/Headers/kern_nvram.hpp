@@ -93,7 +93,7 @@ public:
 		
 		uint16_t magic {Magic};
 		uint8_t version {MaxVer};
-		uint8_t opts;
+		uint8_t opts {OptAuto};
 	};
 	
 	/**

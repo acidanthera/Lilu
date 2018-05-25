@@ -192,7 +192,8 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 	
 	// Filter disabled processes right away and store the rest
 	for (size_t i = 0; i < num; i++) {
-		if (infos[i].section && !storedProcs.push_back(&infos[i])) {
+		if (infos[i].section != UserPatcher::ProcInfo::SectionDisabled &&
+			!storedProcs.push_back(&infos[i])) {
 			SYSLOG("api", "failed to store ProcInfo");
 			return Error::MemoryError;
 		}
@@ -235,7 +236,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			}
 			
 			patcher.loadKinfo(&stored->first[j]);
-			auto error = patcher.getError();
+			KernelPatcher::Error error = patcher.getError();
 			if (error != KernelPatcher::Error::NoError) {
 				patcher.clearError();
 				if (error == KernelPatcher::Error::AlreadyDone) {

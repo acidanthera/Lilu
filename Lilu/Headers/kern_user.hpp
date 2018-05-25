@@ -130,9 +130,14 @@ public:
 			MatchMask   = MatchExact | MatchAny | MatchPrefix | MatchSuffix
 		};
 
-		const char *path;
-		uint32_t len;
-		uint32_t section;
+		/**
+		 *  Unused (aka disabled) proc info section
+		 */
+		static constexpr uint32_t SectionDisabled {0};
+
+		const char *path {nullptr};
+		uint32_t len {0};
+		uint32_t section {SectionDisabled};
 		uint32_t flags {MatchExact};
 	};
 	
@@ -349,7 +354,7 @@ private:
 	/**
 	 *  Provided global callback for on proc invocation
 	 */
-	ppair<t_BinaryLoaded, void *> userCallback;
+	ppair<t_BinaryLoaded, void *> userCallback {};
 	
 	/**
 	 *  Applies dyld shared cache patches
@@ -407,7 +412,7 @@ private:
 	};
 
 	struct Lookup {
-		uint32_t offs[4];
+		uint32_t offs[4] {};
 		static constexpr size_t matchNum {4};
 		evector<uint64_t> c[matchNum];
 	};
@@ -440,7 +445,7 @@ private:
 	/**
 	 *  Temporary buffer for reading image data
 	 */
-	uint8_t tmpBufferData[PAGE_SIZE*3];
+	uint8_t tmpBufferData[PAGE_SIZE*3] {};
 
 	/**
 	 *  Kernel auth listener handle

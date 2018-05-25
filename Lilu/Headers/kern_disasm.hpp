@@ -30,7 +30,7 @@ class Disassembler {
 	/**
 	 *  Internal capstone handle
 	 */
-	size_t handle;
+	size_t handle {};
 
 	/**
 	 *  Max instruction size
