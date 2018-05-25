@@ -21,6 +21,7 @@ matrix:
 env:
   global:
    - secure: "Wn14CAMBFNM80Kl6hhXFZ9gHZOvPVnkwbO6VpPj39fSS0wREIwJ3SzqljZ35XoYO64HwJL0nUiDQ3R8ZJG/cmEaseyoBXbijQqels4Wp5Mx0K6fkLf6LXIZq+VRiXCqJMo3gqYoin2SatshdcjQzL1wA9XBXAigJ8AOKpAAHYcuCAGEJodSzUTUX5hgSSnCzGeZy533S7anIIUX1t/zdfuhEsv3sgirXeMwZZewkL1w2BZIPLjoVQGXg0V/joPssJ21jbJV+gl+aPN4tvg+a3Puv3tmT3M9dXuIo/O0kzDW6qqiZMgMaf0nl7AsR0y+ffVnaeWZlTFDNUQqdv+BtO8DkwNP9bNs0DgaA6gpnwOQ4pdX13gUkNq1uErijhn9t/QZGPkNsPBahGtTrY/d2Vc4e44Zoo1bJc2YUylnN/r+SgLM2Wueh863Qe63WTVn3iLlliDC92xi8XsreHfDKGmiPBeV+ei757qw1qNPhPgp/sys0ngMFODSxDxgOIVf+qZ/LQY4sdeQ2sGjQkLnj+NS4XSB3Uu95jmaidnTzUXZ+yXWgPxR/Fbv5W6D8/EMKbUWXJFlIwXsd517E6vLsii11TeuqnnaHXdqi+TvMAPKnQQRkAFq6bgavoEGF1Gf3V0uxXruD1UtA0rrqsjK4JqPB1n7nJCg8ats2O1c8w/4="
+   - COVERITY_CSRUTIL_PATH=/usr/local/bin/csrutil
 
 addons:
   coverity_scan:
@@ -28,5 +29,6 @@ addons:
       name: "vit9696/Lilu"
       description: "Lilu"
     notification_email: $NOTIFICATION_EMAIL
+    build_command_prepend: "./antisip.tool"
     build_command: "xcodebuild -configuration Release"
     branch_pattern: master
