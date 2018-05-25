@@ -17,3 +17,16 @@ matrix:
         secure: cXnUEbDAuHaL6XcN4qazrgAnAc4sqVXYzXX/GedJlaulWgrovLeUGEBqNEshodXPD+DJWcpVVZQgvrYHW9BsQfcZLWNXM4XfAbpN2FC36Y+KDNVXwjI1WRiIeDO7jr6DPnH+49Nrl1c/zvPKjKHOiuJVurBPf3A/KIQeOfcW5AYFH+gDuVIw0tplfdjVgFEAJ6/kmZ41P1cgO2oEe/O8+TdfvwOuIMfbNTgxyDQatR6HNYwPfcUCEB6GyG/DPu9Sc6ia/K8nGlfJzOPGIsjjhObnTGX9hMw4IGaUv5+15w8ounj2D2erEnEk5k7RaWCx2jx/aviKZ7+vokNuL0sRCZeuzYCrSaXp4MkAb2Ak/dVcIcXV9cVKowS3+9jt04RdPtBi6s0dCcK+82akJq/8irUnX1Hr+5tCI5uKOGdRhMSvjsD1dc3Vp40kbnGa0WwtRXonTuuIJ6rOchdIitUxADMhxngx0xop+M4nUeprLHcXQcWEN2kDKdAEBaNW68QcugZcOK+PqeMHC/kYdiuo/i0hJ6KEZm3GLf6IY/83Mhz5hqBoL4wqpjlucS5BnxCnRH8vPJqi3gDE2YpTM/XhUxQ6LLRiWMcWHHXdfeOBajtf5HVTiM6R50qUbUWcbhIFhrIiCQQJHewJHQWBDzIVdp7S698Jsofihi73nf9fue4=
       on:
         tags: true
+
+env:
+  global:
+   - secure: "Wn14CAMBFNM80Kl6hhXFZ9gHZOvPVnkwbO6VpPj39fSS0wREIwJ3SzqljZ35XoYO64HwJL0nUiDQ3R8ZJG/cmEaseyoBXbijQqels4Wp5Mx0K6fkLf6LXIZq+VRiXCqJMo3gqYoin2SatshdcjQzL1wA9XBXAigJ8AOKpAAHYcuCAGEJodSzUTUX5hgSSnCzGeZy533S7anIIUX1t/zdfuhEsv3sgirXeMwZZewkL1w2BZIPLjoVQGXg0V/joPssJ21jbJV+gl+aPN4tvg+a3Puv3tmT3M9dXuIo/O0kzDW6qqiZMgMaf0nl7AsR0y+ffVnaeWZlTFDNUQqdv+BtO8DkwNP9bNs0DgaA6gpnwOQ4pdX13gUkNq1uErijhn9t/QZGPkNsPBahGtTrY/d2Vc4e44Zoo1bJc2YUylnN/r+SgLM2Wueh863Qe63WTVn3iLlliDC92xi8XsreHfDKGmiPBeV+ei757qw1qNPhPgp/sys0ngMFODSxDxgOIVf+qZ/LQY4sdeQ2sGjQkLnj+NS4XSB3Uu95jmaidnTzUXZ+yXWgPxR/Fbv5W6D8/EMKbUWXJFlIwXsd517E6vLsii11TeuqnnaHXdqi+TvMAPKnQQRkAFq6bgavoEGF1Gf3V0uxXruD1UtA0rrqsjK4JqPB1n7nJCg8ats2O1c8w/4="
+
+addons:
+  coverity_scan:
+    project:
+      name: "vit9696/Lilu"
+      description: "Lilu"
+    notification_email: $NOTIFICATION_EMAIL
+    build_command: "xcodebuild -configuration Release"
+    branch_pattern: master
