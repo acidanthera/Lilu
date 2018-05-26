@@ -701,7 +701,7 @@ bool UserPatcher::loadFilesForPatching() {
 			for (size_t p = 0; p < binaryMod[i]->count; p++) {
 				auto &patch = binaryMod[i]->patches[p];
 				
-				if (patch.section != ProcInfo::SectionDisabled) {
+				if (patch.section == ProcInfo::SectionDisabled) {
 					DBGLOG("user", "skipping not requested patch %s for %lu", binaryMod[i]->path, p);
 					continue;
 				}
