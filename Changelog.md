@@ -5,6 +5,7 @@ Lilu Changelog
 - Internalize new APIs from 1.2.3
 - Added new EFI runtime API with custom variable extensions
 - Added new RTC storage API
+- Added lilu_os_qsort export (the supported interface is Apple-private)
 
 #### v1.2.3
 - Added CPU information API for cpu families and generations

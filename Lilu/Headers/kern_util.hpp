@@ -231,6 +231,16 @@ EXPORT const char *strstr(const char *stack, const char *needle, size_t len=0);
 EXPORT char *strrchr(const char *stack, int ch);
 
 /**
+ *  XNU kernel implementation of a C-standard qsort function normally not exported by the kernel.
+ *
+ *  @param a    array to sort
+ *  @param n    array length
+ *  @param es   array element size
+ *  @param cmp  array element comparator
+ */
+EXPORT void qsort(void *a, size_t n, size_t es, int (*cmp)(const void *, const void *));
+
+/**
  *  Count array elements
  *
  *  @param array   Array to process

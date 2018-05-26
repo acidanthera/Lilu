@@ -83,6 +83,7 @@
 		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
 		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
 		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
+		CEA5F5D720B88EF2008E6E8A /* qsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA5F5D520B88EF2008E6E8A /* qsort.cpp */; };
 		CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */; };
 		CEB6D9831F69B42D005B6AC3 /* cc.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9781F69B42D005B6AC3 /* cc.h */; };
 		CEB6D9841F69B42D005B6AC3 /* cc_config.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9791F69B42D005B6AC3 /* cc_config.h */; };
@@ -201,6 +202,7 @@
 		CE75B9541EFB619C00D29B40 /* _label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _label.h; sourceTree = "<group>"; };
 		CE75B9551EFB619C00D29B40 /* mac_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_framework.h; sourceTree = "<group>"; };
 		CE75B9561EFB619C00D29B40 /* mac_policy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_policy.h; sourceTree = "<group>"; };
+		CEA5F5D520B88EF2008E6E8A /* qsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsort.cpp; sourceTree = "<group>"; };
 		CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_crypto.cpp; path = Lilu/Sources/kern_crypto.cpp; sourceTree = "<group>"; };
 		CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_crypto.hpp; sourceTree = "<group>"; };
 		CEB6D9781F69B42D005B6AC3 /* cc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cc.h; sourceTree = "<group>"; };
@@ -422,6 +424,7 @@
 		CE2E7BE21E2C73B1009AC62A /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				CEA5F5D320B88EF2008E6E8A /* bsd */,
 				CEB6D9771F69B42D005B6AC3 /* corecrypto */,
 				CEB6D9801F69B42D005B6AC3 /* libkern */,
 				CE75B9531EFB619C00D29B40 /* security */,
@@ -473,6 +476,22 @@
 				CE75B9561EFB619C00D29B40 /* mac_policy.h */,
 			);
 			path = security;
+			sourceTree = "<group>";
+		};
+		CEA5F5D320B88EF2008E6E8A /* bsd */ = {
+			isa = PBXGroup;
+			children = (
+				CEA5F5D420B88EF2008E6E8A /* kern */,
+			);
+			path = bsd;
+			sourceTree = "<group>";
+		};
+		CEA5F5D420B88EF2008E6E8A /* kern */ = {
+			isa = PBXGroup;
+			children = (
+				CEA5F5D520B88EF2008E6E8A /* qsort.cpp */,
+			);
+			path = kern;
 			sourceTree = "<group>";
 		};
 		CEB6D9771F69B42D005B6AC3 /* corecrypto */ = {
@@ -671,7 +690,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "if [ \"${CONFIGURATION}\" == \"Debug\" ]; then\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    mkdir -p \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Headers\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Library\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/corecrypto\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/libkern\"\nfi\n\nexit 0";
+			shellScript = "if [ \"${CONFIGURATION}\" == \"Debug\" ]; then\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    mkdir -p \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Headers\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Library\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/corecrypto\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/libkern\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/bsd\"\nfi\n\nexit 0";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -713,6 +732,7 @@
 				CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */,
 				1C3E7AE81C84B61700A6448A /* utils.c in Sources */,
 				CE74B2501F75D1FB00F90A08 /* sha256.c in Sources */,
+				CEA5F5D720B88EF2008E6E8A /* qsort.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
