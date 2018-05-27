@@ -6,6 +6,7 @@ Lilu Changelog
 - Added new EFI runtime API with custom variable extensions
 - Added new RTC storage API
 - Added lilu_os_qsort export (the supported interface is Apple-private)
+- Added `liludelay=1000` boot argument to insert a 1s delay after each print
 
 #### v1.2.3
 - Added CPU information API for cpu families and generations

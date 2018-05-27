@@ -23,7 +23,8 @@ Add `-liluslow` to enable legacy user patcher.
 Add `-lilulowmem` to disable kernel unpack (disables Lilu in recovery mode).  
 Add `-lilubeta` to enable Lilu on unsupported os versions (10.13 and below are enabled by default).  
 Add `-lilubetaall` to enable Lilu and all loaded plugins on unsupported os versions (use _very_ carefully)  
-Add `-liluforce` to enable Lilu regardless of the mode, OS, installer, or recovery.
+Add `-liluforce` to enable Lilu regardless of the mode, OS, installer, or recovery.  
+Add `liludelay=1000` to enable 1 second delay after each print for troubleshooting.  
 
 #### Peculiarities
 Most of the plugins cease to function in safe (`-x`) mode.  

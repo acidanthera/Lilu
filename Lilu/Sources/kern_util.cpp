@@ -13,6 +13,7 @@
 #include <mach/vm_map.h>
 
 bool ADDPR(debugEnabled) = false;
+uint32_t ADDPR(debugPrintDelay) = 0;
 
 const char *strstr(const char *stack, const char *needle, size_t len) {
 	if (!len && !(len = strlen(needle)))

@@ -106,6 +106,8 @@ bool Configuration::getBootArguments() {
 	betaForAll = PE_parse_boot_argn(bootargBetaAll, tmp, sizeof(tmp));
 	debugForAll = PE_parse_boot_argn(bootargDebugAll, tmp, sizeof(tmp));
 
+	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+
 	isDisabled |= PE_parse_boot_argn(bootargOff, tmp, sizeof(tmp));
 	if (!PE_parse_boot_argn(bootargForce, tmp, sizeof(tmp))) {
 		isDisabled |= PE_parse_boot_argn("-s", tmp, sizeof(tmp));

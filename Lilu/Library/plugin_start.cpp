@@ -17,6 +17,7 @@ bool ADDPR(startSuccess) = true;
 #endif
 
 bool ADDPR(debugEnabled) = false;
+uint32_t ADDPR(debugPrintDelay) = 0;
 
 #ifndef LILU_CUSTOM_IOKIT_INIT
 
@@ -62,6 +63,9 @@ void PRODUCT_NAME::stop(IOService *provider) {
 #ifndef LILU_CUSTOM_KMOD_INIT
 
 EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
+	// This is an ugly hack necessary on some systems where buffering kills most of debug output.
+	PE_parse_boot_argn("liludelay", &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+
 	auto error = lilu.requestAccess();
 	if (error == LiluAPI::Error::NoError) {
 		error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).version, ADDPR(config).runmode, ADDPR(config).disableArg, ADDPR(config).disableArgNum,

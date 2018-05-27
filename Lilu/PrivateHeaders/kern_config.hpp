@@ -26,6 +26,7 @@ class Configuration {
 	static constexpr const char *bootargSlow {"-liluslow"};			// Prefer less destructive userspace measures
 	static constexpr const char *bootargFast {"-lilufast"};			// Prefer faster userspace measures
 	static constexpr const char *bootargLowMem {"-lilulowmem"};		// Disable decompression
+	static constexpr const char *bootargDelay {"liludelay"};		// Extra delay timeout after each printed message
 	
 	/**
 	 * Minimal required kernel version

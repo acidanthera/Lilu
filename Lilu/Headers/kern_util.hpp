@@ -35,6 +35,13 @@
 extern bool ADDPR(debugEnabled);
 
 /**
+ *  Debugging print delay used as an ugly hack around printf bufferisation,
+ *  which results in messages not appearing in the boot log.
+ *  Use liludelay=1000 (1 second) boot-arg to put a second after each message.
+ */
+extern uint32_t ADDPR(debugPrintDelay);
+
+/**
  *  Kernel version major
  */
 extern const int version_major;
@@ -62,8 +69,10 @@ extern proc_t kernproc;
  */
 #define SYSLOG_COND(cond, module, str, ...)                                                          \
 	do {                                                                                             \
-		if (cond)                                                                                    \
-			IOLog( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+	    if (cond) {                                                                                  \
+	        IOLog( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+	        if (ADDPR(debugPrintDelay) > 0) IOSleep(ADDPR(debugPrintDelay));                         \
+	    }                                                                                            \
 	} while (0)
 
 /**
@@ -83,10 +92,10 @@ extern proc_t kernproc;
  */
 #define SYSTRACE_COND(cond, module, str, ...)                                                                        \
 	do {                                                                                                             \
-		if (cond) {                                                                                                  \
-			SYSLOG(module, str, ## __VA_ARGS__);                                                                     \
-			OSReportWithBacktrace( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
-		}                                                                                                            \
+	    if (cond) {                                                                                                  \
+	        SYSLOG(module, str, ## __VA_ARGS__);                                                                     \
+		    OSReportWithBacktrace( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+	    }                                                                                                            \
 	} while (0)
 
 /**
@@ -106,8 +115,8 @@ extern proc_t kernproc;
  */
 #define PANIC_COND(cond, module, str, ...)                                                             \
 	do {                                                                                               \
-		if (cond)                                                                                      \
-			(panic)( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+	    if (cond)                                                                                      \
+	        (panic)( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
 	} while (0)
 
 /**
@@ -129,7 +138,7 @@ extern proc_t kernproc;
  */
 #define DBGLOG_COND(cond, module, str, ...)                                                     \
 	do {                                                                                        \
-		SYSLOG_COND(ADDPR(debugEnabled) && (cond), module, "%s" str, "(DBG) ", ## __VA_ARGS__); \
+	    SYSLOG_COND(ADDPR(debugEnabled) && (cond), module, "%s" str, "(DBG) ", ## __VA_ARGS__); \
 	} while (0)
 
 /**
@@ -149,7 +158,7 @@ extern proc_t kernproc;
  */
 #define DBGTRACE_COND(cond, module, str, ...)                                                     \
 	do {                                                                                          \
-		SYSTRACE_COND(ADDPR(debugEnabled) && (cond), module, "%s" str, "(DBG) ", ## __VA_ARGS__); \
+	    SYSTRACE_COND(ADDPR(debugEnabled) && (cond), module, "%s" str, "(DBG) ", ## __VA_ARGS__); \
 	} while (0)
 
 /**
