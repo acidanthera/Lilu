@@ -236,7 +236,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 			}
 			
 			patcher.loadKinfo(&stored->first[j]);
-			KernelPatcher::Error error = patcher.getError();
+			auto error = patcher.getError();
 			if (error != KernelPatcher::Error::NoError) {
 				patcher.clearError();
 				if (error == KernelPatcher::Error::AlreadyDone) {

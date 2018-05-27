@@ -62,7 +62,7 @@ void PRODUCT_NAME::stop(IOService *provider) {
 #ifndef LILU_CUSTOM_KMOD_INIT
 
 EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
-	LiluAPI::Error error = lilu.requestAccess();
+	auto error = lilu.requestAccess();
 	if (error == LiluAPI::Error::NoError) {
 		error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).version, ADDPR(config).runmode, ADDPR(config).disableArg, ADDPR(config).disableArgNum,
 								ADDPR(config).debugArg, ADDPR(config).debugArgNum, ADDPR(config).betaArg, ADDPR(config).betaArgNum, ADDPR(config).minKernel,
