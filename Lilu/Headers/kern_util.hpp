@@ -555,12 +555,12 @@ public:
 	 *
 	 *  @return true on success
 	 */
-	bool erase(size_t index) {
+	bool erase(size_t index, bool free=true) {
 		deleter(ptr[index]);
 		if (--cnt != index)
 			lilu_os_memmove(&ptr[index], &ptr[index + 1], (cnt - index) * sizeof(T));
 
-		if (cnt == 0) {
+		if (free && cnt == 0) {
 			kern_os_free(ptr);
 			ptr = nullptr;
 			rsvd = 0;
