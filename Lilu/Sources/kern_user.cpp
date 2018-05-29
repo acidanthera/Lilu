@@ -411,12 +411,13 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 			}
 
 			uintptr_t orgEp = baseAddr - (vmEp ? vmBase : 0);
+			uintptr_t dstEp = newEp + (vmEp ? vmBase : 0);
 			if (entry64) {
 				orgEp += *entry64;
-				*entry64 = newEp + (vmEp ? vmBase : 0);
+				*entry64 = dstEp;
 			} else if (entry32) {
 				orgEp += *entry32;
-				*entry32 = static_cast<uint32_t>(newEp + (vmEp ? vmBase : 0));
+				*entry32 = static_cast<uint32_t>(dstEp);
 			} else {
 				SYSLOG("user", "failed to find valid entrypoint");
 				return false;
