@@ -688,7 +688,7 @@ bool UserPatcher::loadFilesForPatching() {
 
 	for (size_t i = 0; i < binaryModSize; i++) {
 		DBGLOG("user", "requesting file %s at %lu", binaryMod[i]->path, i);
-		
+
 		size_t fileSize;
 		auto buf = FileIO::readFileToBuffer(binaryMod[i]->path, fileSize);
 		if (buf) {
@@ -762,7 +762,12 @@ bool UserPatcher::loadFilesForPatching() {
 												   entry->page->p[0], entry->page->p[1], entry->page->p[2], entry->page->p[3],
 												   entry->page->p[4], entry->page->p[5], entry->page->p[6], entry->page->p[7]);
 											// Save entry in lookupStorage
-											lookupStorage.push_back(entry);
+											if (!lookupStorage.push_back(entry)) {
+												SYSLOG("user", "failed to push entry to LookupStorage");
+												LookupStorage::deleter(entry);
+												entry = nullptr;
+												continue;
+											}
 										}
 									}
 									
