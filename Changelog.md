@@ -7,6 +7,7 @@ Lilu Changelog
 - Added new RTC storage API
 - Added lilu_os_qsort export (the supported interface is Apple-private)
 - Added `liludelay=1000` boot argument to insert a 1s delay after each print
+- Fixed a kernel panic in userspace patching code on 10.14b1
 
 #### v1.2.3
 - Added CPU information API for cpu families and generations

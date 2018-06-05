@@ -493,6 +493,15 @@ int UserPatcher::vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_star
 	return that->orgVmSharedRegionSlide(slide, entry_start_address, entry_size, slide_start, slide_size, sr_file_control);
 }
 
+int UserPatcher::vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, mach_vm_offset_t slid_mapping, memory_object_control_t sr_file_control) {
+
+	DBGLOG("user", "params are %X %llX %llX %llX %llX", slide, entry_start_address, entry_size, slide_start, slide_size);
+
+	that->patchSharedCache(that->orgCurrentMap(), slide, CPU_TYPE_X86_64);
+
+	return that->orgVmSharedRegionSlideMojave(slide, entry_start_address, entry_size, slide_start, slide_size, slid_mapping, sr_file_control);
+}
+
 proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread) {
 	proc_t rp = that->orgProcExecSwitchTask(p, current_task, new_task, new_thread);
 
@@ -1025,10 +1034,17 @@ bool UserPatcher::hookMemoryAccess() {
 		kern = patcher->solveSymbol(KernelPatcher::KernelID, "_vm_shared_region_slide");
 		
 		if (patcher->getError() == KernelPatcher::Error::NoError) {
-			orgVmSharedRegionSlide = reinterpret_cast<t_vmSharedRegionSlide>(
-				patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true)
-			);
-			
+			// 10.14 takes an extra argument here.
+			if (getKernelVersion() >= KernelVersion::Mojave) {
+				orgVmSharedRegionSlideMojave = reinterpret_cast<t_vmSharedRegionSlideMojave>(
+					patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlideMojave), true, true)
+				);
+			} else {
+				orgVmSharedRegionSlide = reinterpret_cast<t_vmSharedRegionSlide>(
+					patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true)
+				);
+			}
+
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
 				SYSLOG("user", "failed to hook _vm_shared_region_slide");
 				patcher->clearError();

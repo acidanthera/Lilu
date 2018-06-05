@@ -283,7 +283,8 @@ enum KernelVersion {
 	Yosemite      = 14,
 	ElCapitan     = 15,
 	Sierra        = 16,
-	HighSierra    = 17
+	HighSierra    = 17,
+	Mojave        = 18,
 };
 
 /**

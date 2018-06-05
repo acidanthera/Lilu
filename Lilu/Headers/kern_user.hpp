@@ -224,6 +224,7 @@ private:
 	using t_codeSignValidateRangeWrapper = boolean_t (*)(void *, memory_object_t, memory_object_offset_t, const void *, memory_object_size_t, unsigned *);
 	using t_vmSharedRegionMapFile = kern_return_t (*)(vm_shared_region_t, unsigned int, shared_file_mapping_np *, memory_object_control_t, memory_object_size_t, void *, uint32_t, user_addr_t slide_start, user_addr_t);
 	using t_vmSharedRegionSlide = int (*)(uint32_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, mach_vm_size_t, memory_object_control_t);
+	using t_vmSharedRegionSlideMojave = int (*)(uint32_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, memory_object_control_t);
 	using t_currentMap = vm_map_t (*)(void);
 	using t_getTaskMap = vm_map_t (*)(task_t);
 	using t_getMapMin = vm_map_offset_t (*)(vm_map_t);
@@ -239,6 +240,7 @@ private:
 	t_codeSignValidateRangeWrapper orgCodeSignValidateRangeWrapper {nullptr};
 	t_vmSharedRegionMapFile orgVmSharedRegionMapFile {nullptr};
 	t_vmSharedRegionSlide orgVmSharedRegionSlide {nullptr};
+	t_vmSharedRegionSlideMojave orgVmSharedRegionSlideMojave {nullptr};
 	t_currentMap orgCurrentMap {nullptr};
 	t_getMapMin orgGetMapMin {nullptr};
 	t_getTaskMap orgGetTaskMap {nullptr};
@@ -257,6 +259,7 @@ private:
 	static kern_return_t vmSharedRegionMapFile(vm_shared_region_t shared_region, unsigned int mappings_count, shared_file_mapping_np *mappings, memory_object_control_t file_control, memory_object_size_t file_size, void *root_dir, uint32_t slide, user_addr_t slide_start, user_addr_t slide_size);
 	static void execsigs(proc_t p, thread_t thread);
 	static int vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, memory_object_control_t sr_file_control);
+	static int vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, mach_vm_offset_t slid_mapping, memory_object_control_t sr_file_control);
 	static proc_t procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread);
 
 	/**
