@@ -377,6 +377,14 @@ inline const char *safeString(const char *str) {
 }
 
 /**
+ *  A shorter form of writing reinterpret_cast<decltype(&org)>(ptr)
+ */
+template <typename T>
+inline T FunctionCast(T org, mach_vm_address_t ptr) {
+	return reinterpret_cast<T>(ptr);
+}
+
+/**
  *  Typed buffer allocator
  */
 namespace Buffer {

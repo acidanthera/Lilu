@@ -322,6 +322,73 @@ public:
 		return false;
 	}
 
+	/**
+	 *  Route request to simplify casting and error handling
+	 *  See routeMultiple.
+	 *
+	 *  symbol  symbol to lookup
+	 *  from    solved symbol (assigned by routeMultiple)
+	 *  to      destination address
+	 *  org     trampoline storage to the original symbol
+	 */
+	struct RouteRequest {
+		const char *symbol {nullptr};
+		mach_vm_address_t from {0};
+		const mach_vm_address_t to {0};
+		mach_vm_address_t *org {nullptr};
+
+		/**
+		 *  Construct RouteRequest for wrapping a function
+		 *  @param s  symbol to lookup
+		 *  @param t  destination address
+		 *  @param o  trampoline storage to the original symbol
+		 */
+		template <typename T>
+		RouteRequest(const char *s, T t, mach_vm_address_t &o) :
+			symbol(s), to(reinterpret_cast<mach_vm_address_t>(t)), org(&o) { }
+
+		/**
+		 *  Construct RouteRequest for routing a function
+		 *  @param s  symbol to lookup
+		 *  @param t  destination address
+		 */
+		template <typename T>
+		RouteRequest(const char *s, T t) :
+			symbol(s), to(reinterpret_cast<mach_vm_address_t>(t)) { }
+	};
+
+	/**
+	 *  Simple route multiple functions with basic error handling
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param num          requests array size
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	EXPORT bool routeMultiple(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false);
+
+	/**
+	 *  Simple route multiple functions with basic error handling
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	template <size_t N>
+	inline bool routeMultiple(size_t id, RouteRequest (&requests)[N], mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false) {
+		return routeMultiple(id, requests, N, start, size, kernelRoute, force);
+	}
+
 private:
 
 	/**

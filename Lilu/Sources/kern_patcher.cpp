@@ -417,6 +417,47 @@ mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_
 	return routeFunction(from, trampoline) == 0 ? trampoline : EINVAL;
 }
 
+bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool kernelRoute, bool force) {
+	bool errorsFound = false;
+	for (size_t i = 0; i < num; i++) {
+		auto &request = requests[i];
+		request.from = solveSymbol(id, request.symbol, start, size, true);
+		if (!request.from) {
+			SYSLOG("patcher", "failed to solve %s", request.symbol);
+			errorsFound = true;
+			if (!force) return false;
+		}
+	}
+
+	for (size_t i = 0; i < num; i++) {
+		auto &request = requests[i];
+		if (!request.from) continue;
+		auto wrapper = routeFunction(request.from, request.to, request.org, kernelRoute, true);
+		if (request.org) {
+			if (wrapper) {
+				DBGLOG("patcher", "wrapped %s", request.symbol);
+				*request.org = wrapper;
+			} else {
+				SYSLOG("patcher", "failed to wrap %s, err %d", request.symbol, getError());
+				clearError();
+				errorsFound = true;
+				if (!force) return false;
+			}
+		} else {
+			if (wrapper) {
+				DBGLOG("patcher", "routed %s", request.symbol);
+			} else {
+				SYSLOG("patcher", "failed to route %s, err %d", request.symbol, getError());
+				clearError();
+				errorsFound = true;
+				if (!force) return false;
+			}
+		}
+	}
+
+	return !errorsFound;
+}
+
 uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribute__((section("__TEXT,__text")));
 
 mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
