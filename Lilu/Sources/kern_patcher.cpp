@@ -423,7 +423,8 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 		auto &request = requests[i];
 		request.from = solveSymbol(id, request.symbol, start, size, true);
 		if (!request.from) {
-			SYSLOG("patcher", "failed to solve %s", request.symbol);
+			SYSLOG("patcher", "failed to solve %s, err %d", request.symbol, getError());
+			clearError();
 			errorsFound = true;
 			if (!force) return false;
 		}
