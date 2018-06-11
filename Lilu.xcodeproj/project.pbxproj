@@ -876,6 +876,12 @@
 					"-fno-non-call-exceptions",
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
+					"-Wall",
+					"-Wextra",
+					"-Wno-unused-parameter",
+					"-Wno-deprecated-register",
+					"-Wno-unknown-pragmas",
+					"-Werror",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
@@ -933,6 +939,12 @@
 					"-fno-non-call-exceptions",
 					"-fno-builtin",
 					"-fno-asynchronous-unwind-tables",
+					"-Wall",
+					"-Wextra",
+					"-Wno-unused-parameter",
+					"-Wno-deprecated-register",
+					"-Wno-unknown-pragmas",
+					"-Werror",
 				);
 				OTHER_LDFLAGS = "-static";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";

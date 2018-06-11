@@ -434,7 +434,7 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 		uint32_t num = OSSwapInt32(fheader->nfat_arch);
 		fat_arch *farch = reinterpret_cast<fat_arch *>(reinterpret_cast<uintptr_t>(ptr) + sizeof(fat_header));
 		for (size_t i = 0; i < num; i++, farch++) {
-			if (OSSwapInt32(farch->cputype) ==  cpu) {
+			if (static_cast<cpu_type_t>(OSSwapInt32(farch->cputype)) == cpu) {
 				findSectionBounds(reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(ptr) + OSSwapInt32(farch->offset)), vmsegment, vmsection, sectionptr, size, segmentName, sectionName, cpu);
 				break;
 			}
@@ -546,7 +546,7 @@ void MachInfo::updatePrelinkInfo() {
 		void *tmpSectPtr;
 		size_t tmpSectSize;
 		findSectionBounds(file_buf, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_INFO", "__info");
-		auto startoff = tmpSectSize && static_cast<uint8_t *>(tmpSectPtr) >= file_buf ?
+		size_t startoff = tmpSectSize && static_cast<uint8_t *>(tmpSectPtr) >= file_buf ?
 		                static_cast<uint8_t *>(tmpSectPtr) - file_buf : file_buf_size;
 		if (tmpSectSize > 0 && file_buf_size > startoff && file_buf_size - startoff >= tmpSectSize) {
 			auto xmlData = static_cast<const char *>(tmpSectPtr);

@@ -404,7 +404,7 @@ private:
 	/**
 	 *  Offset to tempExecutableMemory that is safe to use
 	 */
-	off_t tempExecutableMemoryOff {0};
+	size_t tempExecutableMemoryOff {0};
 	
 	/**
 	 *  Patcher status

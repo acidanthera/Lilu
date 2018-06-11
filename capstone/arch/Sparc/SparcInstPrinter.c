@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "SparcInstPrinter.h"
 #include "../../MCInst.h"
@@ -261,18 +262,8 @@ static void printOperand(MCInst *MI, int opNum, SStream *O)
 				Imm = (uint32_t)MI->address + Imm * 4;
 				break;
 		}
-
-		if (Imm >= 0) {
-			if (Imm > HEX_THRESHOLD)
-				SStream_concat(O, "0x%x", Imm);
-			else
-				SStream_concat(O, "%u", Imm);
-		} else {
-			if (Imm < -HEX_THRESHOLD)
-				SStream_concat(O, "-0x%x", -Imm);
-			else
-				SStream_concat(O, "-%u", -Imm);
-		}
+		
+		printInt32(O, Imm);
 
 		if (MI->csh->detail) {
 			if (MI->csh->doing_mem) {

@@ -8,6 +8,12 @@ include functions.mk
 # Verbose output?
 V ?= 0
 
+OS := $(shell uname)
+ifeq ($(OS),Darwin)
+LIBARCHS = i386 x86_64
+PREFIX ?= /usr/local
+endif
+
 ifeq ($(PKG_EXTRA),)
 PKG_VERSION = $(PKG_MAJOR).$(PKG_MINOR)
 else
@@ -15,10 +21,7 @@ PKG_VERSION = $(PKG_MAJOR).$(PKG_MINOR).$(PKG_EXTRA)
 endif
 
 ifeq ($(CROSS),)
-CC ?= cc
-AR ?= ar
 RANLIB ?= ranlib
-STRIP ?= strip
 else
 CC = $(CROSS)gcc
 AR = $(CROSS)ar
@@ -334,9 +337,9 @@ all: $(LIBRARY) $(ARCHIVE) $(PKGCFGF)
 ifeq (,$(findstring yes,$(CAPSTONE_BUILD_CORE_ONLY)))
 	@V=$(V) CC=$(CC) $(MAKE) -C cstool
 ifndef BUILDDIR
-	cd tests && $(MAKE)
+	$(MAKE) -C tests
 else
-	cd tests && $(MAKE) BUILDDIR=$(BLDIR)
+	$(MAKE) -C tests BUILDDIR=$(BLDIR)
 endif
 	$(call install-library,$(BLDIR)/tests/)
 endif
@@ -407,7 +410,7 @@ clean:
 	$(MAKE) -C cstool clean
 
 ifeq (,$(findstring yes,$(CAPSTONE_BUILD_CORE_ONLY)))
-	cd tests && $(MAKE) clean
+	$(MAKE) -C tests clean
 	rm -f $(BLDIR)/tests/lib$(LIBNAME).$(EXT)
 endif
 
@@ -416,9 +419,9 @@ ifdef BUILDDIR
 endif
 
 ifeq (,$(findstring yes,$(CAPSTONE_BUILD_CORE_ONLY)))
-	cd bindings/python && $(MAKE) clean
-	cd bindings/java && $(MAKE) clean
-	cd bindings/ocaml && $(MAKE) clean
+	$(MAKE) -C bindings/python clean
+	$(MAKE) -C bindings/java clean
+	$(MAKE) -C bindings/ocaml clean
 endif
 
 
@@ -440,11 +443,9 @@ TESTS += test_basic.static test_detail.static test_arm.static test_arm64.static
 TESTS += test_mips.static test_ppc.static test_sparc.static
 TESTS += test_systemz.static test_x86.static test_xcore.static
 TESTS += test_skipdata test_skipdata.static test_iter.static
-check:
-	@for t in $(TESTS); do \
-		echo Check $$t ... ; \
-		LD_LIBRARY_PATH=./tests ./tests/$$t > /dev/null && echo OK || echo FAILED; \
-	done
+check: $(TESTS)
+test_%:
+	./tests/$@ > /dev/null && echo OK || echo FAILED
 
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $(@D)

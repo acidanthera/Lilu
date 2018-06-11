@@ -50,7 +50,7 @@ static size_t decompress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	unsigned int flags;
 	
 	dst = dststart;
-	for (i = 0; i < N - F; i++)
+	for (i = 0; i < static_cast<int>(N - F); i++)
 		text_buf[i] = ' ';
 	r = N - F;
 	flags = 0;
@@ -91,7 +91,7 @@ static size_t decompress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
  * tree for strings that begin with character i.  These are initialized to NIL.
  * Note there are 256 trees. */
 static void init_state(encode_state *sp) {
-	int  i;
+	size_t i;
 	
 	memset(sp, 0, sizeof(*sp));
 	
@@ -138,13 +138,13 @@ static void insert_node(encode_state *sp, int r) {
 				return;
 			}
 		}
-		for (i = 1; i < F; i++) {
+		for (i = 1; i < static_cast<int>(F); i++) {
 			if ((cmp = key[i] - sp->text_buf[p + i]) != 0)
 				break;
 		}
 		if (i > sp->match_length) {
 			sp->match_position = p;
-			if ((sp->match_length = i) >= F)
+			if ((sp->match_length = i) >= static_cast<int>(F))
 				break;
 		}
 	}
@@ -221,7 +221,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	s = 0;  r = N - F;
 	
 	/* Read F bytes into the last F bytes of the buffer */
-	for (len = 0; len < F && src < srcend; len++)
+	for (len = 0; len < static_cast<int>(F) && src < srcend; len++)
 		sp->text_buf[r + len] = *src++;
 	if (!len)
 		goto finish;
@@ -231,7 +231,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	 * 'space' characters.  Note the order in which these strings are
 	 * inserted.  This way, degenerate trees will be less likely to occur.
 	 */
-	for (i = 1; i <= F; i++)
+	for (i = 1; i <= static_cast<int>(F); i++)
 		insert_node(sp, r - i);
 	
 	/*
@@ -243,7 +243,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 		/* match_length may be spuriously long near the end of text. */
 		if (sp->match_length > len)
 			sp->match_length = len;
-		if (sp->match_length <= THRESHOLD) {
+		if (sp->match_length <= static_cast<int>(THRESHOLD)) {
 			sp->match_length = 1;  /* Not long enough match.  Send one byte. */
 			code_buf[0] |= mask;  /* 'send one byte' flag */
 			code_buf[code_buf_ptr++] = sp->text_buf[r];  /* Send uncoded. */
@@ -274,7 +274,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 			 * If the position is near the end of buffer, extend the buffer
 			 * to make string comparison easier.
 			 */
-			if (s < F - 1)
+			if (s < static_cast<int>(F - 1))
 				sp->text_buf[s + N] = c;
 			
 			/* Since this is a ring buffer, increment the position modulo N. */

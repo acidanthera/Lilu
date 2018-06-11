@@ -141,7 +141,9 @@ def build_libraries():
         os.system("CAPSTONE_BUILD_CORE_ONLY=yes bash ./make.sh")
 
     shutil.copy(LIBRARY_FILE, LIBS_DIR)
-    if STATIC_LIBRARY_FILE: shutil.copy(STATIC_LIBRARY_FILE, LIBS_DIR)
+    # only copy static library if it exists (it's a build option)
+    if STATIC_LIBRARY_FILE and os.path.exists(STATIC_LIBRARY_FILE):
+        shutil.copy(STATIC_LIBRARY_FILE, LIBS_DIR)
     os.chdir(cwd)
 
 
@@ -154,8 +156,11 @@ class custom_sdist(sdist):
 
 class custom_build(build):
     def run(self):
-        log.info('Building C extensions')
-        build_libraries()
+        if 'LIBCAPSTONE_PATH' in os.environ:
+            log.info('Skipping building C extensions since LIBCAPSTONE_PATH is set')
+        else:
+            log.info('Building C extensions')
+            build_libraries()
         return build.run(self)
 
 

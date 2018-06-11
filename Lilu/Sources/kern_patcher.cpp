@@ -421,7 +421,10 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 	bool errorsFound = false;
 	for (size_t i = 0; i < num; i++) {
 		auto &request = requests[i];
-		request.from = solveSymbol(id, request.symbol, start, size, true);
+		if (start || size)
+			request.from = solveSymbol(id, request.symbol, start, size, true);
+		else
+			request.from = solveSymbol(id, request.symbol);
 		if (!request.from) {
 			SYSLOG("patcher", "failed to solve %s, err %d", request.symbol, getError());
 			clearError();
@@ -486,7 +489,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
 		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
-		SYSLOG("patcher", "not enough executable memory requested %lld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
+		SYSLOG("patcher", "not enough executable memory requested %ld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
 	} else {
 		// Copy the opcodes if any

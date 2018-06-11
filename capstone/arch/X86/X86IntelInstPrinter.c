@@ -275,18 +275,7 @@ static void _printOperand(MCInst *MI, unsigned OpNo, SStream *O)
 		printRegName(O, MCOperand_getReg(Op));
 	} else if (MCOperand_isImm(Op)) {
 		int64_t imm = MCOperand_getImm(Op);
-		if (imm < 0) {
-			if (imm < -HEX_THRESHOLD)
-				SStream_concat(O, "-0x%"PRIx64, -imm);
-			else
-				SStream_concat(O, "-%"PRIu64, -imm);
-
-		} else {
-			if (imm > HEX_THRESHOLD)
-				SStream_concat(O, "0x%"PRIx64, imm);
-			else
-				SStream_concat(O, "%"PRIu64, imm);
-		}
+		printInt64(O, imm);
 	}
 }
 
@@ -511,7 +500,7 @@ void X86_Intel_printInst(MCInst *MI, SStream *O, void *Info)
 		// so we have to add the missing register as the first operand
 		if (reg) {
 			// shift all the ops right to leave 1st slot for this new register op
-			lilu_os_memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
+			memmove(&(MI->flat_insn->detail->x86.operands[1]), &(MI->flat_insn->detail->x86.operands[0]),
 					sizeof(MI->flat_insn->detail->x86.operands[0]) * (ARR_SIZE(MI->flat_insn->detail->x86.operands) - 1));
 			MI->flat_insn->detail->x86.operands[0].type = X86_OP_REG;
 			MI->flat_insn->detail->x86.operands[0].reg = reg;
@@ -597,20 +586,7 @@ static void printImm(int syntax, SStream *O, int64_t imm, bool positive)
 				SStream_concat(O, "%"PRIu64, imm);
 		}
 	} else {
-		if (imm < 0) {
-			if (imm == 0x8000000000000000LL)  // imm == -imm
-				SStream_concat0(O, "0x8000000000000000");
-			else if (imm < -HEX_THRESHOLD)
-				SStream_concat(O, "-0x%"PRIx64, -imm);
-			else
-				SStream_concat(O, "-%"PRIu64, -imm);
-
-		} else {
-			if (imm > HEX_THRESHOLD)
-				SStream_concat(O, "0x%"PRIx64, imm);
-			else
-				SStream_concat(O, "%"PRIu64, imm);
-		}
+		printInt64(O, imm);
 	}
 }
 

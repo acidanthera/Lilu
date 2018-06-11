@@ -431,7 +431,7 @@ private:
 		sizeof(segment_command_64),
 		"__RESTRICT",
 		SHARED_REGION_BASE_X86_64,
-		1
+		1, 0, 0, 0, 0, 0, 0
 	};
 	
 	/**
@@ -442,7 +442,7 @@ private:
 		sizeof(segment_command),
 		"__RESTRICT",
 		SHARED_REGION_BASE_I386,
-		1
+		1, 0, 0, 0, 0, 0, 0
 	};
 	
 	/**

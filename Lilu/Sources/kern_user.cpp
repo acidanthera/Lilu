@@ -750,7 +750,7 @@ bool UserPatcher::loadFilesForPatching() {
 								// We need binary entry, i.e. the page our patch belong to
 								LookupStorage *entry = nullptr;
 								for (size_t e = 0, esz = lookupStorage.size(); e < esz && !entry; e++) {
-									if (lookupStorage[e]->pageOff == pageOff)
+									if (lookupStorage[e]->pageOff == static_cast<vm_address_t>(pageOff))
 										entry = lookupStorage[e];
 								}
 								

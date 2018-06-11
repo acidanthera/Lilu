@@ -734,7 +734,7 @@ static void update_pub_insn(cs_insn *pub, InternalInstruction *inter, uint8_t *p
 	prefixes[3] = inter->prefix3;
 
 	if (inter->vectorExtensionType != 0)
-		lilu_os_memcpy(pub->detail->x86.opcode, inter->vectorExtensionPrefix, sizeof(pub->detail->x86.opcode));
+		memcpy(pub->detail->x86.opcode, inter->vectorExtensionPrefix, sizeof(pub->detail->x86.opcode));
 	else {
 		if (inter->twoByteEscape) {
 			if (inter->threeByteEscape) {

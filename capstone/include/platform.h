@@ -27,6 +27,7 @@ typedef unsigned char bool;
 #include <stdbool.h>
 #endif
 
+
 // handle C99 issue (for pre-2013 VisualStudio)
 #if defined(CAPSTONE_HAS_OSXKERNEL) || (defined(_MSC_VER) && (_MSC_VER <= 1700 || defined(_KERNEL_MODE)))
 // this system does not have inttypes.h

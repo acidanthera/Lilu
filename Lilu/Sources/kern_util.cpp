@@ -24,7 +24,7 @@ const char *strstr(const char *stack, const char *needle, size_t len) {
 	while (*stack) {
 		if (*stack == *i) {
 			i++;
-			if (i - needle == len)
+			if (static_cast<size_t>(i - needle) == len)
 				return stack - len + 1;
 		} else {
 			i = needle;

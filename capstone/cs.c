@@ -51,10 +51,10 @@
 #define SKIPDATA_MNEM NULL
 #endif
 
-cs_err (*arch_init[MAX_ARCH])(cs_struct *) = { NULL };
-cs_err (*arch_option[MAX_ARCH]) (cs_struct *, cs_opt_type, size_t value) = { NULL };
-void (*arch_destroy[MAX_ARCH]) (cs_struct *) = { NULL };
-cs_mode arch_disallowed_mode_mask[MAX_ARCH] = { 0 };
+cs_err (*cs_arch_init[MAX_ARCH])(cs_struct *) = { NULL };
+cs_err (*cs_arch_option[MAX_ARCH]) (cs_struct *, cs_opt_type, size_t value) = { NULL };
+void (*cs_arch_destroy[MAX_ARCH]) (cs_struct *) = { NULL };
+cs_mode cs_arch_disallowed_mode_mask[MAX_ARCH] = { 0 };
 
 extern void ARM_enable(void);
 extern void AArch64_enable(void);
@@ -244,9 +244,9 @@ cs_err CAPSTONE_API cs_open(cs_arch arch, cs_mode mode, csh *handle)
 
 	archs_enable();
 
-	if (arch < CS_ARCH_MAX && arch_init[arch]) {
+	if (arch < CS_ARCH_MAX && cs_arch_init[arch]) {
 		// verify if requested mode is valid
-		if (mode & arch_disallowed_mode_mask[arch]) {
+		if (mode & cs_arch_disallowed_mode_mask[arch]) {
 			*handle = 0;
 			return CS_ERR_MODE;
 		}
@@ -266,7 +266,7 @@ cs_err CAPSTONE_API cs_open(cs_arch arch, cs_mode mode, csh *handle)
 		// default skipdata setup
 		ud->skipdata_setup.mnemonic = SKIPDATA_MNEM;
 
-		err = arch_init[ud->arch](ud);
+		err = cs_arch_init[ud->arch](ud);
 		if (err) {
 			cs_mem_free(ud);
 			*handle = 0;
@@ -319,7 +319,7 @@ static void fill_insn(struct cs_struct *handle, cs_insn *insn, char *buffer, MCI
 
 	// fill the instruction bytes.
 	// we might skip some redundant bytes in front in the case of X86
-	lilu_os_memcpy(insn->bytes, code + insn->size - copy_size, copy_size);
+	memcpy(insn->bytes, code + insn->size - copy_size, copy_size);
 	insn->size = copy_size;
 
 	// alias instruction might have ID saved in OpcodePub
@@ -437,13 +437,13 @@ cs_err CAPSTONE_API cs_option(csh ud, cs_opt_type type, size_t value)
 			return CS_ERR_OK;
 		case CS_OPT_MODE:
 			// verify if requested mode is valid
-			if (value & arch_disallowed_mode_mask[handle->arch]) {
+			if (value & cs_arch_disallowed_mode_mask[handle->arch]) {
 				return CS_ERR_OPTION;
 			}
 			break;
 	}
 
-	return arch_option[handle->arch](handle, type, value);
+	return cs_arch_option[handle->arch](handle, type, value);
 }
 
 // generate @op_str for data instruction of SKIPDATA
@@ -602,7 +602,7 @@ size_t CAPSTONE_API cs_disasm(csh ud, const uint8_t *buffer, size_t size, uint64
 			insn_cache->id = 0;	// invalid ID for this "data" instruction
 			insn_cache->address = offset;
 			insn_cache->size = (uint16_t)skipdata_bytes;
-			lilu_os_memcpy(insn_cache->bytes, buffer, skipdata_bytes);
+			memcpy(insn_cache->bytes, buffer, skipdata_bytes);
 #ifdef CAPSTONE_DIET
  			insn_cache->mnemonic[0] = '\0';
 			insn_cache->op_str[0] = '\0';
@@ -808,7 +808,7 @@ bool CAPSTONE_API cs_disasm_iter(csh ud, const uint8_t **code, size_t *size,
 		insn->id = 0;	// invalid ID for this "data" instruction
 		insn->address = *address;
 		insn->size = (uint16_t)skipdata_bytes;
-		lilu_os_memcpy(insn->bytes, *code, skipdata_bytes);
+		memcpy(insn->bytes, *code, skipdata_bytes);
 #ifdef CAPSTONE_DIET
 		insn->mnemonic[0] = '\0';
 		insn->op_str[0] = '\0';

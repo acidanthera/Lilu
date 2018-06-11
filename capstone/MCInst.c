@@ -16,6 +16,13 @@
 
 void MCInst_Init(MCInst *inst)
 {
+	unsigned int i;
+
+	for (i = 0; i < 48; i++) {
+		inst->Operands[i].Kind = kInvalid;
+	}
+
+	inst->Opcode = 0;
 	inst->OpcodePub = 0;
 	inst->size = 0;
 	inst->has_imm = false;
@@ -34,7 +41,7 @@ void MCInst_insert0(MCInst *inst, int index, MCOperand *Op)
 	int i;
 
 	for(i = inst->size; i > index; i--)
-		//lilu_os_memcpy(&(inst->Operands[i]), &(inst->Operands[i-1]), sizeof(MCOperand));
+		//memcpy(&(inst->Operands[i]), &(inst->Operands[i-1]), sizeof(MCOperand));
 		inst->Operands[i] = inst->Operands[i-1];
 
 	inst->Operands[index] = *Op;
