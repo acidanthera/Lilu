@@ -17,9 +17,9 @@ LiluAPI lilu;
 void LiluAPI::init() {
 	access = IOLockAlloc();
 
-	if (config.installOrRecovery)
+	if (ADDPR(config).installOrRecovery)
 		currentRunMode |= AllowInstallerRecovery;
-	else if (config.safeMode)
+	else if (ADDPR(config).safeMode)
 		currentRunMode |= AllowSafeMode;
 	else
 		currentRunMode |= AllowNormal;
@@ -33,7 +33,7 @@ void LiluAPI::deinit() {
 }
 
 LiluAPI::Error LiluAPI::requestAccess(size_t version, bool check) {
-	if (!config.startSuccess)
+	if (!ADDPR(config).startSuccess)
 		return Error::Offline;
 
 	constexpr size_t currversion = parseModuleVersion(xStringify(MODULE_VERSION));
@@ -78,7 +78,7 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t
 	}
 
 	if (!KernelPatcher::compatibleKernel(min, max)) {
-		bool beta = config.betaForAll;
+		bool beta = ADDPR(config).betaForAll;
 
 		for (size_t i = 0; i < betaArgNum && !beta; i++) {
 			if (PE_parse_boot_argn(betaArg[i], tmp, sizeof(tmp)))
@@ -93,7 +93,7 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t
 		}
 	}
 
-	if (config.debugForAll) {
+	if (ADDPR(config).debugForAll) {
 		printDebug = true;
 	} else {
 		for (size_t i = 0; i < debugArgNum; i++) {

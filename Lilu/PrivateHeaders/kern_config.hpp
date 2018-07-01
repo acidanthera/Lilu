@@ -154,6 +154,6 @@ public:
 	Configuration() : policy(xStringify(PRODUCT_NAME), fullName, &policyOps) {}
 };
 
-extern Configuration config;
+extern Configuration ADDPR(config);
 
 #endif /* kern_config_private_h */

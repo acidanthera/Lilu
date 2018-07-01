@@ -33,7 +33,7 @@ static const char kextVersion[] {
 IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
 	setProperty("VersionInfo", kextVersion);
 	auto service = IOService::probe(provider, score);
-	return config.startSuccess ? service : nullptr;
+	return ADDPR(config).startSuccess ? service : nullptr;
 }
 
 bool PRODUCT_NAME::start(IOService *provider) {
@@ -42,14 +42,14 @@ bool PRODUCT_NAME::start(IOService *provider) {
 		return false;
 	}
 	
-	return config.startSuccess;
+	return ADDPR(config).startSuccess;
 }
 
 void PRODUCT_NAME::stop(IOService *provider) {
 	IOService::stop(provider);
 }
 
-Configuration config;
+Configuration ADDPR(config);
 
 bool Configuration::performInit() {
 	kernelPatcher.init();
@@ -80,18 +80,18 @@ bool Configuration::performInit() {
 }
 
 int Configuration::policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabel) {
-	if (!config.initialised) {
+	if (!ADDPR(config).initialised) {
 		DBGLOG("config", "init via mac_mount_check_remount");
-		config.performInit();
+		ADDPR(config).performInit();
 	}
 	
 	return 0;
 }
 
 int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t auth, vnode_t vp, ...) {
-	if (!config.initialised) {
+	if (!ADDPR(config).initialised) {
 		DBGLOG("config", "init via mac_cred_check_label_update_execve");
-		config.performInit();
+		ADDPR(config).performInit();
 	}
 	
 	return 0;
@@ -179,13 +179,13 @@ extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
 	// Make EFI runtime services available now, since they are standalone.
 	EfiRuntimeServices::activate();
 
-	if (config.getBootArguments()) {
+	if (ADDPR(config).getBootArguments()) {
 		DBGLOG("init", "initialising policy");
 		
 		lilu.init();
 		
-		if (config.policy.registerPolicy())
-			config.startSuccess = true;
+		if (ADDPR(config).policy.registerPolicy())
+			ADDPR(config).startSuccess = true;
 		else
 			SYSLOG("init", "failed to register the policy");
 	}
@@ -194,5 +194,5 @@ extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
 }
 
 extern "C" kern_return_t kern_stop(kmod_info_t *ki, void *d) {
-	return config.startSuccess ? KERN_FAILURE : KERN_SUCCESS;
+	return ADDPR(config).startSuccess ? KERN_FAILURE : KERN_SUCCESS;
 }

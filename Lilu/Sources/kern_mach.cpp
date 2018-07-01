@@ -35,7 +35,7 @@
 kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *prelink, bool fsfallback) {
 	kern_return_t error = KERN_FAILURE;
 	
-	allow_decompress = config.allowDecompress;
+	allow_decompress = ADDPR(config).allowDecompress;
 
 	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
 	// When calling kauth_cred_get() for the current_thread.
