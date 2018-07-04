@@ -555,8 +555,9 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 									DBGLOG("user", "obtained write permssions\n");
 									
 									r = orgVmMapWriteUser(taskPort, applyChanges ? patch.replace : patch.find, place, patch.size);
-										
-									DBGLOG("user", "patching %llX -> res %d", place, r);
+
+									if (r != KERN_SUCCESS)
+										SYSLOG("user", "patching %llX -> res %d", place, r);
 										
 									if (vm_protect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_EXECUTE) == KERN_SUCCESS) {
 										DBGLOG("user", "restored write permssions\n");

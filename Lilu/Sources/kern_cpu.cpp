@@ -148,6 +148,7 @@ uint32_t CPUInfo::getGpuPlatformId(IORegistryEntry *sect, bool *specified) {
 			else
 				source = "(not found)";
 		}
+		(void)source;
 		DBGLOG("cpu", "found %s with frame id %08x via %s", safeString(sect->getName()), platform, source);
 	} else {
 		DBGLOG("cpu", "failed to detect built-in GPU");
