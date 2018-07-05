@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Hacker Disassembler Engine 64
  * Copyright (c) 2008-2009, Vyacheslav Patkov.
  * All rights reserved.
@@ -10,7 +10,7 @@
 #ifndef _HDE64_H_
 #define _HDE64_H_
 
-#include "stdint.h"
+#include <stdint.h>
 
 #define F_MODRM         0x00000001
 #define F_SIB           0x00000002
@@ -93,7 +93,7 @@ typedef struct {
 extern "C" {
 #endif
 
-/* __cdecl */
+/* Note, code should point to at least 32 valid bytes. */
 unsigned int hde64_disasm(const void *code, hde64s *hs);
 
 #ifdef __cplusplus

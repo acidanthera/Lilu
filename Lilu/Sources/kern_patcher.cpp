@@ -510,7 +510,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 			SYSLOG("patcher", "failed to route an inner trempoline");
 		}
 	}
-	
+
 	return 0;
 }
 

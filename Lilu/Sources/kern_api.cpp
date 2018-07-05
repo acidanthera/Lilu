@@ -66,14 +66,13 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t
 
 	DBGLOG("api", "got load request from %s (%lu)", product, version);
 
-	char tmp[16];
 	printDebug = false;
 
 	if (!(runmode & currentRunMode))
 		return Error::Disabled;
 
 	for (size_t i = 0; i < disableArgNum; i++) {
-		if (PE_parse_boot_argn(disableArg[i], tmp, sizeof(tmp)))
+		if (checkKernelArgument(disableArg[i]))
 			return Error::Disabled;
 	}
 
@@ -81,7 +80,7 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t
 		bool beta = ADDPR(config).betaForAll;
 
 		for (size_t i = 0; i < betaArgNum && !beta; i++) {
-			if (PE_parse_boot_argn(betaArg[i], tmp, sizeof(tmp)))
+			if (checkKernelArgument(betaArg[i]))
 				beta = true;
 		}
 
@@ -97,7 +96,7 @@ LiluAPI::Error LiluAPI::shouldLoad(const char *product, size_t version, uint32_t
 		printDebug = true;
 	} else {
 		for (size_t i = 0; i < debugArgNum; i++) {
-			if (PE_parse_boot_argn(debugArg[i], tmp, sizeof(tmp))) {
+			if (checkKernelArgument(debugArg[i])) {
 				printDebug = true;
 				break;
 			}

@@ -43,6 +43,7 @@ public:
 	/**
 	 *  Return the real instruction size contained within min bytes
 	 *  Unlike instructionSize this uses HDE engine and at the cost of reduced compatibility it is much faster
+	 *  Note: instruction pointer should point to at least min + 32 valid bytes.
 	 *
 	 *  @param ptr instruction pointer
 	 *  @param min minimal possible size

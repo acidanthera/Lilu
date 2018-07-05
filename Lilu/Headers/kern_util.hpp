@@ -274,6 +274,7 @@ extern "C" {
 	void *kern_os_calloc(size_t num, size_t size);
 	void kern_os_free(void *addr);
 	void *kern_os_realloc(void *addr, size_t nsize);
+	// kern_os_free does not check its argument for nullptr
 	EXPORT void lilu_os_free(void *addr);
 }
 
@@ -313,6 +314,18 @@ inline KernelVersion getKernelVersion() {
  */
 inline KernelMinorVersion getKernelMinorVersion() {
 	return static_cast<KernelMinorVersion>(version_minor);
+}
+
+/**
+ *  Check whether kernel boot argument is passed ignoring the value (e.g. -arg or arg).
+ *
+ *  @param name  argument name
+ *
+ *  @return true if argument was passed
+ */
+inline bool checkKernelArgument(const char *name) {
+	int val[16];
+	return PE_parse_boot_argn(name, val, sizeof(val));
 }
 
 /**

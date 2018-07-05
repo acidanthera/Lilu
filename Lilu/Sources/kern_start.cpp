@@ -101,19 +101,18 @@ bool Configuration::getBootArguments() {
 	if (readArguments) return !isDisabled;
 	
 	isDisabled = false;
-	char tmp[16];
-	
-	betaForAll = PE_parse_boot_argn(bootargBetaAll, tmp, sizeof(tmp));
-	debugForAll = PE_parse_boot_argn(bootargDebugAll, tmp, sizeof(tmp));
+
+	betaForAll = checkKernelArgument(bootargBetaAll);
+	debugForAll = checkKernelArgument(bootargDebugAll);
 
 	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
-	isDisabled |= PE_parse_boot_argn(bootargOff, tmp, sizeof(tmp));
-	if (!PE_parse_boot_argn(bootargForce, tmp, sizeof(tmp))) {
-		isDisabled |= PE_parse_boot_argn("-s", tmp, sizeof(tmp));
+	isDisabled |= checkKernelArgument(bootargOff);
+	if (!checkKernelArgument(bootargForce)) {
+		isDisabled |= checkKernelArgument("-s");
 		
 		if (!KernelPatcher::compatibleKernel(minKernel, maxKernel)) {
-			if (!betaForAll && !PE_parse_boot_argn(bootargBeta, tmp, sizeof(tmp))) {
+			if (!betaForAll && !checkKernelArgument(bootargBeta)) {
 				SYSLOG("config", "automatically disabling on an unsupported operating system");
 				isDisabled = true;
 			} else if (!isDisabled) {
@@ -125,23 +124,23 @@ bool Configuration::getBootArguments() {
 	}
 
 	ADDPR(debugEnabled) = debugForAll;
-	ADDPR(debugEnabled) |= PE_parse_boot_argn(bootargDebug, tmp, sizeof(tmp));
+	ADDPR(debugEnabled) |= checkKernelArgument(bootargDebug);
 
-	allowDecompress = !PE_parse_boot_argn(bootargLowMem, tmp, sizeof(tmp));
-	
-	installOrRecovery |= PE_parse_boot_argn("rp0", tmp, sizeof(tmp));
-	installOrRecovery |= PE_parse_boot_argn("rp", tmp, sizeof(tmp));
-	installOrRecovery |= PE_parse_boot_argn("container-dmg", tmp, sizeof(tmp));
-	installOrRecovery |= PE_parse_boot_argn("root-dmg", tmp, sizeof(tmp));
-	installOrRecovery |= PE_parse_boot_argn("auth-root-dmg", tmp, sizeof(tmp));
+	allowDecompress = !checkKernelArgument(bootargLowMem);
 
-	safeMode = PE_parse_boot_argn("-x", tmp, sizeof(tmp));
+	installOrRecovery |= checkKernelArgument("rp0");
+	installOrRecovery |= checkKernelArgument("rp");
+	installOrRecovery |= checkKernelArgument("container-dmg");
+	installOrRecovery |= checkKernelArgument("root-dmg");
+	installOrRecovery |= checkKernelArgument("auth-root-dmg");
+
+	safeMode = checkKernelArgument("-x");
 
 	preferSlowMode = getKernelVersion() <= KernelVersion::Mavericks || installOrRecovery;
 
-	if (PE_parse_boot_argn(bootargSlow, tmp, sizeof(tmp))) {
+	if (checkKernelArgument(bootargSlow)) {
 		preferSlowMode = true;
-	} else if (PE_parse_boot_argn(bootargFast, tmp, sizeof(tmp))) {
+	} else if (checkKernelArgument(bootargFast)) {
 		preferSlowMode = false;
 	}
 

@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.2.5
 - Added new DeviceInfo API
+- Added checkKernelArgument API
 - Removed GPU detection code from CPUInfo API
 
 #### v1.2.4
