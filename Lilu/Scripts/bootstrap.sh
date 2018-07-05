@@ -115,20 +115,43 @@ install_prebuilt_sdk() {
 
   echo "-> Obtaining release manifest..."
 
-  local url="https://api.github.com/repos/${REPO_PATH}/releases/latest"
-  local info=$("${CURL}" -Lfs "${url}") || ret=$?
+  echo "-> Cloning the latest version from master..."
+
+  # This is a really ugly hack due to GitHub API rate limits.
+  local url="https://github.com/${REPO_PATH}"
+  "${GIT}" clone "${url}" -b "master" "tmp" || ret=$?
   if [ $ret -ne 0 ]; then
-    echo "ERROR: Failed to download release manifest with code ${ret}!"
+    echo "ERROR: Failed to clone repository with code ${ret}!"
     return 1
   fi
 
-  local vers=$(echo "${info}" | "${GREP}" '"tag_name":' | "${SED}" -E 's/.*"([^"]+)".*/\1/')
+  echo "-> Obtaining the latest tag..."
+
+  cd "tmp" || ret=$?
+  if [ $ret -ne 0 ]; then
+    echo "ERROR: Failed to cd to temporary directory tmp with code ${ret}!"
+    return 1
+  fi
+
+  local vers=$("${GIT}" describe --abbrev=0 --tags) || ret=$?
   if [ "$vers" = "" ]; then
-    echo "ERROR: Failed to determine the latest release version!"
+    echo "ERROR: Failed to determine the latest release tag!"
     return 1
   fi
 
-  echo "-> Discovered the latest version ${vers}."
+  echo "-> Discovered the latest tag ${vers}."
+
+  cd .. || ret=$?
+  if [ $ret -ne 0 ]; then
+    echo "ERROR: Failed to cd back from temporary directory with code ${ret}!"
+    return 1
+  fi
+
+  "${RM}" -rf tmp || ret=$?
+  if [ $ret -ne 0 ] || [ -d tmp ]; then
+    echo "ERROR: Failed to remove temporary directory tmp with code ${ret}!"
+    return 1
+  fi
 
   local file="${vers}.DEBUG.zip"
 
@@ -156,7 +179,7 @@ install_prebuilt_sdk() {
 
   cd "tmp" || ret=$?
   if [ $ret -ne 0 ]; then
-    echo "ERROR: Failed to cd to temporary directory ${ziptmp} with code ${ret}!"
+    echo "ERROR: Failed to cd to temporary directory tmp with code ${ret}!"
     return 1
   fi
 
@@ -203,7 +226,7 @@ install_compiled_sdk() {
 
   cd "tmp" || ret=$?
   if [ $ret -ne 0 ]; then
-    echo "ERROR: Failed to cd to temporary directory ${ziptmp} with code ${ret}!"
+    echo "ERROR: Failed to cd to temporary directory tmp with code ${ret}!"
     return 1
   fi
 
