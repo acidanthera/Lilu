@@ -179,6 +179,11 @@ extern proc_t kernproc;
 #endif
 
 /**
+ *  Deprecate the interface
+ */
+#define DEPRECATE(x) __attribute__((deprecated(x)))
+
+/**
  *  Macros to bypass kernel address printing protection
  */
 #define PRIKADDR "0x%08X%08X"

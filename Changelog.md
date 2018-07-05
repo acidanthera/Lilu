@@ -1,6 +1,10 @@
 Lilu Changelog
 ==============
 
+#### v1.2.5
+- Added new DeviceInfo API
+- Removed GPU detection code from CPUInfo API
+
 #### v1.2.4
 - Internalize new APIs from 1.2.3
 - Added new EFI runtime API with custom variable extensions

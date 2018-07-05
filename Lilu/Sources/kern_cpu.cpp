@@ -6,6 +6,7 @@
 //
 
 #include <Headers/kern_cpu.hpp>
+#include <Headers/kern_devinfo.hpp>
 
 CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omodel) {
 	CpuVersion ver {};
@@ -70,89 +71,23 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 }
 
 bool CPUInfo::isConnectorLessPlatformId(uint32_t id) {
-	return
-	id == ConnectorLessSandyBridgePlatformId1 ||
-	id == ConnectorLessSandyBridgePlatformId2 ||
-	id == ConnectorLessIvyBridgePlatformId1 ||
-	id == ConnectorLessIvyBridgePlatformId2 ||
-	id == ConnectorLessHaswellPlatformId1 ||
-	id == ConnectorLessHaswellPlatformId2 ||
-	id == ConnectorLessSkylakePlatformId1 ||
-	id == ConnectorLessSkylakePlatformId2 ||
-	id == ConnectorLessSkylakePlatformId3 ||
-	id == ConnectorLessSkylakePlatformId4 ||
-	id == ConnectorLessKabyLakePlatformId1 ||
-	id == ConnectorLessKabyLakePlatformId2;
+	return DeviceInfo::isConnectorLessPlatformId(id);
 }
 
 uint32_t CPUInfo::getSandyGpuPlatformId() {
-	char boardIdentifier[64] {};
-	if (WIOKit::getComputerInfo(nullptr, 0, boardIdentifier, sizeof(boardIdentifier))) {
-		struct {
-			const char *boardId;
-			uint32_t platformId;
-		} sandyBoards[] = {
-			{"Mac-94245B3640C91C81", 0x10000},
-			{"Mac-94245AF5819B141B", 0x10000},
-			{"Mac-94245A3940C91C80", 0x10000},
-			{"Mac-942459F5819B171B", 0x10000},
-			{"Mac-8ED6AF5B48C039E1", 0x30010}, // or 0x30020
-			{"Mac-7BA5B2794B2CDB12", 0x30010}, // or 0x30020
-			{"Mac-4BC72D62AD45599E", 0x30030},
-			{"Mac-742912EFDBEE19B3", 0x40000},
-			{"Mac-C08A6BB70A942AC2", 0x40000},
-			{"Mac-942B5BF58194151B", 0x50000},
-			{"Mac-942B5B3A40C91381", 0x50000},
-			{"Mac-942B59F58194171B", 0x50000}
-		};
-		for (size_t i = 0; i < arrsize(sandyBoards); i++)
-			if (!strcmp(sandyBoards[i].boardId, boardIdentifier))
-				return sandyBoards[i].platformId;
-	} else {
-		SYSLOG("cpu", "failed to obtain board-id");
-	}
-	return DefaultInvalidPlatformId;
+	return DeviceInfo::getLegacyFramebufferId();
 }
 
 uint32_t CPUInfo::getGpuPlatformId(IORegistryEntry *sect, bool *specified) {
-	if (!sect) {
-		sect = WIOKit::findEntryByPrefix("/AppleACPIPlatformExpert", "PCI", gIOServicePlane);
-		if (sect) sect = WIOKit::findEntryByPrefix(sect, "AppleACPIPCI", gIOServicePlane);
-		if (sect) {
-			auto igpu = WIOKit::findEntryByPrefix(sect, "IGPU", gIOServicePlane);
-			// Try GFX0, since recent IntelGraphicsFixup may rename it later.
-			if (!igpu) sect = WIOKit::findEntryByPrefix(sect, "GFX0", gIOServicePlane);
-			else sect = igpu;
-		}
+	uint32_t platform = DeviceInfo::DefaultInvalidPlatformId;
+
+	auto devinfo = DeviceInfo::create();
+	if (devinfo) {
+		platform = devinfo->reportedFramebufferId;
+		DeviceInfo::deleter(devinfo);
 	}
 
 	if (specified) *specified = false;
-	uint32_t platform = DefaultInvalidPlatformId;
-	if (sect) {
-		const char *source = "CPU gen";
-		if (WIOKit::getOSDataValue(sect, "AAPL,ig-platform-id", platform)) {
-			source = "AAPL,ig-platform-id";
-			if (specified) *specified = true;
-		} else if (WIOKit::getOSDataValue(sect, "AAPL,snb-platform-id", platform)) {
-			source = "AAPL,snb-platform-id";
-			if (specified) *specified = true;
-		} else {
-			// Intel drivers for Skylake and higher provide default AAPL,ig-platform-id.
-			auto generation = getGeneration();
-			if (generation == CpuGeneration::Skylake)
-				platform = DefaultSkylakePlatformId;
-			else if (generation == CpuGeneration::KabyLake)
-				platform = DefaultKabyLakePlatformId;
-			else if (generation == CpuGeneration::SandyBridge)
-				platform = getSandyGpuPlatformId();
-			else
-				source = "(not found)";
-		}
-		(void)source;
-		DBGLOG("cpu", "found %s with frame id %08x via %s", safeString(sect->getName()), platform, source);
-	} else {
-		DBGLOG("cpu", "failed to detect built-in GPU");
-	}
 
 	return platform;
 }

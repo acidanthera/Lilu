@@ -83,6 +83,7 @@
 		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
 		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
 		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
+		CEA03B5B20ED6D3100BA842F /* kern_devinfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */; };
 		CEA5F5D720B88EF2008E6E8A /* qsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA5F5D520B88EF2008E6E8A /* qsort.cpp */; };
 		CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */; };
 		CEB6D9831F69B42D005B6AC3 /* cc.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9781F69B42D005B6AC3 /* cc.h */; };
@@ -202,6 +203,8 @@
 		CE75B9541EFB619C00D29B40 /* _label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _label.h; sourceTree = "<group>"; };
 		CE75B9551EFB619C00D29B40 /* mac_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_framework.h; sourceTree = "<group>"; };
 		CE75B9561EFB619C00D29B40 /* mac_policy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_policy.h; sourceTree = "<group>"; };
+		CEA03B5920ED6D0200BA842F /* kern_devinfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_devinfo.hpp; sourceTree = "<group>"; };
+		CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_devinfo.cpp; path = Lilu/Sources/kern_devinfo.cpp; sourceTree = "<group>"; };
 		CEA5F5D520B88EF2008E6E8A /* qsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsort.cpp; sourceTree = "<group>"; };
 		CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_crypto.cpp; path = Lilu/Sources/kern_crypto.cpp; sourceTree = "<group>"; };
 		CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_crypto.hpp; sourceTree = "<group>"; };
@@ -362,6 +365,7 @@
 				CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */,
 				CEC0C5F0208F99D8000BFE88 /* kern_efi.hpp */,
 				CE2E7B891E2C6A73009AC62A /* kern_file.hpp */,
+				CEA03B5920ED6D0200BA842F /* kern_devinfo.hpp */,
 				CE2E7B8A1E2C6A73009AC62A /* kern_iokit.hpp */,
 				CE2E7B8B1E2C6A73009AC62A /* kern_mach.hpp */,
 				CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */,
@@ -388,6 +392,7 @@
 				CEC0C5F1208F9A14000BFE88 /* kern_efi_trampoline.S */,
 				CE2E7BA61E2C6BAA009AC62A /* kern_file.cpp */,
 				CE2E7BA71E2C6BAA009AC62A /* kern_iokit.cpp */,
+				CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */,
 				CE2E7BA81E2C6BAA009AC62A /* kern_mach.cpp */,
 				CEB6D9921F69D8B9005B6AC3 /* kern_nvram.cpp */,
 				CE2E7BA91E2C6BAA009AC62A /* kern_patcher.cpp */,
@@ -708,6 +713,7 @@
 				CE2E7BB01E2C6BAA009AC62A /* kern_disasm.cpp in Sources */,
 				CEC0C5EF208F99A6000BFE88 /* kern_efi.cpp in Sources */,
 				CE2E7BEB1E2C75CE009AC62A /* kern_api.cpp in Sources */,
+				CEA03B5B20ED6D3100BA842F /* kern_devinfo.cpp in Sources */,
 				1C3E7AE01C84B61700A6448A /* MCInst.c in Sources */,
 				1C3E7B161C84B65400A6448A /* X86Module.c in Sources */,
 				1C3E7AE41C84B61700A6448A /* MCRegisterInfo.c in Sources */,
@@ -864,7 +870,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.4;
+				MODULE_VERSION = 1.2.5;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -927,7 +933,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.4;
+				MODULE_VERSION = 1.2.5;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
