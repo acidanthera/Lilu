@@ -98,6 +98,14 @@ public:
 		bool sys[SysFlagNum] {};
 		bool user[UserFlagNum] {};
 		size_t loadIndex {Unloaded}; // Updated after loading
+
+		/**
+		 *  Disable this info from being used
+		 *  May be called from onPatcherLoad callbacks to disable certain kexts
+		 */
+		void switchOff() {
+			sys[KernelPatcher::KextInfo::Disabled] = true;
+		}
 	};
 
 	static_assert(sizeof(KextInfo) == 5 * sizeof(size_t), "KextInfo is no longer ABI compatible");

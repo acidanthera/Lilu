@@ -116,6 +116,21 @@ public:
 	EXPORT Error onPatcherLoad(t_patcherLoaded callback, void *user=nullptr);
 
 	/**
+	 *  Registers custom provided callbacks for later invocation on kernel patcher initialisation
+	 *  Enforced version, which panics on registration failure (assuming your code cannot continue otherwise)
+	 *
+	 *  @param callback your callback function
+	 *  @param user     your pointer that will be passed to the callback function
+	 *
+	 *  @return Error::NoError on success
+	 */
+	inline void onPatcherLoadForce(t_patcherLoaded callback, void *user=nullptr) {
+		auto err = onPatcherLoad(callback, user);
+		if (err != Error::NoError)
+			PANIC("api", "onPatcherLoad failed with code %d", err);
+	}
+
+	/**
 	 *  Kext loaded callback
 	 *  Note that you will get notified of all the requested kexts for speed reasons
 	 *
@@ -132,12 +147,29 @@ public:
 	 *
 	 *  @param infos    your kext list (make sure to point to const memory)
 	 *  @param num      number of provided kext entries
-	 *  @param callback your callback function
-	 *  @param user     your pointer that will be passed to the callback function
+	 *  @param callback your callback function (optional)
+	 *  @param user     your pointer that will be passed to the callback function (optional)
 	 *
 	 *  @return Error::NoError on success
 	 */
-	EXPORT Error onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t_kextLoaded callback, void *user=nullptr);
+	EXPORT Error onKextLoad(KernelPatcher::KextInfo *infos, size_t num=1, t_kextLoaded callback=nullptr, void *user=nullptr);
+
+	/**
+	 *  Registers custom provided callbacks for later invocation on kext load
+	 *  Enforced version, which panics on registration failure (assuming your code cannot continue otherwise)
+	 *
+	 *  @param infos    your kext list (make sure to point to const memory)
+	 *  @param num      number of provided kext entries
+	 *  @param callback your callback function (optional)
+	 *  @param user     your pointer that will be passed to the callback function (optional)
+	 *
+	 *  @return Error::NoError on success
+	 */
+	inline void onKextLoadForce(KernelPatcher::KextInfo *infos, size_t num=1, t_kextLoaded callback=nullptr, void *user=nullptr) {
+		auto err = onKextLoad(infos, num, callback, user);
+		if (err != Error::NoError)
+			PANIC("api", "onKextLoad failed with code %d", err);
+	}
 
 	/**
 	 *  Registers custom provided callbacks for later invocation on binary load
@@ -151,7 +183,26 @@ public:
 	 *
 	 *  @return Error::NoError on success
 	 */
-	EXPORT Error onProcLoad(UserPatcher::ProcInfo *infos, size_t num, UserPatcher::t_BinaryLoaded callback, void *user=nullptr, UserPatcher::BinaryModInfo *mods=nullptr, size_t modnum=0);
+	EXPORT Error onProcLoad(UserPatcher::ProcInfo *infos, size_t num=1, UserPatcher::t_BinaryLoaded callback=nullptr, void *user=nullptr, UserPatcher::BinaryModInfo *mods=nullptr, size_t modnum=0);
+
+	/**
+	 *  Registers custom provided callbacks for later invocation on binary load
+	 *  Enforced version, which panics on registration failure (assuming your code cannot continue otherwise)
+	 *
+	 *  @param infos    your binary list (make sure to point to const memory)
+	 *  @param num      number of provided binary entries
+	 *  @param callback your callback function (could be null)
+	 *  @param user     your pointer that will be passed to the callback function
+	 *  @param mods     optional mod list (make sure to point to const memory)
+	 *  @param modnum   number of provided mod entries
+	 *
+	 *  @return Error::NoError on success
+	 */
+	inline void onProcLoadForce(UserPatcher::ProcInfo *infos, size_t num=1, UserPatcher::t_BinaryLoaded callback=nullptr, void *user=nullptr, UserPatcher::BinaryModInfo *mods=nullptr, size_t modnum=0) {
+		auto err = onProcLoad(infos, num, callback, user, mods, modnum);
+		if (err != Error::NoError)
+			PANIC("api", "onProcLoad failed with code %d", err);
+	}
 
 	/**
 	 *  Kext loaded callback
@@ -173,6 +224,21 @@ public:
 	 *  @return Error::NoError on success
 	 */
 	EXPORT Error onEntitlementRequest(t_entitlementRequested callback, void *user=nullptr);
+
+	/**
+	 *  Registers custom provided callbacks for later invocation on entitlement registration
+	 *  Enforced version, which panics on registration failure (assuming your code cannot continue otherwise)
+	 *
+	 *  @param callback your callback function
+	 *  @param user     your pointer that will be passed to the callback function
+	 *
+	 *  @return Error::NoError on success
+	 */
+	inline void onEntitlementRequestForce(t_entitlementRequested callback, void *user=nullptr) {
+		auto err = onEntitlementRequest(callback, user);
+		if (err != Error::NoError)
+			PANIC("api", "onEntitlementRequest failed with code %d", err);
+	}
 
 	/**
 	 *  Processes all the registered patcher load callbacks

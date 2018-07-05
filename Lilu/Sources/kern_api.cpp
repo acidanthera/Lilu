@@ -128,37 +128,41 @@ LiluAPI::Error LiluAPI::onPatcherLoad(t_patcherLoaded callback, void *user) {
 
 LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t_kextLoaded callback, void *user) {
 	// Store the callbacks first
-	auto *pcall = stored_pair<t_kextLoaded>::create();
+	if (callback) {
+		auto *pcall = stored_pair<t_kextLoaded>::create();
 
-	if (!pcall) {
-		SYSLOG("api", "failed to allocate memory for stored_pair<t_kextLoaded>");
-		return Error::MemoryError;
-	}
+		if (!pcall) {
+			SYSLOG("api", "failed to allocate memory for stored_pair<t_kextLoaded>");
+			return Error::MemoryError;
+		}
 
-	pcall->first = callback;
-	pcall->second = user;
+		pcall->first = callback;
+		pcall->second = user;
 
-	if (!kextLoadedCallbacks.push_back(pcall)) {
-		SYSLOG("api", "failed to store stored_pair<t_kextLoaded>");
-		pcall->deleter(pcall);
-		return Error::MemoryError;
+		if (!kextLoadedCallbacks.push_back(pcall)) {
+			SYSLOG("api", "failed to store stored_pair<t_kextLoaded>");
+			pcall->deleter(pcall);
+			return Error::MemoryError;
+		}
 	}
 
 	// Store the kexts next
-	auto *pkext = stored_pair<KernelPatcher::KextInfo *, size_t>::create();
+	if (infos) {
+		auto *pkext = stored_pair<KernelPatcher::KextInfo *, size_t>::create();
 
-	if (!pkext) {
-		SYSLOG("api", "failed to allocate memory for stored_pair<KextInfo>");
-		return Error::MemoryError;
-	}
+		if (!pkext) {
+			SYSLOG("api", "failed to allocate memory for stored_pair<KextInfo>");
+			return Error::MemoryError;
+		}
 
-	pkext->first = infos;
-	pkext->second = num;
+		pkext->first = infos;
+		pkext->second = num;
 
-	if (!storedKexts.push_back(pkext)) {
-		SYSLOG("api", "failed to store stored_pair<KextInfo>");
-		pkext->deleter(pkext);
-		return Error::MemoryError;
+		if (!storedKexts.push_back(pkext)) {
+			SYSLOG("api", "failed to store stored_pair<KextInfo>");
+			pkext->deleter(pkext);
+			return Error::MemoryError;
+		}
 	}
 
 	return Error::NoError;

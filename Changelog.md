@@ -4,6 +4,9 @@ Lilu Changelog
 #### v1.2.5
 - Added new DeviceInfo API
 - Added checkKernelArgument API
+- Added enforced LiluAPI interfaces
+- Added KextInfo::switchOff API
+- Allowed for onKextLoad to accept no callback
 - Removed GPU detection code from CPUInfo API
 
 #### v1.2.4
