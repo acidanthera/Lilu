@@ -67,9 +67,11 @@ namespace CPUInfo {
 		CPU_MODEL_KABYLAKE_ULT   =  0x8E,
 		CPU_MODEL_KABYLAKE_ULX   =  0x8E,
 		CPU_MODEL_KABYLAKE_DT    =  0x9E,
+		CPU_MODEL_COFFEELAKE     =  0x9E,
+		CPU_MODEL_COFFEELAKE_ULT =  0x9E,
+		CPU_MODEL_COFFEELAKE_ULX =  0x9E,
+		CPU_MODEL_COFFEELAKE_DT  =  0x9E,
 		// The latter are for information reasons only.
-		// First Coffee Lake CPUs      = 0x9E
-		// Subsequent Coffee Lake CPUs = 0x9C
 		// Cannon Lake CPUs            = 0x66
 		// Ice Lake CPUs               = 0x7E
 	};

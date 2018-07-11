@@ -8,6 +8,7 @@ Lilu Changelog
 - Added KextInfo::switchOff API
 - Allowed for onKextLoad to accept no callback
 - Removed GPU detection code from CPUInfo API
+- Enabled by default on 10.14
 
 #### v1.2.4
 - Internalize new APIs from 1.2.3

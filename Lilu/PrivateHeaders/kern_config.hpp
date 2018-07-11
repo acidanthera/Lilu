@@ -36,7 +36,7 @@ class Configuration {
 	/**
 	 * Maxmimum supported kernel version
 	 */
-	static constexpr KernelVersion maxKernel {KernelVersion::HighSierra};
+	static constexpr KernelVersion maxKernel {KernelVersion::Mojave};
 	
 	/**
 	 *  Set once the arguments are parsed
