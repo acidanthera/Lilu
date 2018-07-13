@@ -69,25 +69,3 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 	}
 	return CpuGeneration::Unknown;
 }
-
-bool CPUInfo::isConnectorLessPlatformId(uint32_t id) {
-	return DeviceInfo::isConnectorLessPlatformId(id);
-}
-
-uint32_t CPUInfo::getSandyGpuPlatformId() {
-	return DeviceInfo::getLegacyFramebufferId();
-}
-
-uint32_t CPUInfo::getGpuPlatformId(IORegistryEntry *sect, bool *specified) {
-	uint32_t platform = DeviceInfo::DefaultInvalidPlatformId;
-
-	auto devinfo = DeviceInfo::create();
-	if (devinfo) {
-		platform = devinfo->reportedFramebufferId;
-		DeviceInfo::deleter(devinfo);
-	}
-
-	if (specified) *specified = false;
-
-	return platform;
-}

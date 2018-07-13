@@ -526,13 +526,14 @@ private:
 	void patchBinary(vm_map_t map, const char *path, uint32_t len);
 	
 	/**
-	 *  Possible dyld shared cache map paths
+	 *  Dyld shared cache map path for 10.10+ on Haswell
 	 */
-	static constexpr size_t sharedCacheMapPathsNum {2};
-	const char *sharedCacheMap[sharedCacheMapPathsNum] {
-		"/private/var/db/dyld/dyld_shared_cache_x86_64h.map",	//since 10.10
-		"/private/var/db/dyld/dyld_shared_cache_x86_64.map"
-	};
+	static constexpr const char *SharedCacheMapHaswell {"/private/var/db/dyld/dyld_shared_cache_x86_64h.map"};
+
+	/**
+	 *  Dyld shared cache map path for all other systems and older CPUs
+	 */
+	static constexpr const char *SharedCacheMapLegacy {"/private/var/db/dyld/dyld_shared_cache_x86_64.map"};
 
 };
 

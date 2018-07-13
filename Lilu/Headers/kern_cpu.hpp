@@ -105,32 +105,6 @@ namespace CPUInfo {
 	 *  @return detected Intel CPU generation
 	 */
 	EXPORT CpuGeneration getGeneration(uint32_t *ofamily=nullptr, uint32_t *omodel=nullptr);
-
-	/**
-	 *  Check whether IGPU platform id contains any connectors
-	 *
-	 *  @param id  IGPU platform id
-	 *
-	 *  @return true if the specified platform id has no connectors
-	 */
-	EXPORT bool isConnectorLessPlatformId(uint32_t id) DEPRECATE("Use DeviceInfo::reportedFramebufferIsConnectorLess");
-
-	/**
-	 *  Return Sandy Bridge default platform id.
-	 *
-	 *  @return valid platform id or DefaultInvalidPlatformId
-	 */
-	EXPORT uint32_t getSandyGpuPlatformId() DEPRECATE("Use DeviceInfo::reportedFramebufferId");
-
-	/**
-	 *  Return running IGPU platform id.
-	 *
-	 *  @param sect      known IGPU entry.
-	 *  @param specified set to true if the value was directly read from ioreg
-	 *
-	 *  @return valid platform id or DefaultInvalidPlatformId
-	 */
-	EXPORT uint32_t getGpuPlatformId(IORegistryEntry *sect=nullptr, bool *specified=nullptr) DEPRECATE("Use DeviceInfo::reportedFramebufferId");
 }
 
 #endif /* kern_cpu_h */

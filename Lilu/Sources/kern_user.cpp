@@ -8,6 +8,7 @@
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_compat.hpp>
 #include <Headers/kern_user.hpp>
+#include <Headers/kern_cpu.hpp>
 #include <Headers/kern_file.hpp>
 #include <PrivateHeaders/kern_config.hpp>
 
@@ -645,11 +646,15 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
-	for (size_t i = 0; i < sharedCacheMapPathsNum; i++) {
-		buffer = FileIO::readFileToBuffer(sharedCacheMap[i], bufferSize);
-		if (buffer) break;
+	auto gen = CPUInfo::getGeneration();
+	if (getKernelVersion() >= KernelVersion::Yosemite &&
+		(gen >= CPUInfo::CpuGeneration::Haswell || gen == CPUInfo::CpuGeneration::Unknown)) {
+		buffer = FileIO::readFileToBuffer(SharedCacheMapHaswell, bufferSize);
 	}
-	
+
+	if (!buffer)
+		buffer = FileIO::readFileToBuffer(SharedCacheMapLegacy, bufferSize);
+
 	bool res {false};
 
 	if (buffer && bufferSize > 0) {
