@@ -258,19 +258,30 @@ void KernelPatcher::updateKextHandlerFeatures(KextInfo *info) {
 }
 
 void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
+	applyLookupPatch(patch, 0, 0);
+}
+
+void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *startingAddress, size_t maxSize) {
 	if (!patch || !patch->kext || patch->kext->loadIndex == KextInfo::Unloaded) {
 		SYSLOG("patcher", "an invalid lookup patch provided");
 		code = Error::MemoryIssue;
 		return;
 	}
 	
-	uint8_t *off, *curr;
-	size_t size;
 	auto kinfo = kinfos[patch->kext->loadIndex];
-	kinfo->getRunningPosition(off, size);
+	uint8_t *kextAddress;
+	size_t kextSize;
+	kinfo->getRunningPosition(kextAddress, kextSize);
 	
-	curr = off;
-	off += size - patch->size;
+	uint8_t *currentAddress = kextAddress;
+	if (currentAddress < startingAddress)
+		currentAddress = startingAddress;
+
+	uint8_t *endingAddress = kextAddress + kextSize;
+	if (maxSize > 0 && endingAddress > startingAddress + maxSize)
+		endingAddress = startingAddress + maxSize;
+	endingAddress -= patch->size;
+
 	size_t changes {0};
 	
 	if (kinfo->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
@@ -279,13 +290,13 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 		return;
 	}
 	
-	for (size_t i = 0; curr < off && (i < patch->count || patch->count == 0); i++) {
-		while (curr < off && memcmp(curr, patch->find, patch->size))
-			curr++;
+	for (size_t i = 0; currentAddress < endingAddress && (i < patch->count || patch->count == 0); i++) {
+		while (currentAddress < endingAddress && memcmp(currentAddress, patch->find, patch->size))
+			currentAddress++;
 		
-		if (curr != off) {
+		if (currentAddress != endingAddress) {
 			for (size_t j = 0; j < patch->size; j++)
-				curr[j] = patch->replace[j];
+				currentAddress[j] = patch->replace[j];
 			changes++;
 		}
 	}
