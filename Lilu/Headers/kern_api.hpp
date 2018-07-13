@@ -71,11 +71,23 @@ public:
 	 *  It is assumed that single user mode is equal to normal, because it is generally
 	 *  used to continue the load of a complete OS, and by default Lilu itself ignores it.
 	 */
-	enum Requirements : uint32_t {
-		AllowNormal             = 1,
-		AllowInstallerRecovery  = 2,
-		AllowSafeMode           = 4
+	enum RunningMode : uint32_t {
+		RunningNormal            = 1,
+		AllowNormal              = RunningNormal,
+		RunningInstallerRecovery = 2,
+		AllowInstallerRecovery   = RunningInstallerRecovery,
+		RunningSafeMode          = 4,
+		AllowSafeMode            = RunningSafeMode
 	};
+
+	/**
+	 *  Obtain current run mode similarly to requirements
+	 *
+	 *  @return run mode mask (RunningMode)
+	 */
+	inline uint32_t getRunMode() {
+		return currentRunMode;
+	}
 
 	/**
 	 *  Decides whether you are eligible to continue

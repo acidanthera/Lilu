@@ -18,11 +18,11 @@ void LiluAPI::init() {
 	access = IOLockAlloc();
 
 	if (ADDPR(config).installOrRecovery)
-		currentRunMode |= AllowInstallerRecovery;
+		currentRunMode |= RunningInstallerRecovery;
 	else if (ADDPR(config).safeMode)
-		currentRunMode |= AllowSafeMode;
+		currentRunMode |= RunningSafeMode;
 	else
-		currentRunMode |= AllowNormal;
+		currentRunMode |= RunningNormal;
 }
 
 void LiluAPI::deinit() {
