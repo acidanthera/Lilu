@@ -6,6 +6,7 @@ Lilu Changelog
 - Added checkKernelArgument API
 - Added enforced LiluAPI interfaces
 - Added KextInfo::switchOff API
+- Added cpuid API
 - Allowed for onKextLoad to accept no callback
 - Removed GPU detection code from CPUInfo API
 - Enabled by default on 10.14

@@ -646,11 +646,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
-	auto gen = CPUInfo::getGeneration();
-	if (getKernelVersion() >= KernelVersion::Yosemite &&
-		(gen >= CPUInfo::CpuGeneration::Haswell || gen == CPUInfo::CpuGeneration::Unknown)) {
+	uint32_t ebx = 0;
+	CPUInfo::getCpuid(7, nullptr, &ebx);
+	if ((ebx & CPUInfo::bit_AVX2) && getKernelVersion() >= KernelVersion::Yosemite)
 		buffer = FileIO::readFileToBuffer(SharedCacheMapHaswell, bufferSize);
-	}
 
 	if (!buffer)
 		buffer = FileIO::readFileToBuffer(SharedCacheMapLegacy, bufferSize);
