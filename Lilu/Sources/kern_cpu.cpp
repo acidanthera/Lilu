@@ -9,19 +9,22 @@
 #include <Headers/kern_devinfo.hpp>
 
 CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omodel) {
-	CpuVersion ver {};
-	getCpuid(1, reinterpret_cast<uint32_t *>(&ver));
+	union {
+		CpuVersion fmt;
+		uint32_t raw;
+	} ver {};
+	getCpuid(1, &ver.raw);
 
-	uint32_t family = ver.family;
-	if (family == 15) family += ver.extendedFamily;
+	uint32_t family = ver.fmt.family;
+	if (family == 15) family += ver.fmt.extendedFamily;
 	if (ofamily) *ofamily = family;
 
-	uint32_t model = ver.model;
+	uint32_t model = ver.fmt.model;
 	if (family == 15 || family == 6)
-		model |= ver.extendedModel << 4;
+		model |= ver.fmt.extendedModel << 4;
 	if (omodel) *omodel = model;
 
-	if (ver.family == 6) {
+	if (ver.fmt.family == 6) {
 		switch (model) {
 			case CPU_MODEL_PENRYN:
 				return CpuGeneration::Penryn;
