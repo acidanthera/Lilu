@@ -32,6 +32,13 @@ class DeviceInfo {
 	 */
 	void updateFirmwareVendor();
 
+	/**
+	 *  Obtains devices from PCI root
+	 *
+	 *  @param pciRoot  PCI root instance (commonly PCI0@0 device)
+	 */
+	void grabDevicesFromPciRoot(IORegistryEntry *pciRoot);
+
 public:
 	/**
 	 *  Obtains autodetected legacy framebuffer if applicable

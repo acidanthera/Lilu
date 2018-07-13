@@ -187,6 +187,76 @@ bool DeviceInfo::isConnectorLessPlatformId(uint32_t id) {
 	id == ConnectorLessKabyLakePlatformId2;
 }
 
+void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
+	auto iterator = pciRoot->getChildIterator(gIODTPlane);
+	if (iterator) {
+		IORegistryEntry *obj = nullptr;
+		while ((obj = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
+			uint32_t vendor = 0, code = 0;
+			//TODO: AMD support if at all?
+			if (!WIOKit::getOSDataValue(obj, "vendor-id", vendor) || vendor != WIOKit::VendorID::Intel ||
+				!WIOKit::getOSDataValue(obj, "class-code", code))
+				continue;
+
+			auto name = obj->getName();
+			if (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController) {
+				DBGLOG("dev", "found IGPU device %s", safeString(name));
+				videoBuiltin = obj;
+			} else if (code == WIOKit::ClassCode::HDADevice) {
+				if (name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
+					DBGLOG("dev", "found HDAU device %s", safeString(name));
+					audioBuiltinDigital = obj;
+				} else {
+					DBGLOG("dev", "found HDEF device %s", safeString(name));
+					audioBuiltinAnalog = obj;
+				}
+			} else if (code == WIOKit::ClassCode::IMEI || (name &&
+				(!strcmp(name, "IMEI") || !strcmp(name, "HECI") || !strcmp(name, "MEI")))) {
+				// Fortunately IMEI is always made by Intel
+				DBGLOG("dev", "found IMEI device %s", safeString(name));
+				managementEngine = obj;
+			} else if (code == WIOKit::ClassCode::PCIBridge) {
+				DBGLOG("dev", "found pci bridge %s", safeString(name));
+				auto pciiterator = IORegistryIterator::iterateOver(obj, gIOServicePlane, kIORegistryIterateRecursively);
+				if (pciiterator) {
+					ExternalVideo v {};
+					IORegistryEntry *pciobj = nullptr;
+					while ((pciobj = OSDynamicCast(IORegistryEntry, pciiterator->getNextObject())) != nullptr) {
+						uint32_t pcivendor = 0, pcicode = 0;
+						DBGLOG("dev", "found %s on pci bridge", safeString(pciobj->getName()));
+						if (WIOKit::getOSDataValue(pciobj, "vendor-id", pcivendor) &&
+							WIOKit::getOSDataValue(pciobj, "class-code", pcicode)) {
+
+							if (pcicode == WIOKit::ClassCode::DisplayController ||
+								pcicode == WIOKit::ClassCode::VGAController) {
+								DBGLOG("dev", "found GFX0 device %s at %s by %04X",
+									   safeString(pciobj->getName()), safeString(name),  pcivendor);
+								v.video = pciobj;
+								v.vendor = pcivendor;
+							} else if (pcicode == WIOKit::ClassCode::HDADevice) {
+								DBGLOG("dev", "found HDAU device %s at %s by %04X",
+									   safeString(pciobj->getName()), safeString(name), pcivendor);
+								v.audio = pciobj;
+							}
+						}
+					}
+
+					pciiterator->release();
+
+					if (v.video) {
+						if (!videoExternal.push_back(v))
+							SYSLOG("dev", "failed to push video gpu");
+					}
+				}
+			}
+		}
+
+		iterator->release();
+	} else {
+		SYSLOG("dev", "failed to obtain PCI devices iterator from %s", safeString(pciRoot->getName()));
+	}
+}
+
 DeviceInfo *DeviceInfo::create() {
 	auto list = new DeviceInfo;
 	if (!list) {
@@ -194,79 +264,40 @@ DeviceInfo *DeviceInfo::create() {
 		return nullptr;
 	}
 
-	auto sect = WIOKit::findEntryByPrefix("/", "PCI", gIODTPlane);
+	auto rootSect = IORegistryEntry::fromPath("/", gIODTPlane);
+	if (rootSect) {
+		// Find every PCI root, X299 may have many
+		auto lookupIterator = rootSect->getChildIterator(gIODTPlane);
+		if (lookupIterator) {
+			IORegistryEntry *pciRootObj = nullptr;
+			while ((pciRootObj = OSDynamicCast(IORegistryEntry, lookupIterator->getNextObject())) != nullptr) {
+				auto compat = OSDynamicCast(OSData, pciRootObj->getProperty("compatible"));
 
-	if (sect) {
-		auto iterator = sect->getChildIterator(gIODTPlane);
-		if (iterator) {
-			IORegistryEntry *obj = nullptr;
-			while ((obj = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
-				uint32_t vendor = 0, code = 0;
-				if (!WIOKit::getOSDataValue(obj, "vendor-id", vendor) || vendor != WIOKit::VendorID::Intel ||
-					!WIOKit::getOSDataValue(obj, "class-code", code))
-					continue;
+				bool isPciRoot = compat && compat->getLength() == sizeof("PNP0A03") &&
+					!strcmp(static_cast<const char *>(compat->getBytesNoCopy()), "PNP0A03");
 
-				auto name = obj->getName();
-				if (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController) {
-					DBGLOG("dev", "found IGPU device %s", safeString(name));
-					list->videoBuiltin = obj;
-				} else if (code == WIOKit::ClassCode::HDADevice) {
-					if (name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
-						DBGLOG("dev", "found HDAU device %s", safeString(name));
-						list->audioBuiltinDigital = obj;
-					} else {
-						DBGLOG("dev", "found HDEF device %s", safeString(name));
-						list->audioBuiltinAnalog = obj;
-					}
-				} else if (code == WIOKit::ClassCode::IMEI || (name &&
-					(!strcmp(name, "IMEI") || !strcmp(name, "HECI") || !strcmp(name, "MEI")))) {
-					// Fortunately IMEI is always made by Intel
-					DBGLOG("dev", "found IMEI device %s", safeString(name));
-					list->managementEngine = obj;
-				} else if (code == WIOKit::ClassCode::PCIBridge) {
-					DBGLOG("dev", "found pci bridge %s", safeString(name));
-					auto pciiterator = IORegistryIterator::iterateOver(obj, gIOServicePlane, kIORegistryIterateRecursively);
-					if (pciiterator) {
-						ExternalVideo v {};
-						IORegistryEntry *pciobj = nullptr;
-						while ((pciobj = OSDynamicCast(IORegistryEntry, pciiterator->getNextObject())) != nullptr) {
-							uint32_t pcivendor = 0, pcicode = 0;
-							DBGLOG("dev", "found %s on pci bridge", safeString(pciobj->getName()));
-							if (WIOKit::getOSDataValue(pciobj, "vendor-id", pcivendor) &&
-								WIOKit::getOSDataValue(pciobj, "class-code", pcicode)) {
+				// This is just a safeguard really, the upper check should find every value.
+				if (!isPciRoot && compat) {
+					auto name = pciRootObj->getName();
+					isPciRoot = name && (!strncmp(name, "PCI", 3) || !strncmp(name, "PC0", 3));
+				}
 
-								if (pcicode == WIOKit::ClassCode::DisplayController ||
-									pcicode == WIOKit::ClassCode::VGAController) {
-									DBGLOG("dev", "found GFX0 device %s at %s by %04X",
-										   safeString(pciobj->getName()), safeString(name),  pcivendor);
-									v.video = pciobj;
-									v.vendor = pcivendor;
-								} else if (pcicode == WIOKit::ClassCode::HDADevice) {
-									DBGLOG("dev", "found HDAU device %s at %s by %04X",
-										   safeString(pciobj->getName()), safeString(name), pcivendor);
-									v.audio = pciobj;
-								}
-							}
-						}
-
-						pciiterator->release();
-
-						if (v.video) {
-							if (!list->videoExternal.push_back(v))
-								SYSLOG("dev", "failed to push video gpu");
-						}
-					}
+				if (isPciRoot) {
+					DBGLOG("dev", "found PCI root %s", safeString(pciRootObj->getName()));
+					list->grabDevicesFromPciRoot(pciRootObj);
 				}
 			}
 
-			iterator->release();
+			lookupIterator->release();
 
 			list->updateLayoutId();
 			list->updateFramebufferId();
 			list->updateFirmwareVendor();
 		} else {
-			SYSLOG("dev", "failed to obtain PCI devices iterator");
+			SYSLOG("dev", "failed to obtain PCI lookup iterator");
 		}
+
+		rootSect->release();
 	} else {
 		SYSLOG("dev", "failed to find PCI devices");
 	}
