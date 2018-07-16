@@ -13,7 +13,7 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 		CpuVersion fmt;
 		uint32_t raw;
 	} ver {};
-	getCpuid(1, &ver.raw);
+	getCpuid(1, 0, &ver.raw);
 
 	uint32_t family = ver.fmt.family;
 	if (family == 15) family += ver.fmt.extendedFamily;
@@ -70,11 +70,13 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 	return CpuGeneration::Unknown;
 }
 
-void CPUInfo::getCpuid(uint32_t no, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
+void CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
 	uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
-	asm ("cpuid"
+	asm ("xchgq %%rbx, %q1\n"
+		 "cpuid\n"
+		 "xchgq %%rbx, %q1"
 		 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		 : "0" (no));
+		 : "0" (no), "2" (count));
 
 	if (a) *a = eax;
 	if (b) *b = ebx;
