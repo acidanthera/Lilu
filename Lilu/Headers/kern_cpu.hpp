@@ -92,8 +92,8 @@ namespace CPUInfo {
 		Broadwell,
 		Skylake,
 		KabyLake,
+		CoffeeLake,
 		// The latter are for information reasons only.
-		// CoffeeLake,
 		// CannonLake,
 		// IceLake
 	};

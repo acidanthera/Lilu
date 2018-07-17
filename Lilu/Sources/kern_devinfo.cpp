@@ -126,7 +126,7 @@ void DeviceInfo::updateFirmwareVendor() {
 					if (len == matching[i].len &&
 						!memcmp(bytes, matching[i].str, len)) {
 						firmwareVendor = matching[i].ven;
-						SYSLOG("dev", "detected %d firmware", firmwareVendor);
+						DBGLOG("dev", "detected %d firmware", firmwareVendor);
 						break;
 					}
 				}

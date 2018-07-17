@@ -61,8 +61,12 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 			case CPU_MODEL_KABYLAKE:
 				// case CPU_MODEL_KABYLAKE_ULT:
 				// case CPU_MODEL_KABYLAKE_ULX:
-			case CPU_MODEL_KABYLAKE_DT:
 				return CpuGeneration::KabyLake;
+			case CPU_MODEL_KABYLAKE_DT:
+				// Kaby has 0x9 stepping, and Coffee use 0xA / 0xB stepping.
+				if (ver.fmt.stepping == 9)
+					return CpuGeneration::KabyLake;
+				return CpuGeneration::CoffeeLake;
 			default:
 				return CpuGeneration::Unknown;
 		}

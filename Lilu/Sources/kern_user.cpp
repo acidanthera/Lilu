@@ -810,7 +810,11 @@ bool UserPatcher::loadFilesForPatching() {
 										continue;
 									}
 									ref->i = p; // Set the reference patch
-									entry->refs.push_back(ref);
+									if (!entry->refs.push_back(ref)) {
+										SYSLOG("user", "failed to insert PatchRef");
+										LookupStorage::PatchRef::deleter(ref);
+										continue;
+									}
 								}
 								
 								if (ref) {
