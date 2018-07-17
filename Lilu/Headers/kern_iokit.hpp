@@ -50,6 +50,17 @@ namespace WIOKit {
 		return false;
 	}
 
+	template <typename AS, typename T>
+	inline bool getOSDataValue(const OSObject *obj, const char *name, T &value) {
+		AS tmp;
+		if (getOSDataValue(obj, name, tmp)) {
+			value = static_cast<T>(tmp);
+			return true;
+		}
+
+		return false;
+	}
+
 	/**
 	 *  Read typed OSData from IORegistryEntry
 	 *
