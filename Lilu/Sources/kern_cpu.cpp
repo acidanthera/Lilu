@@ -8,7 +8,7 @@
 #include <Headers/kern_cpu.hpp>
 #include <Headers/kern_devinfo.hpp>
 
-CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omodel) {
+CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omodel, uint32_t *ostepping) {
 	union {
 		CpuVersion fmt;
 		uint32_t raw;
@@ -23,6 +23,7 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 	if (family == 15 || family == 6)
 		model |= ver.fmt.extendedModel << 4;
 	if (omodel) *omodel = model;
+	if (ostepping) *ostepping = ver.fmt.stepping;
 
 	if (ver.fmt.family == 6) {
 		switch (model) {

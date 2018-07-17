@@ -279,12 +279,13 @@ namespace CPUInfo {
 	/**
 	 *  Get running CPU generation.
 	 *
-	 *  @param ofamily a pointer to store CPU family in
-	 *  @param omodel  a pointer to store CPU model in
+	 *  @param ofamily    a pointer to store CPU family in
+	 *  @param omodel     a pointer to store CPU model in
+	 *  @param ostepping  a pointer to store CPU stepping in
 	 *
 	 *  @return detected Intel CPU generation
 	 */
-	EXPORT CpuGeneration getGeneration(uint32_t *ofamily=nullptr, uint32_t *omodel=nullptr);
+	EXPORT CpuGeneration getGeneration(uint32_t *ofamily=nullptr, uint32_t *omodel=nullptr, uint32_t *ostepping=nullptr);
 
 	/**
 	 *  Obtain cpuid registers
