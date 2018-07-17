@@ -138,6 +138,13 @@ private:
 	static constexpr const char *ReportedFrameIdArg = "igfxframe";
 
 	/**
+	 *  The boot-arg to override the reported AAPL,ig-platform-id to Intel drivers.
+	 *  Sets VESA framebuffer id (0xFFFFFFFF).
+	 *  For user configuration only! Use reportedFramebufferId!
+	 */
+	static constexpr const char *ReportedVesaIdArg = "-igfxvesa";
+
+	/**
 	 *  The property to set your platform id for Intel drivers (Ivy and newer).
 	 *  For user configuration only! Use reportedFramebufferName!
 	 */
@@ -155,6 +162,7 @@ private:
 	 */
 	static constexpr uint32_t DefaultSkylakePlatformId {0x19120000};
 	static constexpr uint32_t DefaultKabyLakePlatformId {0x59160000};
+	static constexpr uint32_t DefaultCoffeeLakePlatformId {0x3EA50000};
 
 	/**
 	 *  Framebuffers without any ports used for hardware acceleration only
@@ -173,17 +181,20 @@ private:
 	static constexpr uint32_t ConnectorLessSkylakePlatformId4 {0x19320001};
 	static constexpr uint32_t ConnectorLessKabyLakePlatformId1 {0x59180002};
 	static constexpr uint32_t ConnectorLessKabyLakePlatformId2 {0x59120003};
+	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId1 {0x3E920003};
+	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId2 {0x3E910003};
 
 public:
 	/**
-	 *  Invalid framebuffer identifier
+	 *  Vesa framebuffer identifier
 	 */
-	static constexpr uint32_t DefaultInvalidPlatformId {0xFFFFFFFF};
+	static constexpr uint32_t DefaultVesaPlatformId {0xFFFFFFFF};
 
 	/**
 	 *  Framebuffer id to be reported to IGPU.
 	 *  This follows the standard convention initially found in IntelGraphicsFixup:
 	 *  igfxframe=X boot-arg has highest priority and overrides any other value.
+	 *  -igfxvesa forces 0xFFFFFFFF frame to get into VESA mode.
 	 *  Manually specified AAPL,ig-platform-id or AAPL,snb-platform-id go next.
 	 *  On Sandy Bridge processors a default AAPL,snb-platform-id will be tried afterwards.
 	 *  On Skylake and Kaby Lake processors some default id will be tried afterwards.

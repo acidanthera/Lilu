@@ -31,11 +31,14 @@ void DeviceInfo::updateFramebufferId() {
 
 	if (PE_parse_boot_argn(ReportedFrameIdArg, &reportedFramebufferId, sizeof(reportedFramebufferId))) {
 		DBGLOG("dev", "found boot-arg frame id override to %08X", reportedFramebufferId);
+	} else if (checkKernelArgument(ReportedVesaIdArg)) {
+		DBGLOG("dev", "found vesa boot-arg frame id");
+		reportedFramebufferId = DefaultVesaPlatformId;
 	} else if (WIOKit::getOSDataValue(videoBuiltin, reportedFramebufferName, reportedFramebufferId)) {
 		DBGLOG("dev", "found property frame id override to %d", reportedFramebufferId);
 	} else {
 		auto legacy = getLegacyFramebufferId();
-		if (gen == CPUInfo::CpuGeneration::SandyBridge && legacy != DefaultInvalidPlatformId) {
+		if (gen == CPUInfo::CpuGeneration::SandyBridge && legacy != DefaultVesaPlatformId) {
 			reportedFramebufferId = getLegacyFramebufferId();
 		} else {
 			if (videoExternal.size() > 0 && gen != CPUInfo::CpuGeneration::Broadwell) {
@@ -52,8 +55,10 @@ void DeviceInfo::updateFramebufferId() {
 					reportedFramebufferId = ConnectorLessSkylakePlatformId3;
 				else if (gen == CPUInfo::CpuGeneration::KabyLake)
 					reportedFramebufferId = ConnectorLessKabyLakePlatformId2;
+				else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
+					reportedFramebufferId = ConnectorLessCoffeeLakePlatformId2;
 				else
-					reportedFramebufferId = DefaultInvalidPlatformId;
+					reportedFramebufferId = DefaultVesaPlatformId;
 			} else {
 				// These are really failsafe defaults, you should NOT rely on them.
 				auto model = WIOKit::getComputerModel();
@@ -70,8 +75,10 @@ void DeviceInfo::updateFramebufferId() {
 						reportedFramebufferId = 0x19160000;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
 						reportedFramebufferId = 0x591B0000;
+					else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
+						reportedFramebufferId = 0x3EA50009;
 					else
-						reportedFramebufferId = DefaultInvalidPlatformId;
+						reportedFramebufferId = DefaultVesaPlatformId;
 				} else {
 					if (gen == CPUInfo::CpuGeneration::SandyBridge)
 						reportedFramebufferId = 0x00030010;
@@ -85,8 +92,10 @@ void DeviceInfo::updateFramebufferId() {
 						reportedFramebufferId = DefaultSkylakePlatformId;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
 						reportedFramebufferId = DefaultKabyLakePlatformId;
+					else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
+						reportedFramebufferId = DefaultCoffeeLakePlatformId;
 					else
-						reportedFramebufferId = DefaultInvalidPlatformId;
+						reportedFramebufferId = DefaultVesaPlatformId;
 				}
 			}
 		}
@@ -168,7 +177,7 @@ uint32_t DeviceInfo::getLegacyFramebufferId() {
 		SYSLOG("dev", "failed to obtain board-id");
 	}
 
-	return DefaultInvalidPlatformId;
+	return DefaultVesaPlatformId;
 }
 
 bool DeviceInfo::isConnectorLessPlatformId(uint32_t id) {
@@ -184,7 +193,9 @@ bool DeviceInfo::isConnectorLessPlatformId(uint32_t id) {
 	id == ConnectorLessSkylakePlatformId3 ||
 	id == ConnectorLessSkylakePlatformId4 ||
 	id == ConnectorLessKabyLakePlatformId1 ||
-	id == ConnectorLessKabyLakePlatformId2;
+	id == ConnectorLessKabyLakePlatformId2 ||
+	id == ConnectorLessCoffeeLakePlatformId1 ||
+	id == ConnectorLessCoffeeLakePlatformId2;
 }
 
 void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
