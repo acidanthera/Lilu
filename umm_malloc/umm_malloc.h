@@ -23,6 +23,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
+ * See copyright notice in LICENSE.TXT
  * ----------------------------------------------------------------------------
  */
 
@@ -33,13 +34,19 @@
 extern "C" {
 #endif
 
+/* ------------------------------------------------------------------------ */
+
+void  umm_init( void );
 void *umm_malloc( size_t size );
 void *umm_calloc( size_t num, size_t size );
 void *umm_realloc( void *ptr, size_t size );
-void umm_free( void *ptr );
+void  umm_free( void *ptr );
+
+
+/* ------------------------------------------------------------------------ */
 
 #ifdef __cplusplus
 }
 #endif
-	
+
 #endif /* UMM_MALLOC_H */
