@@ -322,7 +322,7 @@ void umm_free( void *ptr ) {
 
     DBGLOG_DEBUG( "Assimilate down to next block, which is FREE\n" );
 
-    c = umm_assimilate_down(c, UMM_FREELIST_MASK);
+    /* c = */ umm_assimilate_down(c, UMM_FREELIST_MASK);
   } else {
     /*
      * The previous block is not a free block, so add this one to the head
