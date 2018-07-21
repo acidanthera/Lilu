@@ -463,7 +463,7 @@ private:
 	/**
 	 *  Validation cookie
 	 */
-	void *cookie = {reinterpret_cast<void *>(0xB16B00B5)};
+	void *cookie {nullptr};
 	
 	/**
 	 *  Exec callback

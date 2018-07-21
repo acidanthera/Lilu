@@ -73,9 +73,8 @@ namespace CPUInfo {
 		CPU_MODEL_COFFEELAKE_ULT =  0x9E,
 		CPU_MODEL_COFFEELAKE_ULX =  0x9E,
 		CPU_MODEL_COFFEELAKE_DT  =  0x9E,
-		// The latter are for information reasons only.
-		// Cannon Lake CPUs            = 0x66
-		// Ice Lake CPUs               = 0x7E
+		CPU_MODEL_CANNONLAKE     =  0x66,
+		CPU_MODEL_ICELAKE        =  0x7E
 	};
 
 	/**
@@ -93,9 +92,8 @@ namespace CPUInfo {
 		Skylake,
 		KabyLake,
 		CoffeeLake,
-		// The latter are for information reasons only.
-		// CannonLake,
-		// IceLake
+		CannonLake,
+		IceLake
 	};
 
 	/* Responses identification request with %eax 0 */

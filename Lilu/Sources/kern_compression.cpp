@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#include <FastCompression.hpp>
+#include <lzvn.h>
 
 // Taken from kext_tools/compression.c
 
@@ -321,7 +321,7 @@ uint8_t *Compression::decompress(uint32_t compression, uint32_t dstlen, const ui
 				size = decompress_lzss(decompressedBuf, dstlen, src, srclen);
 				break;
 			case ModeLZVN:
-				size = lzvn_decode(decompressedBuf, dstlen, src, srclen);
+				size = lzvn_decode_buffer(decompressedBuf, dstlen, src, srclen);
 				break;
 			default:
 				SYSLOG("comp", "unsupported decompression format %X", compression);

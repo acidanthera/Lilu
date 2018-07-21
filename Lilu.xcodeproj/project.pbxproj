@@ -66,8 +66,7 @@
 		CE2E7BB61E2C6BAA009AC62A /* kern_start.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BAB1E2C6BAA009AC62A /* kern_start.cpp */; };
 		CE2E7BB81E2C6BAA009AC62A /* kern_user.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BAD1E2C6BAA009AC62A /* kern_user.cpp */; };
 		CE2E7BB91E2C6BAA009AC62A /* kern_util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BAE1E2C6BAA009AC62A /* kern_util.cpp */; };
-		CE2E7BBE1E2C6D24009AC62A /* FastCompression.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7BBC1E2C6D24009AC62A /* FastCompression.hpp */; };
-		CE2E7BBF1E2C6D24009AC62A /* lzvn_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BBD1E2C6D24009AC62A /* lzvn_decode.c */; };
+		CE2E7BBF1E2C6D24009AC62A /* lzvn.c in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BBD1E2C6D24009AC62A /* lzvn.c */; };
 		CE2E7BE51E2C73B1009AC62A /* LegacyIOService.h in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */; };
 		CE2E7BE61E2C73B1009AC62A /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE2E7BE41E2C73B1009AC62A /* libkmod.a */; };
 		CE2E7BEB1E2C75CE009AC62A /* kern_api.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE2E7BEA1E2C75CE009AC62A /* kern_api.cpp */; };
@@ -85,6 +84,7 @@
 		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
 		CEA03B5B20ED6D3100BA842F /* kern_devinfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */; };
 		CEA5F5D720B88EF2008E6E8A /* qsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA5F5D520B88EF2008E6E8A /* qsort.cpp */; };
+		CEB667C621028A4C00CD5D7A /* lzvn.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB667C521028A4C00CD5D7A /* lzvn.h */; };
 		CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */; };
 		CEB6D9831F69B42D005B6AC3 /* cc.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9781F69B42D005B6AC3 /* cc.h */; };
 		CEB6D9841F69B42D005B6AC3 /* cc_config.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB6D9791F69B42D005B6AC3 /* cc_config.h */; };
@@ -173,8 +173,7 @@
 		CE2E7BAB1E2C6BAA009AC62A /* kern_start.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_start.cpp; path = Lilu/Sources/kern_start.cpp; sourceTree = "<group>"; };
 		CE2E7BAD1E2C6BAA009AC62A /* kern_user.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_user.cpp; path = Lilu/Sources/kern_user.cpp; sourceTree = "<group>"; };
 		CE2E7BAE1E2C6BAA009AC62A /* kern_util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_util.cpp; path = Lilu/Sources/kern_util.cpp; sourceTree = "<group>"; };
-		CE2E7BBC1E2C6D24009AC62A /* FastCompression.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FastCompression.hpp; sourceTree = "<group>"; };
-		CE2E7BBD1E2C6D24009AC62A /* lzvn_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lzvn_decode.c; sourceTree = "<group>"; };
+		CE2E7BBD1E2C6D24009AC62A /* lzvn.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lzvn.c; sourceTree = "<group>"; };
 		CE2E7BCC1E2C6DCA009AC62A /* kern_patcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_patcher.hpp; sourceTree = "<group>"; };
 		CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LegacyIOService.h; sourceTree = "<group>"; };
 		CE2E7BE41E2C73B1009AC62A /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkmod.a; sourceTree = "<group>"; };
@@ -206,6 +205,7 @@
 		CEA03B5920ED6D0200BA842F /* kern_devinfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_devinfo.hpp; sourceTree = "<group>"; };
 		CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_devinfo.cpp; path = Lilu/Sources/kern_devinfo.cpp; sourceTree = "<group>"; };
 		CEA5F5D520B88EF2008E6E8A /* qsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsort.cpp; sourceTree = "<group>"; };
+		CEB667C521028A4C00CD5D7A /* lzvn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lzvn.h; sourceTree = "<group>"; };
 		CEB6D9701F69A966005B6AC3 /* kern_crypto.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_crypto.cpp; path = Lilu/Sources/kern_crypto.cpp; sourceTree = "<group>"; };
 		CEB6D9721F69A98B005B6AC3 /* kern_crypto.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_crypto.hpp; sourceTree = "<group>"; };
 		CEB6D9781F69B42D005B6AC3 /* cc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cc.h; sourceTree = "<group>"; };
@@ -328,7 +328,7 @@
 				CEC962481D835DE400E3E772 /* Docs */,
 				1C3E7AC91C84B5E500A6448A /* capstone */,
 				CE744A891F42100E0077C377 /* hde */,
-				CE2E7BBB1E2C6D24009AC62A /* FastCompression */,
+				CE2E7BBB1E2C6D24009AC62A /* lzvn */,
 				CE74B24D1F75CFEB00F90A08 /* sha256 */,
 				CE10961B1F22876B00B623FC /* umm_malloc */,
 				1C748C281C21952C0024EED2 /* Products */,
@@ -406,13 +406,13 @@
 			name = Sources;
 			sourceTree = "<group>";
 		};
-		CE2E7BBB1E2C6D24009AC62A /* FastCompression */ = {
+		CE2E7BBB1E2C6D24009AC62A /* lzvn */ = {
 			isa = PBXGroup;
 			children = (
-				CE2E7BBC1E2C6D24009AC62A /* FastCompression.hpp */,
-				CE2E7BBD1E2C6D24009AC62A /* lzvn_decode.c */,
+				CEB667C521028A4C00CD5D7A /* lzvn.h */,
+				CE2E7BBD1E2C6D24009AC62A /* lzvn.c */,
 			);
-			path = FastCompression;
+			path = lzvn;
 			sourceTree = "<group>";
 		};
 		CE2E7BCB1E2C6DCA009AC62A /* PrivateHeaders */ = {
@@ -570,9 +570,9 @@
 				CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */,
 				CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */,
 				CE2E7BE51E2C73B1009AC62A /* LegacyIOService.h in Headers */,
+				CEB667C621028A4C00CD5D7A /* lzvn.h in Headers */,
 				CEB6D9841F69B42D005B6AC3 /* cc_config.h in Headers */,
 				CE2E7B981E2C6A73009AC62A /* kern_patcher.hpp in Headers */,
-				CE2E7BBE1E2C6D24009AC62A /* FastCompression.hpp in Headers */,
 				1C3E7AE91C84B61700A6448A /* utils.h in Headers */,
 				CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */,
 				1C3E7AFB1C84B63000A6448A /* mips.h in Headers */,
@@ -732,7 +732,7 @@
 				CE2E7BB11E2C6BAA009AC62A /* kern_file.cpp in Sources */,
 				CE1096261F22876B00B623FC /* umm_malloc.c in Sources */,
 				1C3E7AE61C84B61700A6448A /* SStream.c in Sources */,
-				CE2E7BBF1E2C6D24009AC62A /* lzvn_decode.c in Sources */,
+				CE2E7BBF1E2C6D24009AC62A /* lzvn.c in Sources */,
 				1C3E7B181C84B65400A6448A /* X86Mapping.c in Sources */,
 				CE2E7BB21E2C6BAA009AC62A /* kern_iokit.cpp in Sources */,
 				CEB6D9711F69A966005B6AC3 /* kern_crypto.cpp in Sources */,
@@ -858,7 +858,7 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					"${PROJECT_DIR}/capstone/include",
-					"${PROJECT_DIR}/FastCompression",
+					"${PROJECT_DIR}/lzvn",
 					"${PROJECT_DIR}/${PRODUCT_NAME}",
 				);
 				INFOPLIST_FILE = Lilu/Info.plist;
@@ -870,7 +870,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.5;
+				MODULE_VERSION = 1.2.6;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -920,7 +920,7 @@
 				);
 				HEADER_SEARCH_PATHS = (
 					"${PROJECT_DIR}/capstone/include",
-					"${PROJECT_DIR}/FastCompression",
+					"${PROJECT_DIR}/lzvn",
 					"${PROJECT_DIR}/${PRODUCT_NAME}",
 				);
 				INFOPLIST_FILE = Lilu/Info.plist;
@@ -933,7 +933,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.5;
+				MODULE_VERSION = 1.2.6;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

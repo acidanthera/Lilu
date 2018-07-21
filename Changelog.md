@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.2.6
+- Added Cannon Lake and Ice Lake definitions
+
 #### v1.2.5
 - Added new DeviceInfo API
 - Added checkKernelArgument API

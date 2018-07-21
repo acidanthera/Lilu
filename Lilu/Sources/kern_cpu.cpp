@@ -68,6 +68,10 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 				if (ver.fmt.stepping == 9)
 					return CpuGeneration::KabyLake;
 				return CpuGeneration::CoffeeLake;
+			case CPU_MODEL_CANNONLAKE:
+				return CpuGeneration::CannonLake;
+			case CPU_MODEL_ICELAKE:
+				return CpuGeneration::IceLake;
 			default:
 				return CpuGeneration::Unknown;
 		}

@@ -22,11 +22,11 @@ int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action
 	
 	// Make sure this is ours
 	if (that->activated) {
-		if (idata == that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
+		if (idata == &that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
 			const char *path = reinterpret_cast<const char *>(arg1);
 			that->onPath(path, static_cast<uint32_t>(strlen(path)));
 		} else {
-			//DBGLOG("user", "listener did not match our needs action %d cookie %d", action, idata == that->cookie);
+			//DBGLOG("user", "listener did not match our needs action %d cookie %d", action, idata == &that->cookie);
 		}
 	}
 	
@@ -38,7 +38,7 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 	patchDyldSharedCache = !preferSlowMode;
 	patcher = &kernelPatcher;
 	
-	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, cookie);
+	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, &cookie);
 	
 	if (!listener) {
 		SYSLOG("user", "failed to register a listener");
@@ -532,8 +532,9 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 			
 			vm_address_t modStart = 0;
 			vm_address_t modEnd = 0;
-			
-			if (patch.segment >= FileSegment::SegmentsTextStart && patch.segment <= FileSegment::SegmentsTextEnd) {
+
+			static_assert(FileSegment::SegmentsTextStart == 0, "ABI changes should reflect code changes!");
+			if (patch.segment <= FileSegment::SegmentsTextEnd) {
 				modStart = mod->startTEXT;
 				modEnd = mod->endTEXT;
 			} else if (patch.segment >= FileSegment::SegmentsDataStart && patch.segment <= FileSegment::SegmentsDataEnd) {

@@ -291,7 +291,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *starting
 	}
 	
 	for (size_t i = 0; currentAddress < endingAddress && (i < patch->count || patch->count == 0); i++) {
-		while (currentAddress < endingAddress && memcmp(currentAddress, patch->find, patch->size))
+		while (currentAddress < endingAddress && memcmp(currentAddress, patch->find, patch->size) != 0)
 			currentAddress++;
 		
 		if (currentAddress != endingAddress) {

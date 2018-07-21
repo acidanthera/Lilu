@@ -42,13 +42,12 @@ Earlier code changes could be tracked in [AppleALC](https://github.com/vit9696/A
 Writing and supporting code is fun but it takes time. Please provide most descriptive bugreports or pull requests.
 
 #### Credits
-- [Apple](https://www.apple.com) for macOS  
+- [Apple](https://www.apple.com) for macOS  and [lzvn](https://github.com/lzfse/lzfse) decompression
 - [Brad Conte](https://github.com/B-Con) for [SHA-256 implementation](https://github.com/B-Con/crypto-algorithms)
 - [fG!](https://github.com/gdbinit) for [Onyx The Black Cat](https://github.com/gdbinit/onyx-the-black-cat) used as a base of the kernel patcher
 - [Nguyen Anh Quynh](https://github.com/aquynh) for [capstone](https://github.com/aquynh/capstone) disassembler module
-- [Pike R. Alpha](https://github.com/Piker-Alpha) for [lzvn](https://github.com/Piker-Alpha/LZVN) decompression
+- [Pike R. Alpha](https://github.com/Piker-Alpha) for original [lzvn](https://github.com/Piker-Alpha/LZVN) decompression
 - [Ralph Hempel](https://github.com/rhempel) for [umm_malloc](https://github.com/rhempel/umm_malloc) static pool allocator
 - Vyacheslav Patkov for [hde64](https://github.com/mumble-voip/minhook/tree/7d80cff1de5c87b404e7ac451757bfa77e5e82da/src/hde) simple disassembler module
 - [07151129](https://github.com/07151129) for some code parts and suggestions
 - [vit9696](https://github.com/vit9696) for writing the software and maintaining it
-

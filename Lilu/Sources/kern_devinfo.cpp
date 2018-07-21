@@ -41,7 +41,8 @@ void DeviceInfo::updateFramebufferId() {
 		if (gen == CPUInfo::CpuGeneration::SandyBridge && legacy != DefaultVesaPlatformId) {
 			reportedFramebufferId = getLegacyFramebufferId();
 		} else {
-			if (videoExternal.size() > 0 && gen != CPUInfo::CpuGeneration::Broadwell) {
+			if (videoExternal.size() > 0 && gen != CPUInfo::CpuGeneration::Broadwell &&
+				gen != CPUInfo::CpuGeneration::CannonLake && gen != CPUInfo::CpuGeneration::IceLake) {
 				DBGLOG("igfx", "discovered external GPU, using frame without connectors");
 				// Note, that setting non-standard connector-less frame may result in 2 GPUs visible
 				// in System Report for whatever reason (at least on KabyLake).
@@ -77,6 +78,10 @@ void DeviceInfo::updateFramebufferId() {
 						reportedFramebufferId = 0x591B0000;
 					else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
 						reportedFramebufferId = 0x3EA50009;
+					else if (gen == CPUInfo::CpuGeneration::CannonLake)
+						reportedFramebufferId = 0x5A590000;
+					else if (gen == CPUInfo::CpuGeneration::IceLake)
+						reportedFramebufferId = 0x8A520000;
 					else
 						reportedFramebufferId = DefaultVesaPlatformId;
 				} else {
@@ -89,11 +94,15 @@ void DeviceInfo::updateFramebufferId() {
 					else if (gen == CPUInfo::CpuGeneration::Broadwell)
 						reportedFramebufferId = 0x16220007;  /* for now */
 					else if (gen == CPUInfo::CpuGeneration::Skylake)
-						reportedFramebufferId = DefaultSkylakePlatformId;
+						reportedFramebufferId = DefaultAppleSkylakePlatformId;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
-						reportedFramebufferId = DefaultKabyLakePlatformId;
+						reportedFramebufferId = DefaultAppleKabyLakePlatformId;
 					else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
-						reportedFramebufferId = DefaultCoffeeLakePlatformId;
+						reportedFramebufferId = 0x3E9B0007;
+					else if (gen == CPUInfo::CpuGeneration::CannonLake)
+						reportedFramebufferId = DefaultAppleCannonLakePlatformId;
+					else if (gen == CPUInfo::CpuGeneration::IceLake)
+						reportedFramebufferId = DefaultAppleIceLakeRealPlatformId;
 					else
 						reportedFramebufferId = DefaultVesaPlatformId;
 				}
@@ -204,25 +213,25 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 		IORegistryEntry *obj = nullptr;
 		while ((obj = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
 			uint32_t vendor = 0, code = 0;
-			//TODO: AMD support if at all?
-			if (!WIOKit::getOSDataValue(obj, "vendor-id", vendor) || vendor != WIOKit::VendorID::Intel ||
+			if (!WIOKit::getOSDataValue(obj, "vendor-id", vendor) ||
+				(vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD) ||
 				!WIOKit::getOSDataValue(obj, "class-code", code))
 				continue;
 
 			auto name = obj->getName();
-			if (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController) {
+			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
 				DBGLOG("dev", "found IGPU device %s", safeString(name));
 				videoBuiltin = obj;
 			} else if (code == WIOKit::ClassCode::HDADevice) {
-				if (name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
+				if (vendor == WIOKit::VendorID::Intel && name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
 					DBGLOG("dev", "found HDAU device %s", safeString(name));
 					audioBuiltinDigital = obj;
 				} else {
 					DBGLOG("dev", "found HDEF device %s", safeString(name));
 					audioBuiltinAnalog = obj;
 				}
-			} else if (code == WIOKit::ClassCode::IMEI || (name &&
-				(!strcmp(name, "IMEI") || !strcmp(name, "HECI") || !strcmp(name, "MEI")))) {
+			} else if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::IMEI || (name &&
+				(!strcmp(name, "IMEI") || !strcmp(name, "HECI") || !strcmp(name, "MEI"))))) {
 				// Fortunately IMEI is always made by Intel
 				DBGLOG("dev", "found IMEI device %s", safeString(name));
 				managementEngine = obj;
