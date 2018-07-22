@@ -23,10 +23,6 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 
 #include "lzvn.h"
 
-#include <Availability.h>
-#include <libkern/libkern.h>
-#include <string.h>
-
 #ifndef assert
 #  define assert(x) do { } while (0)
 #endif

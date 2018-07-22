@@ -22,7 +22,9 @@
 #ifndef LZVN_H
 #define LZVN_H
 
+#include <Availability.h>
 #include <libkern/libkern.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
