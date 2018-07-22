@@ -19,7 +19,6 @@
 static UserPatcher *that {nullptr};
 
 int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action_t action, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3) {
-	
 	// Make sure this is ours
 	if (that->activated) {
 		if (idata == &that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
@@ -34,6 +33,11 @@ int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action
 }
 
 bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
+	if (ADDPR(config).isUserDisabled) {
+		SYSLOG("user", "disabling user patcher on request!");
+		return true;
+	}
+
 	that = this;
 	patchDyldSharedCache = !preferSlowMode;
 	patcher = &kernelPatcher;
@@ -49,6 +53,10 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 }
 
 bool UserPatcher::registerPatches(ProcInfo **procs, size_t procNum, BinaryModInfo **mods, size_t modNum, t_BinaryLoaded callback, void *user) {
+	// Silently return if disabled
+	if (ADDPR(config).isUserDisabled)
+		return true;
+
 	procInfo = procs;
 	procInfoSize = procNum;
 	binaryMod = mods;
@@ -68,6 +76,10 @@ bool UserPatcher::registerPatches(ProcInfo **procs, size_t procNum, BinaryModInf
 }
 
 void UserPatcher::deinit() {
+	// Silently return if disabled
+	if (ADDPR(config).isUserDisabled)
+		return;
+
 	if (listener) {
 		kauth_unlisten_scope(listener);
 		listener = nullptr;

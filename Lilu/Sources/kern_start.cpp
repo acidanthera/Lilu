@@ -104,6 +104,7 @@ bool Configuration::getBootArguments() {
 
 	betaForAll = checkKernelArgument(bootargBetaAll);
 	debugForAll = checkKernelArgument(bootargDebugAll);
+	isUserDisabled = checkKernelArgument(bootargUserOff);
 
 	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
