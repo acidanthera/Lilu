@@ -3,6 +3,8 @@ Lilu Changelog
 
 #### v1.2.6
 - Added Cannon Lake and Ice Lake definitions
+- Added missing typed getOSData APIs
+- Switched to Apple lzvn implementation
 
 #### v1.2.5
 - Added new DeviceInfo API
