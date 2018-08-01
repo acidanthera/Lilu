@@ -14,7 +14,6 @@ Please note that improperly written immature plugins will not be listed there.
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection | 1.1.0+
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Enable lid wake for Intel Graphics Card | 1.6+
 [HibernationFixup](https://github.com/lvs1974/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware | 1.2.0+
-[IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Patches for DVMT problem on Broadwell/Skylake Intel Graphics | 1.2.0+
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models | 2.2+
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs | 1.0.0+
 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) | Various patches necessary for GPUs | 1.1.0+
@@ -25,7 +24,7 @@ Plugins which functionality was merged into other plugins:
 |:-----|:------------------|
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [Shiki](https://github.com/acidanthera/Shiki) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
-

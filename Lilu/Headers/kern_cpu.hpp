@@ -78,7 +78,7 @@ namespace CPUInfo {
 	};
 
 	/**
-	 *  Intel CPU generations
+	 *  Intel CPU generations (starting from 0)
 	 */
 	enum class CpuGeneration {
 		Unknown,
@@ -93,7 +93,8 @@ namespace CPUInfo {
 		KabyLake,
 		CoffeeLake,
 		CannonLake,
-		IceLake
+		IceLake,
+		MaxGeneration
 	};
 
 	/* Responses identification request with %eax 0 */
@@ -273,6 +274,11 @@ namespace CPUInfo {
 
 	/* Features in %ebx for leaf = 0x80000001 */;
 	static constexpr uint32_t bit_CLZERO      = 0x00000001;
+
+	/**
+	 *  Reads CPU generation and its overrides.
+	 */
+	void loadCpuGeneration();
 
 	/**
 	 *  Get running CPU generation.

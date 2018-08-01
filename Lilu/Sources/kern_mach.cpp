@@ -351,7 +351,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					} else {
 						uint32_t comp = OSSwapInt32(header->compressed);
 						uint32_t dec  = OSSwapInt32(header->decompressed);
-						DBGLOG("mach", "decompressing %d bytes (estimated %u bytes) with %X compression mode", comp, dec, header->compression);
+						DBGLOG("mach", "decompressing %u bytes (estimated %u bytes) with %X compression mode", comp, dec, header->compression);
 
 						if (header->decompressed > HeaderSize) {
 							if (file_buf) Buffer::deleter(file_buf);

@@ -735,7 +735,7 @@ bool UserPatcher::loadFilesForPatching() {
 				}
 
 				if (patch.segment >= FileSegment::SegmentTotal) {
-					SYSLOG("user", "skipping patch %s for %lu with invalid segment id %d", binaryMod[i]->path, p, patch.segment);
+					SYSLOG("user", "skipping patch %s for %lu with invalid segment id %u", binaryMod[i]->path, p, patch.segment);
 					continue;
 				}
 				

@@ -222,7 +222,7 @@ namespace WIOKit {
 		if (root) {
 			auto count = OSDynamicCast(OSNumber, root->getProperty("OSPrelinkKextCount"));
 			if (count) {
-				DBGLOG("iokit", "OSPrelinkKextCount equals to %d", count->unsigned32BitValue());
+				DBGLOG("iokit", "OSPrelinkKextCount equals to %u", count->unsigned32BitValue());
 				return count->unsigned32BitValue() > 0;
 			} else {
 				DBGLOG("iokit", "missing OSPrelinkKextCount property!");

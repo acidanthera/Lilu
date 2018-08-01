@@ -62,6 +62,11 @@ extern vm_map_t kernel_map;
 extern proc_t kernproc;
 
 /**
+ *  For noreturn failures
+ */
+#define UNREACHABLE() do { __builtin_unreachable(); } while (0)
+
+/**
  *  Conditional logging to system log prefixed with you plugin name
  *
  *  @param cond  precondition
@@ -115,8 +120,10 @@ extern proc_t kernproc;
  */
 #define PANIC_COND(cond, module, str, ...)                                                             \
 	do {                                                                                               \
-	    if (cond)                                                                                      \
+	    if (cond) {                                                                                    \
 	        (panic)( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+	        UNREACHABLE();                                                                             \
+	    }                                                                                              \
 	} while (0)
 
 /**

@@ -13,9 +13,9 @@
 void DeviceInfo::updateLayoutId() {
 	reportedLayoutId = DefaultReportedLayoutId;
 	if (PE_parse_boot_argn(ReportedLayoutIdArg, &reportedLayoutId, sizeof(reportedLayoutId))) {
-		DBGLOG("dev", "found boot-arg layout id override to %d", reportedLayoutId);
+		DBGLOG("dev", "found boot-arg layout id override to %u", reportedLayoutId);
 	} else if (audioBuiltinAnalog && WIOKit::getOSDataValue(audioBuiltinAnalog, ReportedLayoutIdName, reportedLayoutId)) {
-		DBGLOG("dev", "found property layout id override to %d", reportedLayoutId);
+		DBGLOG("dev", "found property layout id override to %u", reportedLayoutId);
 	}
 }
 
@@ -35,7 +35,7 @@ void DeviceInfo::updateFramebufferId() {
 		DBGLOG("dev", "found vesa boot-arg frame id");
 		reportedFramebufferId = DefaultVesaPlatformId;
 	} else if (WIOKit::getOSDataValue(videoBuiltin, reportedFramebufferName, reportedFramebufferId)) {
-		DBGLOG("dev", "found property frame id override to %d", reportedFramebufferId);
+		DBGLOG("dev", "found property frame id override to %u", reportedFramebufferId);
 	} else {
 		auto legacy = getLegacyFramebufferId();
 		if (gen == CPUInfo::CpuGeneration::SandyBridge && legacy != DefaultVesaPlatformId) {

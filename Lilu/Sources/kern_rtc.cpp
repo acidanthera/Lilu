@@ -58,7 +58,7 @@ bool RTCStorage::read(uint64_t off, uint32_t size, uint8_t *buffer) {
 		rtcHandler->release();
 		if (ret == kIOReturnSuccess)
 			return true;
-		SYSLOG("rtc", "rtc read failure %d bytes from %d %X", size, static_cast<uint32_t>(off), ret);
+		SYSLOG("rtc", "rtc read failure %u bytes from %u %X", size, static_cast<uint32_t>(off), ret);
 	} else {
 		SYSLOG("rtc", "rtc read client obtain failure %X", ret);
 	}
@@ -88,7 +88,7 @@ bool RTCStorage::write(uint64_t off, uint32_t size, uint8_t *buffer) {
 		rtcHandler->release();
 		if (ret == kIOReturnSuccess)
 			return true;
-		SYSLOG("rtc", "rtc write failure %d bytes from %d %X", size, static_cast<uint32_t>(off), ret);
+		SYSLOG("rtc", "rtc write failure %u bytes from %u %X", size, static_cast<uint32_t>(off), ret);
 	} else {
 		SYSLOG("rtc", "rtc write client obtain failure %X", ret);
 	}

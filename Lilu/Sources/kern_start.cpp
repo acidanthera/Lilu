@@ -12,6 +12,7 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_efi.hpp>
+#include <Headers/kern_cpu.hpp>
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IORegistryEntry.h>
@@ -176,6 +177,8 @@ bool Configuration::getBootArguments() {
 }
 
 extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
+	// We should be aware of the CPU we run on.
+	CPUInfo::loadCpuGeneration();
 	// Make EFI runtime services available now, since they are standalone.
 	EfiRuntimeServices::activate();
 

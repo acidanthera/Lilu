@@ -5,6 +5,7 @@ Lilu Changelog
 - Added Cannon Lake and Ice Lake definitions
 - Added missing typed getOSData APIs
 - Added `-liluuseroff` boot-arg to disable user patcher (for e.g. shared cache manipulation)
+- Added `lilucpu=N` boot-arg to assume CPU generation
 - Switched to Apple lzvn implementation
 
 #### v1.2.5
