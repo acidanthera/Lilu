@@ -432,6 +432,10 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 	bool errorsFound = false;
 	for (size_t i = 0; i < num; i++) {
 		auto &request = requests[i];
+
+		if (!request.symbol)
+			continue;
+
 		if (start || size)
 			request.from = solveSymbol(id, request.symbol, start, size, true);
 		else
@@ -459,7 +463,8 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 				if (!force) return false;
 			}
 		} else {
-			if (wrapper) {
+			// In non-wraper mode 0 means success
+			if (wrapper == 0) {
 				DBGLOG("patcher", "routed %s", request.symbol);
 			} else {
 				SYSLOG("patcher", "failed to route %s, err %d", request.symbol, getError());
