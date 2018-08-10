@@ -14,7 +14,20 @@
 
 #include <Library/LegacyIOService.h>
 
+/**
+ *  XNU CPU-related exports missing from headers
+ */
+extern "C" {
+	int cpu_number(void);
+	void mp_rendezvous_no_intrs(void (*action_func)(void *), void *arg);
+};
+
 namespace CPUInfo {
+	/**
+	 *  Keep this in sync to XNU MAX_CPUS from osfmk/i386/mp.h
+	 */
+	static constexpr size_t MaxCpus {64};
+
 	/**
 	 *  Contents of CPUID(1) eax register contents describing model version
 	 */
@@ -75,6 +88,16 @@ namespace CPUInfo {
 		CPU_MODEL_COFFEELAKE_DT  =  0x9E,
 		CPU_MODEL_CANNONLAKE     =  0x66,
 		CPU_MODEL_ICELAKE        =  0x7E
+	};
+
+	/**
+	 *  Known CPU vendors
+	 */
+	enum class CpuVendor {
+		Unknown,
+		AMD,
+		Intel
+		/* Add more processors here if needed */
 	};
 
 	/**
@@ -276,9 +299,77 @@ namespace CPUInfo {
 	static constexpr uint32_t bit_CLZERO      = 0x00000001;
 
 	/**
-	 *  Reads CPU generation and its overrides.
+	 *  Reads CPU information and other data.
 	 */
-	void loadCpuGeneration();
+	void loadCpuInformation();
+
+	/**
+	 *  Installed CPU information mapping
+	 */
+	struct CpuTopology {
+		/**
+		 *  Number of physical processors installed
+		 */
+		uint8_t packageCount {0};
+
+		/**
+		 *  Number of physical cores per package
+		 */
+		uint8_t physicalCount[MaxCpus] {};
+
+		/**
+		 *  Number of logical cores per package
+		 */
+		uint8_t logicalCount[MaxCpus] {};
+
+		/**
+		 *  Total number of physical cores
+		 */
+		inline uint8_t totalPhysical() {
+			uint8_t count = physicalCount[0];
+			for (uint8_t i = 1; i < packageCount; i++)
+				count += physicalCount[i];
+			return count;
+		}
+
+		/**
+		 *  Total number of logical cores
+		 */
+		inline uint8_t totalLogical() {
+			uint8_t count = logicalCount[0];
+			for (uint8_t i = 1; i < packageCount; i++)
+				count += logicalCount[i];
+			return count;
+		}
+
+		/**
+		 *  Mapping of cpu_number() to CPU package from 0 to packageCount
+		 */
+		uint8_t numberToPackage[MaxCpus] {};
+
+		/**
+		 *  Mapping of cpu_number() to physical core from 0 to physicalCount in package
+		 */
+		uint8_t numberToPhysical[MaxCpus] {};
+
+		/**
+		 *  Mapping of cpu_number() to physical cores from 0 to totalPhysical.
+		 */
+		inline uint8_t numberToPhysicalUnique(uint8_t i) {
+			uint8_t num = 0;
+			uint8_t package = numberToPackage[i];
+			for (uint8_t i = 0; i < package; i++)
+				num += physicalCount[i];
+			return num + numberToPhysical[i];
+		}
+
+		/**
+		 *  Mapping of cpu_number() to logical thread from 0 to logicalCount in package
+		 *  Note, that the list is sorted, and the first physicalCount logical threads
+		 *  correspond to their corresponding physical cores.
+		 */
+		uint8_t numberToLogical[MaxCpus] {};
+	};
 
 	/**
 	 *  Get running CPU generation.
@@ -290,6 +381,15 @@ namespace CPUInfo {
 	 *  @return detected Intel CPU generation
 	 */
 	EXPORT CpuGeneration getGeneration(uint32_t *ofamily=nullptr, uint32_t *omodel=nullptr, uint32_t *ostepping=nullptr);
+
+	/**
+	 *  Obtain CPU topology.
+	 *
+	 *  @param topology  parsed cpu topology, must be passed zeroed.
+	 *
+	 *  @return true on success
+	 */
+	EXPORT bool getCpuTopology(CpuTopology &topology);
 
 	/**
 	 *  Obtain cpuid registers

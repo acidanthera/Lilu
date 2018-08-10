@@ -82,6 +82,9 @@
 		CE75B9571EFB619C00D29B40 /* _label.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9541EFB619C00D29B40 /* _label.h */; };
 		CE75B9581EFB619C00D29B40 /* mac_framework.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9551EFB619C00D29B40 /* mac_framework.h */; };
 		CE75B9591EFB619C00D29B40 /* mac_policy.h in Headers */ = {isa = PBXBuildFile; fileRef = CE75B9561EFB619C00D29B40 /* mac_policy.h */; };
+		CE77590F211D8B200063EAE6 /* kern_time.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE77590E211D8B200063EAE6 /* kern_time.hpp */; };
+		CE775914211DE0F20063EAE6 /* cpu_topology.h in Headers */ = {isa = PBXBuildFile; fileRef = CE775913211DE0F20063EAE6 /* cpu_topology.h */; };
+		CE775916211DE30F0063EAE6 /* pmCPU.h in Headers */ = {isa = PBXBuildFile; fileRef = CE775915211DE30F0063EAE6 /* pmCPU.h */; };
 		CEA03B5B20ED6D3100BA842F /* kern_devinfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */; };
 		CEA5F5D720B88EF2008E6E8A /* qsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA5F5D520B88EF2008E6E8A /* qsort.cpp */; };
 		CEB667C621028A4C00CD5D7A /* lzvn.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB667C521028A4C00CD5D7A /* lzvn.h */; };
@@ -202,6 +205,9 @@
 		CE75B9541EFB619C00D29B40 /* _label.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _label.h; sourceTree = "<group>"; };
 		CE75B9551EFB619C00D29B40 /* mac_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_framework.h; sourceTree = "<group>"; };
 		CE75B9561EFB619C00D29B40 /* mac_policy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mac_policy.h; sourceTree = "<group>"; };
+		CE77590E211D8B200063EAE6 /* kern_time.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_time.hpp; sourceTree = "<group>"; };
+		CE775913211DE0F20063EAE6 /* cpu_topology.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cpu_topology.h; sourceTree = "<group>"; };
+		CE775915211DE30F0063EAE6 /* pmCPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pmCPU.h; sourceTree = "<group>"; };
 		CEA03B5920ED6D0200BA842F /* kern_devinfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_devinfo.hpp; sourceTree = "<group>"; };
 		CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_devinfo.cpp; path = Lilu/Sources/kern_devinfo.cpp; sourceTree = "<group>"; };
 		CEA5F5D520B88EF2008E6E8A /* qsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsort.cpp; sourceTree = "<group>"; };
@@ -371,6 +377,7 @@
 				CEB6D9941F69D8CF005B6AC3 /* kern_nvram.hpp */,
 				CE2E7B8C1E2C6A73009AC62A /* kern_patcher.hpp */,
 				CE2E7B8D1E2C6A73009AC62A /* kern_policy.hpp */,
+				CE77590E211D8B200063EAE6 /* kern_time.hpp */,
 				CE335AE32097442500C60A5F /* kern_rtc.hpp */,
 				CE2E7B901E2C6A73009AC62A /* kern_user.hpp */,
 				CE2E7B921E2C6A73009AC62A /* kern_util.hpp */,
@@ -429,6 +436,7 @@
 		CE2E7BE21E2C73B1009AC62A /* Library */ = {
 			isa = PBXGroup;
 			children = (
+				CE775911211DE0CD0063EAE6 /* osfmk */,
 				CEA5F5D320B88EF2008E6E8A /* bsd */,
 				CEB6D9771F69B42D005B6AC3 /* corecrypto */,
 				CEB6D9801F69B42D005B6AC3 /* libkern */,
@@ -481,6 +489,23 @@
 				CE75B9561EFB619C00D29B40 /* mac_policy.h */,
 			);
 			path = security;
+			sourceTree = "<group>";
+		};
+		CE775911211DE0CD0063EAE6 /* osfmk */ = {
+			isa = PBXGroup;
+			children = (
+				CE775912211DE0E60063EAE6 /* i386 */,
+			);
+			path = osfmk;
+			sourceTree = "<group>";
+		};
+		CE775912211DE0E60063EAE6 /* i386 */ = {
+			isa = PBXGroup;
+			children = (
+				CE775913211DE0F20063EAE6 /* cpu_topology.h */,
+				CE775915211DE30F0063EAE6 /* pmCPU.h */,
+			);
+			path = i386;
 			sourceTree = "<group>";
 		};
 		CEA5F5D320B88EF2008E6E8A /* bsd */ = {
@@ -599,10 +624,12 @@
 				1C3E7AF91C84B63000A6448A /* ppc.h in Headers */,
 				1C3E7AFC1C84B63000A6448A /* capstone.h in Headers */,
 				CEB6D9951F69D8CF005B6AC3 /* kern_nvram.hpp in Headers */,
+				CE77590F211D8B200063EAE6 /* kern_time.hpp in Headers */,
 				1C3E7AFD1C84B63000A6448A /* arm64.h in Headers */,
 				1C3E7AF71C84B63000A6448A /* systemz.h in Headers */,
 				CEB6D9831F69B42D005B6AC3 /* cc.h in Headers */,
 				CEB6D9871F69B42D005B6AC3 /* ccmode.h in Headers */,
+				CE775914211DE0F20063EAE6 /* cpu_topology.h in Headers */,
 				1C3E7B241C84B65400A6448A /* X86DisassemblerDecoderCommon.h in Headers */,
 				CEB6D9851F69B42D005B6AC3 /* ccaes.h in Headers */,
 				1C3E7ADA1C84B61700A6448A /* cs_priv.h in Headers */,
@@ -612,6 +639,7 @@
 				CE744A8F1F42100E0077C377 /* hde64.h in Headers */,
 				1C3E7AE51C84B61700A6448A /* MCRegisterInfo.h in Headers */,
 				1C3E7AF51C84B63000A6448A /* xcore.h in Headers */,
+				CE775916211DE30F0063EAE6 /* pmCPU.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -681,7 +709,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\n\narchive=\"${MODULE_VERSION} ($(echo $CONFIGURATION | tr /a-z/ /A-Z/)).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry \"${archive}\" \"${dist[@]}\"";
+			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\n\narchive=\"${MODULE_VERSION} ($(echo $CONFIGURATION | tr /a-z/ /A-Z/)).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\nzip -qry \"${archive}\" \"${dist[@]}\"\n";
 		};
 		CE3CFAEF1E509A7800336BF6 /* Copy SDK */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -695,7 +723,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "if [ \"${CONFIGURATION}\" == \"Debug\" ]; then\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    mkdir -p \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Headers\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Library\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/corecrypto\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/libkern\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/bsd\"\nfi\n\nexit 0";
+			shellScript = "if [ \"${CONFIGURATION}\" == \"Debug\" ]; then\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    mkdir -p \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Headers\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    cp -r \"${SRCROOT}/${PRODUCT_NAME}/Library\" \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/corecrypto\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/libkern\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/bsd\"\n    rm -rf \"${BUILT_PRODUCTS_DIR}/${FULL_PRODUCT_NAME}/Contents/Resources/Library/osfmk\"\nfi\n\nexit 0\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

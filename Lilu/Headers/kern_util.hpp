@@ -373,6 +373,48 @@ inline T alignValue(T size, T align = 4096) {
 }
 
 /**
+ *  Obtain bit value of size sizeof(T)
+ *  Warning, you are suggested to always pass the type explicitly!
+ *
+ *  @param n  bit no
+ *
+ *  @return bit value
+ */
+template <typename T>
+constexpr T getBit(T n) {
+	return static_cast<T>(1U) << n;
+}
+
+/**
+ *  Obtain bit mask of size sizeof(T)
+ *  Warning, you are suggested to always pass the type explicitly!
+ *
+ *  @param hi  starting high bit
+ *  @param lo  ending low bit
+ *
+ *  @return bit mask
+ */
+template <typename T>
+constexpr T getBitMask(T hi, T lo) {
+	return (getBit(hi)|(getBit(hi)-1U)) & ~(getBit(lo)-1U);
+}
+
+/**
+ *  Obtain bit field of size sizeof(T)
+ *  Warning, you are suggested to always pass the type explicitly!
+ *
+ *  @param so  source
+ *  @param hi  starting high bit
+ *  @param lo  ending low bit
+ *
+ *  @return bit field value
+ */
+template <typename T>
+constexpr T getBitField(T so, T hi, T lo) {
+	return (so & getBitMask(hi, lo)) >> lo;
+}
+
+/**
  *  This is an ugly replacement to std::find_if, allowing you
  *  to check whether a container consists only of value values.
  *

@@ -6,6 +6,8 @@ Lilu Changelog
 - Added missing typed getOSData APIs
 - Added `-liluuseroff` boot-arg to disable user patcher (for e.g. shared cache manipulation)
 - Added `lilucpu=N` boot-arg to assume CPU generation
+- Added CPU topology detection APIs
+- Fixed routeMultiple kernel panic and log report
 - Switched to Apple lzvn implementation
 
 #### v1.2.5
