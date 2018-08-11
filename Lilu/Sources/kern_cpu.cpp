@@ -8,7 +8,10 @@
 #include <Headers/kern_cpu.hpp>
 #include <Headers/kern_devinfo.hpp>
 #include <i386/proc_reg.h>
-#include <Library/osfmk/i386/pmCPU.h>
+
+extern "C" {
+	#include <Library/osfmk/i386/pmCPU.h>
+}
 
 static CPUInfo::CpuVendor currentVendor = CPUInfo::CpuVendor::Unknown;
 static CPUInfo::CpuGeneration currentGeneration = CPUInfo::CpuGeneration::Unknown;
