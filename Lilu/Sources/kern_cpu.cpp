@@ -18,18 +18,22 @@ static CPUInfo::CpuGeneration currentGeneration = CPUInfo::CpuGeneration::Unknow
 static uint32_t currentFamily = 0;
 static uint32_t currentModel = 0;
 static uint32_t currentStepping = 0;
+static uint32_t currentMaxLevel = 0;
+static uint32_t currentMaxLevelExt = 0x80000000;
 
 void CPUInfo::loadCpuInformation() {
 	// Start with detecting CPU vendor
 	uint32_t b = 0, c = 0, d = 0;
-	getCpuid(0, 0, nullptr, &b, &c, &d);
+	getCpuid(0, 0, &currentMaxLevel, &b, &c, &d);
 	if (b == signature_INTEL_ebx && c == signature_INTEL_ecx && d == signature_INTEL_edx)
 		currentVendor = CpuVendor::Intel;
 	else if (b == signature_AMD_ebx && c == signature_AMD_ecx && d == signature_AMD_edx)
 		currentVendor = CpuVendor::AMD;
 
-	// Only do extended model checking on Intel
-	if (currentVendor != CpuVendor::Intel)
+	getCpuid(0x80000000, 0, &currentMaxLevelExt);
+
+	// Only do extended model checking on Intel or when unsupported.
+	if (currentVendor != CpuVendor::Intel || currentMaxLevel < 1)
 		return;
 
 	// Detect CPU family and model
@@ -174,6 +178,7 @@ bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 				topology.logicalCount[topology.packageCount]++;
 				lcpu = lcpu->next_in_core;
 			}
+			core = core->next_in_pkg;
 		}
 
 		topology.packageCount++;
@@ -183,16 +188,24 @@ bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 	return true;
 }
 
-void CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
+bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
 	uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
-	asm ("xchgq %%rbx, %q1\n"
-		 "cpuid\n"
-		 "xchgq %%rbx, %q1"
-		 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		 : "0" (no), "2" (count));
+
+	bool supported = (no & 0x80000000) ? currentMaxLevelExt >= no : currentMaxLevel >= no;
+
+	// At least pass zeroes on failure
+	if (supported) {
+		asm ("xchgq %%rbx, %q1\n"
+			 "cpuid\n"
+			 "xchgq %%rbx, %q1"
+			 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+			 : "0" (no), "2" (count));
+	}
 
 	if (a) *a = eax;
 	if (b) *b = ebx;
 	if (c) *c = ecx;
 	if (d) *d = edx;
+
+	return supported;
 }

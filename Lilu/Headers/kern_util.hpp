@@ -415,6 +415,21 @@ constexpr T getBitField(T so, T hi, T lo) {
 }
 
 /**
+ *  Set bit field of size sizeof(T)
+ *  Warning, you are suggested to always pass the type explicitly!
+ *
+ *  @param va  value
+ *  @param hi  starting high bit
+ *  @param lo  ending low bit
+ *
+ *  @return bit field value
+ */
+template <typename T>
+constexpr T setBitField(T so, T hi, T lo) {
+	return (so << lo) & getBitMask(hi, lo);
+}
+
+/**
  *  This is an ugly replacement to std::find_if, allowing you
  *  to check whether a container consists only of value values.
  *

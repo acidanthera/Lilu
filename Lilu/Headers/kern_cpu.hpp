@@ -400,8 +400,10 @@ namespace CPUInfo {
 	 *  @param b      ebx output pointer (optional)
 	 *  @param c      ecx output pointer (optional)
 	 *  @param d      edx output pointer (optional)
+	 *
+	 *  @return true if supported
 	 */
-	EXPORT void getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b=nullptr, uint32_t *c=nullptr, uint32_t *d=nullptr);
+	EXPORT bool getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b=nullptr, uint32_t *c=nullptr, uint32_t *d=nullptr);
 }
 
 #endif /* kern_cpu_h */
