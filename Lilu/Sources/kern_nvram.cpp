@@ -192,6 +192,11 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 
 		size = sizeof(Header) + payloadSize + ((opts & OptChecksum) ? sizeof(Header::Checksum) : 0);
 		auto buf = Buffer::create<uint8_t>(size);
+		if (!buf) {
+			SYSLOG("nvram", "write %s can't alloc %u bytes", key, size);
+			replacePayload(buf, payloadSize);
+			return false;
+		}
 		lilu_os_memcpy(buf, &hdr, sizeof(Header));
 		lilu_os_memcpy(buf + sizeof(Header), payloadBuf, payloadSize);
 		replacePayload(buf, payloadSize);

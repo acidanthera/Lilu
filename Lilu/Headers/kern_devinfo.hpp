@@ -145,6 +145,12 @@ private:
 	static constexpr const char *ReportedVesaIdArg = "-igfxvesa";
 
 	/**
+	 *  The boot-arg to force-disable any external GPU if found.
+	 *  For user configuration only! Use requestedExternalSwitchOff!
+	 */
+	static constexpr const char *RequestedExternalSwitchOffArg {"-wegnoegpu"};
+
+	/**
 	 *  The property to set your platform id for Intel drivers (Ivy and newer).
 	 *  For user configuration only! Use reportedFramebufferName!
 	 */
@@ -155,6 +161,12 @@ private:
 	 *  For user configuration only! Use reportedFramebufferName!
 	 */
 	static constexpr const char *ReportedFrameIdLegacyName = "AAPL,snb-platform-id";
+
+	/**
+	 *  The IGPU property to force-disable any external GPU if found.
+	 *  For user configuration only! Use requestedExternalSwitchOff!
+	 */
+	static constexpr const char *RequestedExternalSwitchOffName {"disable-external-gpu"};
 
 	/**
 	 *  Known platform ids used by Intel GPU kexts
@@ -236,6 +248,11 @@ public:
 	 *  Firmware vendor manufacturer
 	 */
 	FirmwareVendor firmwareVendor {FirmwareVendor::Unknown};
+
+	/**
+	 *  Requested external GPU switchoff
+	 */
+	bool requestedExternalSwitchOff {false};
 
 	/**
 	 *  Allocate and initialise the device list.

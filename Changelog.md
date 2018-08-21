@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 
 #### v1.2.7
+- Added support for detecting optimus switch-off
 - Fixed multiple Mach-O parsing issues
 
 #### v1.2.6

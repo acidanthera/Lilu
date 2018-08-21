@@ -41,7 +41,7 @@ void DeviceInfo::updateFramebufferId() {
 		if (gen == CPUInfo::CpuGeneration::SandyBridge && legacy != DefaultVesaPlatformId) {
 			reportedFramebufferId = getLegacyFramebufferId();
 		} else {
-			if (videoExternal.size() > 0 && gen != CPUInfo::CpuGeneration::Broadwell &&
+			if (!requestedExternalSwitchOff && videoExternal.size() > 0 && gen != CPUInfo::CpuGeneration::Broadwell &&
 				gen != CPUInfo::CpuGeneration::CannonLake && gen != CPUInfo::CpuGeneration::IceLake) {
 				DBGLOG("igfx", "discovered external GPU, using frame without connectors");
 				// Note, that setting non-standard connector-less frame may result in 2 GPUs visible
@@ -222,6 +222,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
 				DBGLOG("dev", "found IGPU device %s", safeString(name));
 				videoBuiltin = obj;
+				requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
 			} else if (code == WIOKit::ClassCode::HDADevice) {
 				if (vendor == WIOKit::VendorID::Intel && name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
 					DBGLOG("dev", "found HDAU device %s", safeString(name));
@@ -283,6 +284,8 @@ DeviceInfo *DeviceInfo::create() {
 		SYSLOG("dev", "failed to allocate device list");
 		return nullptr;
 	}
+
+	list->requestedExternalSwitchOff = checkKernelArgument(RequestedExternalSwitchOffArg);
 
 	auto rootSect = IORegistryEntry::fromPath("/", gIODTPlane);
 	if (rootSect) {
