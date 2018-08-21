@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.2.7
+- Fixed multiple Mach-O parsing issues
+
 #### v1.2.6
 - Added Cannon Lake and Ice Lake definitions
 - Added missing typed getOSData APIs

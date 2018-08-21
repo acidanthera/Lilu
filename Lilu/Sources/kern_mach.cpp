@@ -39,7 +39,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
 	// When calling kauth_cred_get() for the current_thread.
-	// This probably wants a better solution...
+	//FIXME: This needs a better solution...
 	if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
 		SYSLOG("mach", "current context has no credential, it's too early");
 		return error;
@@ -126,7 +126,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	vfs_context_t ctxt = vfs_context_create(nullptr);
 	bool found = false;
 	// Starting with 10.10 macOS supports kcsuffix that may be appended to processes, kernels, and kexts
-	char suffix[32];
+	char suffix[32] {};
 	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix));
 
 	for (size_t i = 0; i < num && !found; i++) {
@@ -193,6 +193,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 }
 
 mach_vm_address_t MachInfo::findKernelBase() {
+	// The function choice is completely random here, yet IOLog often has a low address.
 	auto tmp = reinterpret_cast<mach_vm_address_t>(IOLog);
 
 	// Align the address
@@ -311,31 +312,45 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 	}
 	
 	while (1) {
-		auto magic = *reinterpret_cast<uint32_t *>(buffer);
-		DBGLOG("mach", "readMachHeader got magic %08X", magic);
+		auto magicPtr = reinterpret_cast<uint32_t *>(buffer);
+		if (!isAligned(magicPtr)) {
+			SYSLOG("mach", "invalid mach header positioning");
+			return KERN_FAILURE;
+		}
 
-		switch (magic) {
+		DBGLOG("mach", "readMachHeader got magic %08X", *magicPtr);
+
+		switch (*magicPtr) {
 			case MH_MAGIC_64:
 				fat_offset = off;
 				return KERN_SUCCESS;
+			case FAT_CIGAM:
 			case FAT_MAGIC: {
+				if (off != 0) {
+					SYSLOG("mach", "fat found a recursion");
+					return KERN_FAILURE;
+				}
+
+				bool swapBytes = *magicPtr == FAT_CIGAM;
 				uint32_t num = reinterpret_cast<fat_header *>(buffer)->nfat_arch;
-				for (uint32_t i = 0; i < num; i++) {
-					auto arch = reinterpret_cast<fat_arch *>(buffer + i*sizeof(fat_arch) + sizeof(fat_header));
-					if (arch->cputype == CPU_TYPE_X86_64)
-						return readMachHeader(buffer, vnode, ctxt, arch->offset);
+				if (swapBytes) num = OSSwapInt32(num);
+				if (static_cast<uint64_t>(num) * sizeof(fat_arch) > HeaderSize - sizeof(fat_arch)) {
+					SYSLOG("mach", "invalid fat arch count %u", num);
+					return KERN_FAILURE;
 				}
+
+				for (uint32_t i = 0; i < num; i++) {
+					auto arch = reinterpret_cast<fat_arch *>(buffer + i * sizeof(fat_arch) + sizeof(fat_header));
+					cpu_type_t cpu = arch->cputype;
+					if (swapBytes) cpu = OSSwapInt32(cpu);
+					if (cpu == CPU_TYPE_X86_64) {
+						uint32_t offset = arch->offset;
+						if (swapBytes) offset = OSSwapInt32(offset);
+						return readMachHeader(buffer, vnode, ctxt, offset);
+					}
+				}
+
 				SYSLOG("mach", "magic failed to find a x86_64 mach");
-				return KERN_FAILURE;
-			}
-			case FAT_CIGAM: {
-				uint32_t num = OSSwapInt32(reinterpret_cast<fat_header *>(buffer)->nfat_arch);
-				for (uint32_t i = 0; i < num; i++) {
-					auto arch = reinterpret_cast<fat_arch *>(buffer + i*sizeof(fat_arch) + sizeof(fat_header));
-					if (OSSwapInt32(arch->cputype) == CPU_TYPE_X86_64)
-						return readMachHeader(buffer, vnode, ctxt, OSSwapInt32(arch->offset));
-				}
-				SYSLOG("mach", "cigam failed to find a x86_64 mach");
 				return KERN_FAILURE;
 			}
 #ifdef LILU_COMPRESSION_SUPPORT
@@ -376,7 +391,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 			}
 #endif /* LILU_COMPRESSION_SUPPORT */
 			default:
-				SYSLOG("mach", "read mach has unsupported %X magic", magic);
+				SYSLOG("mach", "read mach has unsupported %X magic", *magicPtr);
 				return KERN_FAILURE;
 		}
 	}
@@ -417,45 +432,99 @@ kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
 	return KERN_FAILURE;
 }
 
-void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &size, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
+void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &size, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
 	vmsegment = vmsection = 0;
 	sectionptr = 0;
 	size = 0;
 	
 	auto header = static_cast<mach_header *>(ptr);
 	auto cmd = static_cast<load_command *>(ptr);
-	
+
+	if (!isAligned(header) || sourceSize < MachInfo::HeaderSize) {
+		SYSLOG("mach", "invalid mach header for section lookup");
+		return;
+	}
+
 	if (header->magic == MH_MAGIC_64) {
 		reinterpret_cast<uintptr_t &>(cmd) += sizeof(mach_header_64);
 	} else if (header->magic == MH_MAGIC) {
 		reinterpret_cast<uintptr_t &>(cmd) += sizeof(mach_header);
-	} else if (header->magic == FAT_CIGAM){
+	} else if (header->magic == FAT_CIGAM || header->magic == FAT_MAGIC) {
+		if (cpu == 0) {
+			SYSLOG("mach", "fat recursion in for section lookup");
+			return;
+		}
+
 		fat_header *fheader = static_cast<fat_header *>(ptr);
-		uint32_t num = OSSwapInt32(fheader->nfat_arch);
+		bool swapBytes = header->magic == FAT_CIGAM;
+		uint32_t num = fheader->nfat_arch;
+		if (swapBytes) num = OSSwapInt32(num);
+
+		if (static_cast<uint64_t>(num) * sizeof(fat_arch) > HeaderSize - sizeof(fat_arch)) {
+			SYSLOG("mach", "invalid fat arch count %u for section lookup", num);
+			return;
+		}
+
 		fat_arch *farch = reinterpret_cast<fat_arch *>(reinterpret_cast<uintptr_t>(ptr) + sizeof(fat_header));
 		for (size_t i = 0; i < num; i++, farch++) {
-			if (static_cast<cpu_type_t>(OSSwapInt32(farch->cputype)) == cpu) {
-				findSectionBounds(reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(ptr) + OSSwapInt32(farch->offset)), vmsegment, vmsection, sectionptr, size, segmentName, sectionName, cpu);
+			cpu_type_t rcpu = farch->cputype;
+			if (swapBytes) rcpu = OSSwapInt32(rcpu);
+			if (rcpu == cpu) {
+				uint32_t off = farch->offset;
+				uint32_t sz  = farch->size;
+				if (swapBytes) {
+					off = OSSwapInt32(off);
+					sz = OSSwapInt32(sz);
+				}
+
+				if (static_cast<uint64_t>(off) + sz > size) {
+					SYSLOG("mach", "invalid fat offset %lu for section lookup", i);
+					return;
+				}
+
+				findSectionBounds(static_cast<uint8_t *>(ptr) + off, size - off, vmsegment, vmsection, sectionptr, size, segmentName, sectionName, 0);
 				break;
 			}
 		}
 		return;
 	}
-	
+
+	uint8_t *endaddr = static_cast<uint8_t *>(ptr) + sourceSize;
+
 	for (uint32_t no = 0; no < header->ncmds; no++) {
+		if (!isAligned(cmd)) {
+			SYSLOG("mach", "invalid command %u position for section lookup", no);
+			return;
+		}
+
+		if (reinterpret_cast<uint8_t *>(cmd) + sizeof(load_command) > endaddr || reinterpret_cast<uint8_t *>(cmd) + cmd->cmdsize > endaddr) {
+			SYSLOG("mach", "header command %u exceeds header size for section lookup", no);
+			return;
+		}
+
 		if (cmd->cmd == LC_SEGMENT) {
-			segment_command *scmd = reinterpret_cast<segment_command *>(cmd);
-			if (!strcmp(scmd->segname, segmentName)) {
-				section *sect = reinterpret_cast<section *>(cmd);
-				reinterpret_cast<uintptr_t &>(sect) += sizeof(segment_command);
-				
+			auto scmd = reinterpret_cast<segment_command *>(cmd);
+			if (!strncmp(scmd->segname, segmentName, sizeof(scmd->segname))) {
+				auto sect = reinterpret_cast<section *>(cmd);
+				reinterpret_cast<uintptr_t &>(sect) += sizeof(*scmd);
+
+				if (reinterpret_cast<uint8_t *>(sect) + sizeof(*sect) * static_cast<uint64_t>(scmd->nsects) > endaddr) {
+					SYSLOG("mach", "sections in segment %u exceed header size for section lookup", no);
+					return;
+				}
+
 				for (uint32_t sno = 0; sno < scmd->nsects; sno++) {
-					if (!strcmp(sect->sectname, sectionName)) {
+					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
+						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
+						if (sptr + sect->size > endaddr) {
+							SYSLOG("mach", "found section %s size %u in segment %lu is invalid\n", sectionName, sno, vmsegment);
+							return;
+						}
 						vmsegment = scmd->vmaddr;
 						vmsection = sect->addr;
-						sectionptr = reinterpret_cast<void *>(sect->offset+reinterpret_cast<uintptr_t>(ptr));
+						sectionptr = sptr;
 						size = static_cast<size_t>(sect->size);
-						DBGLOG("mach", "found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
+						DBGLOG("mach", "found section %s size %u in segment %lu\n", sectionName, sno, vmsegment);
 						return;
 					}
 					
@@ -463,18 +532,28 @@ void MachInfo::findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_
 				}
 			}
 		} else if (cmd->cmd == LC_SEGMENT_64) {
-			segment_command_64 *scmd = reinterpret_cast<segment_command_64 *>(cmd);
-			if (!strcmp(scmd->segname, segmentName)) {
-				section_64 *sect = reinterpret_cast<section_64 *>(cmd);
-				reinterpret_cast<uintptr_t &>(sect) += sizeof(segment_command_64);
-				
+			auto scmd = reinterpret_cast<segment_command_64 *>(cmd);
+			if (!strncmp(scmd->segname, segmentName, sizeof(scmd->segname))) {
+				auto sect = reinterpret_cast<section_64 *>(cmd);
+				reinterpret_cast<uintptr_t &>(sect) += sizeof(*scmd);
+
+				if (reinterpret_cast<uint8_t *>(sect) + sizeof(*sect) * static_cast<uint64_t>(scmd->nsects) > endaddr) {
+					SYSLOG("mach", "sections in segment %u exceed header size for section lookup", no);
+					return;
+				}
+
 				for (uint32_t sno = 0; sno < scmd->nsects; sno++) {
-					if (!strcmp(sect->sectname, sectionName)) {
+					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
+						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
+						if (sptr + sect->size > endaddr) {
+							SYSLOG("mach", "found section %s size %u in segment %lu is invalid\n", sectionName, sno, vmsegment);
+							return;
+						}
 						vmsegment = scmd->vmaddr;
 						vmsection = sect->addr;
-						sectionptr = reinterpret_cast<void *>(sect->offset+reinterpret_cast<uintptr_t>(ptr));
+						sectionptr = sptr;
 						size = static_cast<size_t>(sect->size);
-						DBGLOG("mach", "found section %lu size %lu in segment %lu\n", vmsection, vmsegment, size);
+						DBGLOG("mach", "found section %s size %u in segment %lu\n", sectionName, sno, vmsegment);
 						return;
 					}
 					
@@ -511,8 +590,13 @@ void MachInfo::processMachHeader(void *header) {
 	for (uint32_t i = 0; i < mh->ncmds; i++) {
 		auto loadCmd = reinterpret_cast<load_command *>(addr);
 
+		if (!isAligned(loadCmd)) {
+			SYSLOG("mach", "invalid command %u position in %s", i, safeString(objectId));
+			return;
+		}
+
 		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
-			SYSLOG("mach", "header command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+			SYSLOG("mach", "header command %u of info %s exceeds header size", i, safeString(objectId));
 			return;
 		}
 
@@ -545,7 +629,7 @@ void MachInfo::updatePrelinkInfo() {
 		vm_address_t tmpSeg, tmpSect;
 		void *tmpSectPtr;
 		size_t tmpSectSize;
-		findSectionBounds(file_buf, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_INFO", "__info");
+		findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_INFO", "__info");
 		size_t startoff = tmpSectSize && static_cast<uint8_t *>(tmpSectPtr) >= file_buf ?
 		                static_cast<uint8_t *>(tmpSectPtr) - file_buf : file_buf_size;
 		if (tmpSectSize > 0 && file_buf_size > startoff && file_buf_size - startoff >= tmpSectSize) {
@@ -553,7 +637,7 @@ void MachInfo::updatePrelinkInfo() {
 			auto objData = xmlData[tmpSectSize-1] == '\0' ? OSUnserializeXML(xmlData, nullptr) : nullptr;
 			prelink_dict = OSDynamicCast(OSDictionary, objData);
 			if (prelink_dict) {
-				findSectionBounds(file_buf, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
+				findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
 				if (tmpSectSize){
 					prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
 					prelink_vmaddr = tmpSect;
@@ -660,8 +744,13 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			loadCmd = reinterpret_cast<load_command *>(addr);
 
+			if (!isAligned(loadCmd)) {
+				SYSLOG("mach", "running command %u invalid position in %s", i, safeString(objectId));
+				return KERN_FAILURE;
+			}
+
 			if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
-				SYSLOG("mach", "running command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+				SYSLOG("mach", "running command %u of info %s exceeds header size", i, safeString(objectId));
 				return KERN_FAILURE;
 			}
 
@@ -718,8 +807,13 @@ uint64_t *MachInfo::getUUID(void *header) {
 	for (uint32_t i = 0; i < mh->ncmds; i++) {
 		auto loadCmd = reinterpret_cast<load_command *>(addr);
 
+		if (!isAligned(loadCmd)) {
+			SYSLOG("mach", "uuid command %u invalid position in %s", i, safeString(objectId));
+			return nullptr;
+		}
+
 		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
-			SYSLOG("mach", "uuid command %u of info %s exceeds header size", i, objectId ? objectId : "(null)");
+			SYSLOG("mach", "uuid command %u of info %s exceeds header size", i, safeString(objectId));
 			return nullptr;
 		}
 

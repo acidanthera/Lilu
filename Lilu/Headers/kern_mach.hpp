@@ -270,7 +270,8 @@ public:
 	/**
 	 *  Find section bounds in a passed binary for provided cpu
 	 *
-	 *  @param ptr         pointer to a complete mach binary
+	 *  @param ptr         pointer to a complete mach-o binary
+	 *  @param sourceSize  size of the mach-o binary
 	 *  @param vmsegment   returned vm segment pointer
 	 *  @param vmsection   returned vm section pointer
 	 *  @param sectionptr  returned section pointer
@@ -279,7 +280,7 @@ public:
 	 *  @param sectionName section name
 	 *  @param cpu         cpu to look for in case of fat binaries
 	 */
-	EXPORT static void findSectionBounds(void *ptr, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &size, const char *segmentName="__TEXT", const char *sectionName="__text", cpu_type_t cpu=CPU_TYPE_X86_64);
+	EXPORT static void findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &size, const char *segmentName="__TEXT", const char *sectionName="__text", cpu_type_t cpu=CPU_TYPE_X86_64);
 
 	/**
 	 *  Request to free file buffer resources (not including linkedit symtable)

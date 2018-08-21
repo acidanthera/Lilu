@@ -203,7 +203,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	auto dstend = dst + dstlen;
 	
 	/* initialize trees */
-	sp = static_cast<encode_state *>(kern_os_malloc(sizeof(*sp)));
+	sp = Buffer::create<encode_state>(1);
 	if (!sp) goto finish;
 	
 	init_state(sp);
@@ -307,7 +307,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	result = dst;
 	
 finish:
-	if (sp) kern_os_free(sp);
+	if (sp) Buffer::deleter(sp);
 	
 	return result;
 }

@@ -740,7 +740,7 @@ bool UserPatcher::loadFilesForPatching() {
 					continue;
 				}
 				
-				MachInfo::findSectionBounds(buf, vmsegment, vmsection, sectionptr, size,
+				MachInfo::findSectionBounds(buf, fileSize, vmsegment, vmsection, sectionptr, size,
 											fileSegments[patch.segment], fileSections[patch.segment], patch.cpu);
 				
 				DBGLOG("user", "findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %lu", vmsegment, vmsection, sectionptr, size);

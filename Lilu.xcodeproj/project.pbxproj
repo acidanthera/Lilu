@@ -898,7 +898,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.6;
+				MODULE_VERSION = 1.2.7;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -961,7 +961,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.6;
+				MODULE_VERSION = 1.2.7;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

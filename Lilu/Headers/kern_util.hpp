@@ -373,6 +373,18 @@ inline T alignValue(T size, T align = 4096) {
 }
 
 /**
+ *  Check pointer alignment for type T
+ *
+ *  @param p  pointer
+ *
+ *  @return true if properly aligned
+ */
+template<typename T>
+inline bool isAligned(T *p) {
+	return reinterpret_cast<uintptr_t>(p) % alignof(T) == 0;
+}
+
+/**
  *  Obtain bit value of size sizeof(T)
  *  Warning, you are suggested to always pass the type explicitly!
  *
@@ -470,14 +482,23 @@ inline T FunctionCast(T org, mach_vm_address_t ptr) {
  *  Typed buffer allocator
  */
 namespace Buffer {
+	/**
+	 *  Allocating more than 1 GB is unreasonable for stability purposes.
+	 */
+	static constexpr size_t BufferMax = 1024*1024*1024;
+
 	template <typename T>
 	inline T *create(size_t size) {
-		return static_cast<T *>(kern_os_malloc(sizeof(T) * size));
+		size_t s = sizeof(T) * size;
+		if (s > BufferMax) return nullptr;
+		return static_cast<T *>(kern_os_malloc(s));
 	}
 	
 	template <typename T>
 	inline bool resize(T *&buf, size_t size) {
-		auto nbuf = static_cast<T *>(kern_os_realloc(buf, sizeof(T) * size));
+		size_t s = sizeof(T) * size;
+		if (s > BufferMax) return false;
+		auto nbuf = static_cast<T *>(kern_os_realloc(buf, s));
 		if (nbuf) {
 			buf = nbuf;
 			return true;
