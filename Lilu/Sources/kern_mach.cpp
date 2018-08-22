@@ -432,10 +432,10 @@ kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
 	return KERN_FAILURE;
 }
 
-void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &size, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
+void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
 	vmsegment = vmsection = 0;
 	sectionptr = 0;
-	size = 0;
+	sectionSize = 0;
 	
 	auto header = static_cast<mach_header *>(ptr);
 	auto cmd = static_cast<load_command *>(ptr);
@@ -477,12 +477,12 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					sz = OSSwapInt32(sz);
 				}
 
-				if (static_cast<uint64_t>(off) + sz > size) {
-					SYSLOG("mach", "invalid fat offset %lu for section lookup", i);
+				if (static_cast<uint64_t>(off) + sz > sourceSize) {
+					SYSLOG("mach", "invalid fat offset for section %lu lookup", i);
 					return;
 				}
 
-				findSectionBounds(static_cast<uint8_t *>(ptr) + off, size - off, vmsegment, vmsection, sectionptr, size, segmentName, sectionName, 0);
+				findSectionBounds(static_cast<uint8_t *>(ptr) + off, sourceSize - off, vmsegment, vmsection, sectionptr, sectionSize, segmentName, sectionName, 0);
 				break;
 			}
 		}
@@ -523,7 +523,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						vmsegment = scmd->vmaddr;
 						vmsection = sect->addr;
 						sectionptr = sptr;
-						size = static_cast<size_t>(sect->size);
+						sectionSize = static_cast<size_t>(sect->size);
 						DBGLOG("mach", "found section %s size %u in segment %lu\n", sectionName, sno, vmsegment);
 						return;
 					}
@@ -552,7 +552,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						vmsegment = scmd->vmaddr;
 						vmsection = sect->addr;
 						sectionptr = sptr;
-						size = static_cast<size_t>(sect->size);
+						sectionSize = static_cast<size_t>(sect->size);
 						DBGLOG("mach", "found section %s size %u in segment %lu\n", sectionName, sno, vmsegment);
 						return;
 					}
