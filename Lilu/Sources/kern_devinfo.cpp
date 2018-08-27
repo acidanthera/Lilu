@@ -218,6 +218,8 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				!WIOKit::getOSDataValue(obj, "class-code", code))
 				continue;
 
+			DBGLOG("dev", "found pci device %s 0x%x 0x%x", safeString(obj->getName()), vendor, code);
+
 			auto name = obj->getName();
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
 				DBGLOG("dev", "found IGPU device %s", safeString(name));
@@ -285,6 +287,8 @@ DeviceInfo *DeviceInfo::create() {
 		return nullptr;
 	}
 
+	DBGLOG("dev", "creating device info");
+
 	list->requestedExternalSwitchOff = checkKernelArgument(RequestedExternalSwitchOffArg);
 
 	auto rootSect = IORegistryEntry::fromPath("/", gIODTPlane);
@@ -294,15 +298,16 @@ DeviceInfo *DeviceInfo::create() {
 		if (lookupIterator) {
 			IORegistryEntry *pciRootObj = nullptr;
 			while ((pciRootObj = OSDynamicCast(IORegistryEntry, lookupIterator->getNextObject())) != nullptr) {
-				auto compat = OSDynamicCast(OSData, pciRootObj->getProperty("compatible"));
+				auto name = pciRootObj->getName();
+				DBGLOG("dev", "found root device %s", safeString(name));
 
-				bool isPciRoot = compat && compat->getLength() == sizeof("PNP0A03") &&
-					!strcmp(static_cast<const char *>(compat->getBytesNoCopy()), "PNP0A03");
-
-				// This is just a safeguard really, the upper check should find every value.
-				if (!isPciRoot && compat) {
-					auto name = pciRootObj->getName();
-					isPciRoot = name && (!strncmp(name, "PCI", 3) || !strncmp(name, "PC0", 3));
+				bool isPciRoot = name && (!strncmp(name, "PCI", 3) || !strncmp(name, "PC0", 3));
+				if (!isPciRoot) {
+					// Some PCI devices do not have compatible (e.g. H67MA-UD2H-B3), but we should not
+					// blindly trust names being the same, as there are no guarantees.
+					auto compat = OSDynamicCast(OSData, pciRootObj->getProperty("compatible"));
+					isPciRoot = compat && compat->getLength() == sizeof("PNP0A03") &&
+						!strcmp(static_cast<const char *>(compat->getBytesNoCopy()), "PNP0A03");
 				}
 
 				if (isPciRoot) {
