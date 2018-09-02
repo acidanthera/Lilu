@@ -47,6 +47,7 @@
 		1C3E7B2A1C84B65400A6448A /* X86ATTInstPrinter.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C3E7B151C84B65400A6448A /* X86ATTInstPrinter.c */; };
 		CE1096261F22876B00B623FC /* umm_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = CE10961E1F22876B00B623FC /* umm_malloc.c */; };
 		CE1096271F22876B00B623FC /* umm_malloc.h in Headers */ = {isa = PBXBuildFile; fileRef = CE10961F1F22876B00B623FC /* umm_malloc.h */; };
+		CE2687F5213BC02900E17BDD /* kern_ubsan.c in Sources */ = {isa = PBXBuildFile; fileRef = CE2687F4213BC02900E17BDD /* kern_ubsan.c */; };
 		CE2E7B931E2C6A73009AC62A /* kern_compression.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */; };
 		CE2E7B941E2C6A73009AC62A /* kern_disasm.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */; };
 		CE2E7B951E2C6A73009AC62A /* kern_file.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE2E7B891E2C6A73009AC62A /* kern_file.hpp */; };
@@ -157,6 +158,8 @@
 		CE10961E1F22876B00B623FC /* umm_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = umm_malloc.c; sourceTree = "<group>"; };
 		CE10961F1F22876B00B623FC /* umm_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = umm_malloc.h; sourceTree = "<group>"; };
 		CE22EA372037A4BB002A88A5 /* kern_cpu.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cpu.hpp; sourceTree = "<group>"; };
+		CE2687F4213BC02900E17BDD /* kern_ubsan.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kern_ubsan.c; path = Lilu/Sources/kern_ubsan.c; sourceTree = "<group>"; };
+		CE2687F6213BC2BE00E17BDD /* kern_ubsan.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = kern_ubsan.h; sourceTree = "<group>"; };
 		CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_compression.hpp; sourceTree = "<group>"; };
 		CE2E7B881E2C6A73009AC62A /* kern_disasm.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_disasm.hpp; sourceTree = "<group>"; };
 		CE2E7B891E2C6A73009AC62A /* kern_file.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_file.hpp; sourceTree = "<group>"; };
@@ -408,6 +411,7 @@
 				CE2E7BAB1E2C6BAA009AC62A /* kern_start.cpp */,
 				CE2E7BAD1E2C6BAA009AC62A /* kern_user.cpp */,
 				CE2E7BAE1E2C6BAA009AC62A /* kern_util.cpp */,
+				CE2687F4213BC02900E17BDD /* kern_ubsan.c */,
 				1C748C2E1C21952C0024EED2 /* Info.plist */,
 			);
 			name = Sources;
@@ -428,6 +432,7 @@
 				CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */,
 				CE2E7BCC1E2C6DCA009AC62A /* kern_patcher.hpp */,
 				CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */,
+				CE2687F6213BC2BE00E17BDD /* kern_ubsan.h */,
 			);
 			name = PrivateHeaders;
 			path = Lilu/PrivateHeaders;
@@ -737,6 +742,7 @@
 				CE2E7BB41E2C6BAA009AC62A /* kern_patcher.cpp in Sources */,
 				CE335AE52097444900C60A5F /* kern_rtc.cpp in Sources */,
 				1C3E7B281C84B65400A6448A /* X86Disassembler.c in Sources */,
+				CE2687F5213BC02900E17BDD /* kern_ubsan.c in Sources */,
 				CE2E7BB61E2C6BAA009AC62A /* kern_start.cpp in Sources */,
 				CE2E7BB01E2C6BAA009AC62A /* kern_disasm.cpp in Sources */,
 				CEC0C5EF208F99A6000BFE88 /* kern_efi.cpp in Sources */,
@@ -989,6 +995,119 @@
 			};
 			name = Release;
 		};
+		CE2687F7213BCEA000E17BDD /* Sanitize */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = c11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Sanitize;
+		};
+		CE2687F8213BCEA000E17BDD /* Sanitize */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
+				DEPLOYMENT_POSTPROCESSING = YES;
+				GCC_ENABLE_FLOATING_POINT_LIBRARY_CALLS = NO;
+				GCC_ENABLE_KERNEL_DEVELOPMENT = NO;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"CAPSTONE_HAS_X86=1",
+					"CAPSTONE_HAS_OSXKERNEL=1",
+					"CAPSTONE_DIET=1",
+					"CAPSTONE_X86_REDUCE=1",
+					"CAPSTONE_STATIC=1",
+					"UMM_BEST_FIT=1",
+					"UMM_MALLOC_CFG_HEAP_SIZE=0x10000",
+					"MODULE_VERSION=$(MODULE_VERSION)",
+					"PRODUCT_NAME=$(PRODUCT_NAME)",
+					"SANITIZE=1",
+					"$(inherited)",
+				);
+				HEADER_SEARCH_PATHS = (
+					"${PROJECT_DIR}/capstone/include",
+					"${PROJECT_DIR}/lzvn",
+					"${PROJECT_DIR}/${PRODUCT_NAME}",
+				);
+				INFOPLIST_FILE = Lilu/Info.plist;
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/$(PROJECT_NAME)$(LOCAL_LIBRARY_DIR)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MODULE_NAME = as.vit9696.Lilu;
+				MODULE_START = kern_start;
+				MODULE_STOP = kern_stop;
+				MODULE_VERSION = 1.2.7;
+				OTHER_CFLAGS = (
+					"-mmmx",
+					"-msse",
+					"-msse2",
+					"-msse3",
+					"-mfpmath=sse",
+					"-mssse3",
+					"-ftree-vectorize",
+					"-fno-non-call-exceptions",
+					"-fno-builtin",
+					"-fno-asynchronous-unwind-tables",
+					"-Wall",
+					"-Wextra",
+					"-Wno-unused-parameter",
+					"-Wno-deprecated-register",
+					"-Wno-unknown-pragmas",
+					"-Werror",
+					"-fsanitize=undefined,nullability",
+					"-fno-sanitize=function",
+				);
+				OTHER_LDFLAGS = "-static";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				USER_HEADER_SEARCH_PATHS = "";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Sanitize;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -996,6 +1115,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1C748C2F1C21952C0024EED2 /* Debug */,
+				CE2687F7213BCEA000E17BDD /* Sanitize */,
 				1C748C301C21952C0024EED2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1005,6 +1125,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1C748C321C21952C0024EED2 /* Debug */,
+				CE2687F8213BCEA000E17BDD /* Sanitize */,
 				1C748C331C21952C0024EED2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
