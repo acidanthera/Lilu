@@ -4,6 +4,7 @@ Lilu Changelog
 #### v1.2.7
 - Added support for detecting optimus switch-off
 - Fixed multiple Mach-O parsing issues
+- Fixed support of PCI devices without compatible property
 
 #### v1.2.6
 - Added Cannon Lake and Ice Lake definitions

@@ -199,6 +199,12 @@ extern proc_t kernproc;
 	static_cast<uint32_t>(reinterpret_cast<uint64_t>(x))
 
 /**
+ *  Ugly floating point printing macros
+ */
+#define PRIFRAC "%lld.%04lld"
+#define CASTFRAC(x) static_cast<int64_t>(x), static_cast<int64_t>(((x) - static_cast<int64_t>(x)) * 10000)
+
+/**
  *  Macros to print the UUID
  */
 #define PRIUUID "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X"
