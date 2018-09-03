@@ -213,14 +213,14 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 		IORegistryEntry *obj = nullptr;
 		while ((obj = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
 			uint32_t vendor = 0, code = 0;
-			if (!WIOKit::getOSDataValue(obj, "vendor-id", vendor) ||
-				(vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD) ||
-				!WIOKit::getOSDataValue(obj, "class-code", code))
+			bool gotVendor = WIOKit::getOSDataValue(obj, "vendor-id", vendor);
+			bool gotClass = WIOKit::getOSDataValue(obj, "class-code", code);
+			auto name = obj->getName();
+			DBGLOG("dev", "found pci device %s 0x%x 0x%x", safeString(name), vendor, code);
+
+			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD))
 				continue;
 
-			DBGLOG("dev", "found pci device %s 0x%x 0x%x", safeString(obj->getName()), vendor, code);
-
-			auto name = obj->getName();
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
 				DBGLOG("dev", "found IGPU device %s", safeString(name));
 				videoBuiltin = obj;
