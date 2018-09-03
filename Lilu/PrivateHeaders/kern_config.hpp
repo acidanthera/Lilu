@@ -12,23 +12,32 @@
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_policy.hpp>
 #include <Headers/kern_util.hpp>
+#include <kern/thread_call.h>
 
 class Configuration {
 	/**
 	 *  Possible boot arguments
 	 */
-	static constexpr const char *bootargOff {"-liluoff"};			// Disable the kext
-	static constexpr const char *bootargUserOff {"-liluuseroff"};	// Disable kext user patcher
-	static constexpr const char *bootargBeta {"-lilubeta"};			// Force enable the kext on unsupported os
-	static constexpr const char *bootargBetaAll {"-lilubetaall"};	// Force enable the kext and all plugins on unsupported os
-	static constexpr const char *bootargForce {"-liluforce"};		// Force enable the kext (including single user mode)
-	static constexpr const char *bootargDebug {"-liludbg"};			// Enable debug logging
-	static constexpr const char *bootargDebugAll {"-liludbgall"};	// Enable debug logging (for Lilu and all the plugins)
-	static constexpr const char *bootargSlow {"-liluslow"};			// Prefer less destructive userspace measures
-	static constexpr const char *bootargFast {"-lilufast"};			// Prefer faster userspace measures
-	static constexpr const char *bootargLowMem {"-lilulowmem"};		// Disable decompression
-	static constexpr const char *bootargDelay {"liludelay"};		// Extra delay timeout after each printed message
-	
+	static constexpr const char *bootargOff {"-liluoff"};           // Disable the kext
+	static constexpr const char *bootargUserOff {"-liluuseroff"};   // Disable kext user patcher
+	static constexpr const char *bootargBeta {"-lilubeta"};         // Force enable the kext on unsupported os
+	static constexpr const char *bootargBetaAll {"-lilubetaall"};   // Force enable the kext and all plugins on unsupported os
+	static constexpr const char *bootargForce {"-liluforce"};       // Force enable the kext (including single user mode)
+	static constexpr const char *bootargDebug {"-liludbg"};         // Enable debug logging
+	static constexpr const char *bootargDebugAll {"-liludbgall"};   // Enable debug logging (for Lilu and all the plugins)
+	static constexpr const char *bootargSlow {"-liluslow"};         // Prefer less destructive userspace measures
+	static constexpr const char *bootargFast {"-lilufast"};         // Prefer faster userspace measures
+	static constexpr const char *bootargLowMem {"-lilulowmem"};     // Disable decompression
+	static constexpr const char *bootargDelay {"liludelay"};        // Extra delay timeout after each printed message
+	static constexpr const char *bootargDump {"liludump"};          // Dump lilu log to /Lilu...txt after N seconds
+
+public:
+	/**
+	 *  Externally handled boot arguments
+	 */
+	static constexpr const char *bootargCpu {"lilucpu"};            // Simulate this CPU generation, handled in kern_cpu.cpp
+
+private:
 	/**
 	 * Minimal required kernel version
 	 */
@@ -38,19 +47,19 @@ class Configuration {
 	 * Maxmimum supported kernel version
 	 */
 	static constexpr KernelVersion maxKernel {KernelVersion::Mojave};
-	
+
 	/**
 	 *  Set once the arguments are parsed
 	 */
 	bool readArguments {false};
-	
+
 	/**
 	 *  Initialise kernel and user patchers if necessary
 	 *
 	 *  @return true on success
 	 */
 	bool performInit();
-	
+
 	/**
 	 *  TrustedBSD policy called at exec
 	 *
@@ -60,8 +69,7 @@ class Configuration {
 	 *  @return 0 on success
 	 */
 	static int policyCredCheckLabelUpdateExecve(kauth_cred_t old, vnode_t vp, ...);
-	
-	
+
 	/**
 	 *  TrustedBSD policy called before remounting
 	 *
@@ -70,14 +78,40 @@ class Configuration {
 	 *  @param mlabel    mount point label
 	 */
 	static int policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabel);
-	
+
 	/**
 	 *  TrustedBSD policy options
 	 */
 	mac_policy_ops policyOps {
 		.mpo_policy_initbsd					= Policy::dummyPolicyInitBSD
 	};
-	
+
+#ifdef DEBUG
+	/**
+	 *  Debug buffer dump timeout in seconds
+	 */
+	uint32_t debugDumpTimeout {0};
+
+	/**
+	 *  Debug buffer dump thread call
+	 */
+	thread_call_t debugDumpCall {nullptr};
+
+	/**
+	 *  Initialise log to custom buffer support
+	 *  You may call it from a debugger if you need to save the log once again.
+	 */
+	void initCustomDebugSupport();
+
+	/**
+	 *  Stores debug log on disk
+	 *
+	 *  @param param0 unused
+	 *  @param param1 unused
+	 */
+	static void saveCustomDebugOnDisk(thread_call_param_t param0, thread_call_param_t param1);
+#endif
+
 public:
 	/**
 	 *  Retrieve boot arguments
@@ -85,7 +119,7 @@ public:
 	 *  @return true if allowed to continue
 	 */
 	bool getBootArguments();
-	
+
 	/**
 	 *  Disable the extension by default
 	 */
@@ -95,17 +129,17 @@ public:
 	 *  User patcher is disabled on request
 	 */
 	bool isUserDisabled {false};
-	
+
 	/**
 	 *  Do not patch dyld shared cache unless asked
 	 */
 	bool preferSlowMode {false};
-	
+
 	/**
 	 *  Allow decompression
 	 */
 	bool allowDecompress {true};
-	
+
 	/**
 	 *  Install or recovery
 	 */
@@ -115,7 +149,7 @@ public:
 	 *  Safe mode
 	 */
 	bool safeMode {false};
-	
+
 	/**
 	 *  Beta for all plugins and Lilu itself
 	 */
@@ -140,23 +174,52 @@ public:
 	 *  User patcher
 	 */
 	UserPatcher userPatcher;
-	
+
 	/**
 	 *  Kernel patcher
 	 */
 	KernelPatcher kernelPatcher;
-	
+
 	/**
 	 *  Policy controller
 	 */
 	Policy policy;
-	
+
 #ifdef DEBUG
+	/**
+	 *  Full policy name
+	 */
 	static constexpr const char *fullName {xStringify(PRODUCT_NAME) " Kernel Extension " xStringify(MODULE_VERSION) " DEBUG build"};
+
+	/**
+	 *  Maximum amount of data we can via the internal buffer (8 MB)
+	 */
+	static constexpr size_t MaxDebugBufferSize {1024*1024*8};
+
+	/**
+	 *  Custom logging lock
+	 */
+	IOSimpleLock *debugLock {nullptr};
+
+	/**
+	 *  Debug buffer with logged data, intentionally disabled in RELEASE mode
+	 *  to avoid sensitive information leak.
+	 *  Contains debugBufferLength symbols, not null-terminated.
+	 */
+	uint8_t *debugBuffer {nullptr};
+
+	/**
+	 *  Debug buffer current length
+	 */
+	size_t debugBufferLength {0};
 #else
+
+	/**
+	 *  Full policy name
+	 */
 	static constexpr const char *fullName {xStringify(PRODUCT_NAME) " Kernel Extension " xStringify(MODULE_VERSION)};
 #endif
-	
+
 	Configuration() : policy(xStringify(PRODUCT_NAME), fullName, &policyOps) {}
 };
 

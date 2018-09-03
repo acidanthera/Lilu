@@ -4,6 +4,7 @@ Lilu Changelog
 #### v1.2.7
 - Added support for detecting optimus switch-off
 - Added Sanitize target with ubsan support (thx to NetBSD)
+- Added disk log dump in DEBUG builds via `liludump=N` boot-arg (requires plugin rebuild)
 - Fixed multiple Mach-O parsing issues
 - Fixed support of PCI devices without compatible property
 

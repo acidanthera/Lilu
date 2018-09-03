@@ -7,6 +7,7 @@
 
 #include <Headers/kern_cpu.hpp>
 #include <Headers/kern_devinfo.hpp>
+#include <PrivateHeaders/kern_config.hpp>
 #include <i386/proc_reg.h>
 
 extern "C" {
@@ -53,7 +54,7 @@ void CPUInfo::loadCpuInformation() {
 
 	// Last but not least detect CPU generation
 	uint32_t generation = 0;
-	if (PE_parse_boot_argn("lilucpu", &generation, sizeof(generation))) {
+	if (PE_parse_boot_argn(Configuration::bootargCpu, &generation, sizeof(generation))) {
 		DBGLOG("cpu", "found CPU generation override %u", generation);
 		if (generation < static_cast<uint32_t>(CPUInfo::CpuGeneration::MaxGeneration)) {
 			currentGeneration = static_cast<CPUInfo::CpuGeneration>(generation);

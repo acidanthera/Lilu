@@ -29,6 +29,7 @@ To compile a plugin copy the debug version of Lilu.kext into its directory.
 - Add `-liluforce` to enable Lilu regardless of the mode, OS, installer, or recovery.
 - Add `liludelay=1000` to enable 1 second delay after each print for troubleshooting.
 - Add `lilucpu=N` to let Lilu and plugins assume Nth CPUInfo::CpuGeneration.
+- Add `liludump=N` to let Lilu DEBUG version dump log to `/var/log/Lilu_VERSION_KERN_MAJOR.KERN_MINOR.txt` after N seconds
 
 #### Peculiarities
 Most of the plugins cease to function in safe (`-x`) mode.  

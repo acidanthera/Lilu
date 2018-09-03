@@ -74,10 +74,8 @@ extern proc_t kernproc;
  */
 #define SYSLOG_COND(cond, module, str, ...)                                                          \
 	do {                                                                                             \
-	    if (cond) {                                                                                  \
-	        IOLog( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
-	        if (ADDPR(debugPrintDelay) > 0) IOSleep(ADDPR(debugPrintDelay));                         \
-	    }                                                                                            \
+	    if (cond)                                                                                    \
+	        LLLog( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
 	} while (0)
 
 /**
@@ -235,6 +233,14 @@ extern proc_t kernproc;
  *  Remove padding between fields
  */
 #define PACKED __attribute__((packed))
+
+/**
+ *  This function is supposed to workaround missing entries in the system log.
+ *  By providing its own buffer for logging data.
+ *
+ *  @param format  formatted string
+ */
+EXPORT void LLLog(const char *format, ...);
 
 /**
  *  Two-way substring search

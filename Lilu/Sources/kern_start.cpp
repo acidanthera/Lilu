@@ -13,6 +13,8 @@
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_efi.hpp>
 #include <Headers/kern_cpu.hpp>
+#include <Headers/kern_file.hpp>
+#include <Headers/kern_time.hpp>
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IORegistryEntry.h>
@@ -98,6 +100,73 @@ int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t auth, vnode_t v
 	return 0;
 }
 
+#ifdef DEBUG
+
+void Configuration::initCustomDebugSupport() {
+	if (debugDumpTimeout == 0)
+		return;
+
+	if (!debugBuffer)
+		debugBuffer = Buffer::create<uint8_t>(MaxDebugBufferSize);
+
+	if (!debugLock)
+		debugLock = IOSimpleLockAlloc();
+
+	if (debugBuffer && debugLock) {
+		if (debugDumpCall) {
+			while (!thread_call_free(debugDumpCall))
+				thread_call_cancel(debugDumpCall);
+			debugDumpCall = nullptr;
+		}
+
+		debugDumpCall = thread_call_allocate(saveCustomDebugOnDisk, nullptr);
+		if (debugDumpCall) {
+			uint64_t deadlineNs = convertScToNs(debugDumpTimeout);
+			uint64_t deadlineAbs = 0;
+			nanoseconds_to_absolutetime(deadlineNs, &deadlineAbs);
+			thread_call_enter_delayed(debugDumpCall, mach_absolute_time() + deadlineAbs);
+			return;
+		}
+	}
+
+	if (debugBuffer) {
+		Buffer::deleter(debugBuffer);
+		debugBuffer = nullptr;
+	}
+
+	if (debugLock) {
+		IOSimpleLockFree(debugLock);
+		debugLock = nullptr;
+	}
+}
+
+void Configuration::saveCustomDebugOnDisk(thread_call_param_t, thread_call_param_t) {
+	if (ADDPR(config).debugLock && ADDPR(config).debugBuffer) {
+		auto logBuf = Buffer::create<uint8_t>(MaxDebugBufferSize);
+		if (logBuf) {
+			size_t logBufSize = 0;
+			IOSimpleLockLock(ADDPR(config).debugLock);
+			logBufSize = ADDPR(config).debugBufferLength;
+			if (logBufSize > 0)
+				lilu_os_memcpy(logBuf, ADDPR(config).debugBuffer, logBufSize);
+			IOSimpleLockUnlock(ADDPR(config).debugLock);
+
+			if (logBufSize > 0) {
+				char name[64];
+				snprintf(name, sizeof(name), "/var/log/Lilu_" xStringify(MODULE_VERSION) "_%d.%d.txt", getKernelVersion(), getKernelMinorVersion());
+				FileIO::writeBufferToFile(name, logBuf, logBufSize);
+			}
+
+			Buffer::deleter(logBuf);
+		}
+	}
+
+	thread_call_free(ADDPR(config).debugDumpCall);
+	ADDPR(config).debugDumpCall = nullptr;
+}
+
+#endif
+
 bool Configuration::getBootArguments() {
 	if (readArguments) return !isDisabled;
 	
@@ -108,6 +177,12 @@ bool Configuration::getBootArguments() {
 	isUserDisabled = checkKernelArgument(bootargUserOff);
 
 	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+
+#ifdef DEBUG
+	PE_parse_boot_argn(bootargDump, &debugDumpTimeout, sizeof(debugDumpTimeout));
+	// Slightly out of place, but we need to do that as early as possible.
+	initCustomDebugSupport();
+#endif
 
 	isDisabled |= checkKernelArgument(bootargOff);
 	if (!checkKernelArgument(bootargForce)) {

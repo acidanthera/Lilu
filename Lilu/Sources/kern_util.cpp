@@ -7,6 +7,7 @@
 
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_util.hpp>
+#include <PrivateHeaders/kern_config.hpp>
 
 #include <sys/types.h>
 #include <libkern/libkern.h>
@@ -14,6 +15,36 @@
 
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;
+
+void LLLog(const char *format, ...) {
+	char tmp[2048];
+	va_list va;
+	va_start(va, format);
+	vsnprintf(tmp, sizeof(tmp), format, va);
+	va_end(va);
+
+	IOLog("%s", tmp);
+
+#ifdef DEBUG
+	if (ADDPR(config).debugLock && ADDPR(config).debugBuffer) {
+		size_t len = strlen(tmp);
+		if (len > 0) {
+			IOSimpleLockLock(ADDPR(config).debugLock);
+			size_t current = ADDPR(config).debugBufferLength;
+			size_t left = Configuration::MaxDebugBufferSize - current;
+			if (left > 0) {
+				if (len > left) len = left;
+				lilu_os_memcpy(ADDPR(config).debugBuffer + current, tmp, len);
+				ADDPR(config).debugBufferLength += len;
+			}
+			IOSimpleLockUnlock(ADDPR(config).debugLock);
+		}
+	}
+#endif
+
+	if (ADDPR(debugPrintDelay) > 0)
+		IOSleep(ADDPR(debugPrintDelay));
+}
 
 const char *strstr(const char *stack, const char *needle, size_t len) {
 	if (!len && !(len = strlen(needle)))
