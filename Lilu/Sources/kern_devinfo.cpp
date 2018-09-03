@@ -218,6 +218,9 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 			auto name = obj->getName();
 			DBGLOG("dev", "found pci device %s 0x%x 0x%x", safeString(name), vendor, code);
 
+			// Strip interface, as we only care about class and subclass
+			code &= WIOKit::ClassCode::PCISubclassMask;
+
 			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD))
 				continue;
 
@@ -312,6 +315,13 @@ DeviceInfo *DeviceInfo::create() {
 
 				if (isPciRoot) {
 					DBGLOG("dev", "found PCI root %s", safeString(pciRootObj->getName()));
+
+					// PCI is strictly not guaranteed to be ready at this time, check it just in case.
+					while (OSDynamicCast(OSBoolean, pciRootObj->getProperty("IOPCIConfigured")) != kOSBooleanTrue) {
+						DBGLOG("dev", "waiting on PCI root %s configuration", safeString(pciRootObj->getName()));
+						IOSleep(1);
+					}
+
 					list->grabDevicesFromPciRoot(pciRootObj);
 				}
 			}

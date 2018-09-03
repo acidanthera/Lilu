@@ -148,12 +148,15 @@ namespace WIOKit {
 	 */
 	struct ClassCode {
 		enum : uint32_t {
-			VGAController = 0x30000,
-			DisplayController = 0x38000,
-			PCIBridge = 0x60400,
-			HDADevice = 0x040300,
+			VGAController     = 0x030000,
+			DisplayController = 0x038000,
+			PCIBridge         = 0x060400,
+			// Watch out for PCISubclassMask, 0x040380 is common on laptops.
+			HDADevice         = 0x040300,
 			// This does not seem to be documented. It works on Haswell at least.
-			IMEI = 0x78000
+			IMEI              = 0x078000,
+			// To ignore device subclasses.
+			PCISubclassMask   = 0xFFFF00,
 		};
 	};
 

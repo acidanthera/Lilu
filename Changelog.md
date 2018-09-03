@@ -7,6 +7,7 @@ Lilu Changelog
 - Added disk log dump in DEBUG builds via `liludump=N` boot-arg (requires plugin rebuild)
 - Fixed multiple Mach-O parsing issues
 - Fixed support of PCI devices without compatible property
+- Fixed PCI `class-code` masking not detecting HDEF devices
 
 #### v1.2.6
 - Added Cannon Lake and Ice Lake definitions
