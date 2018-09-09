@@ -72,10 +72,10 @@ extern proc_t kernproc;
  *  @param cond  precondition
  *  @param str   printf-like string
  */
-#define SYSLOG_COND(cond, module, str, ...)                                                          \
-	do {                                                                                             \
-	    if (cond)                                                                                    \
-	        LLLog( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+#define SYSLOG_COND(cond, module, str, ...)                                                                \
+	do {                                                                                                   \
+	    if (cond)                                                                                          \
+	        lilu_os_log( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
 	} while (0)
 
 /**
@@ -240,7 +240,7 @@ extern proc_t kernproc;
  *
  *  @param format  formatted string
  */
-EXPORT void LLLog(const char *format, ...);
+EXPORT extern "C" void lilu_os_log(const char *format, ...);
 
 /**
  *  Two-way substring search

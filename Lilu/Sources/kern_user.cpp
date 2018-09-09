@@ -104,17 +104,17 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 					for (maybe = 0; maybe < sz; maybe++) {
 						if (lookup.c[i][maybe] == value) {
 							// We have a possible match
-							DBGLOG_COND(ml_get_interrupts_enabled(), "user", "found a possible match for %lu of %llX\n", i, value);
+							DBGLOG("user", "found a possible match for %lu of %llX\n", i, value);
 							break;
 						}
 					}
 				} else {
 					if (lookup.c[i][maybe] != value) {
 						// We failed
-						DBGLOG_COND(ml_get_interrupts_enabled(), "user", "failure not matching %lu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
+						DBGLOG("user", "failure not matching %lu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
 						maybe = sz;
 					} else {
-						DBGLOG_COND(ml_get_interrupts_enabled(), "user", "found a possible match for %lu of %llX\n", i, value);
+						DBGLOG("user", "found a possible match for %lu of %llX\n", i, value);
 					}
 				}
 			
@@ -132,7 +132,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						sz = ref->pageOffs.size();
 						
 						
-						DBGLOG_COND(ml_get_interrupts_enabled(), "user", "found what we are looking for %X %X %X %X %X %X %X %X\n", rpatch.find[0],
+						DBGLOG("user", "found what we are looking for %X %X %X %X %X %X %X %X\n", rpatch.find[0],
 								rpatch.size > 1 ? rpatch.find[1] : 0xff,
 								rpatch.size > 2 ? rpatch.find[2] : 0xff,
 								rpatch.size > 3 ? rpatch.find[3] : 0xff,
@@ -143,7 +143,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						);
 						
 						if (sz > 0 && MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
-							DBGLOG_COND(ml_get_interrupts_enabled(), "user", "obtained write permssions\n");
+							DBGLOG("user", "obtained write permssions\n");
 						
 							for (size_t i = 0; i < sz; i++) {
 								uint8_t *patch = const_cast<uint8_t *>(ptr + ref->pageOffs[i]);
@@ -167,14 +167,14 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 							}
 						
 							if (MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
-								DBGLOG_COND(ml_get_interrupts_enabled(), "user", "restored write permssions\n");
+								DBGLOG("user", "restored write permssions\n");
 							}
 						} else {
-							SYSLOG_COND(ml_get_interrupts_enabled(), "user", "failed to obtain write permssions for %lu\n", sz);
+							SYSLOG("user", "failed to obtain write permssions for %lu\n", sz);
 						}
 					}
 				} else {
-					DBGLOG_COND(ml_get_interrupts_enabled(), "user", "failed to match a complete page with %lu\n", maybe);
+					DBGLOG("user", "failed to match a complete page with %lu\n", maybe);
 				}
 			}
 		}

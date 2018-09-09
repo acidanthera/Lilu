@@ -53,13 +53,14 @@
 #ifdef vprintf
 #undef vprintf
 #endif
+void lilu_os_log(const char *format, ...);
 #define vprintf(fmt, va) do { \
   char buf[1024]; \
   vsnprintf(buf, sizeof(buf), (fmt), (va)); \
   if (buf[0] == 'U' && buf[1] == 'B' && buf[2] == 'S' && buf[3] == 'a' && buf[4] == 'n' && buf[5] == ':') \
-    IOLog("Lilu: ubsan @%s", &buf[6]); \
+    lilu_os_log("Lilu: ubsan @%s", &buf[6]); \
   else \
-    IOLog("Lilu: ubsan @ %s", buf); \
+    lilu_os_log("Lilu: ubsan @ %s", buf); \
 } while (0)
 
 // Bit manipulation is not present (aside an ugly BIT macro in IOFireWire header)

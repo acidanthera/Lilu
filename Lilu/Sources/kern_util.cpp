@@ -16,14 +16,16 @@
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;
 
-void LLLog(const char *format, ...) {
-	char tmp[2048];
+void lilu_os_log(const char *format, ...) {
+	char tmp[1024];
+	tmp[0] = '\0';
 	va_list va;
 	va_start(va, format);
 	vsnprintf(tmp, sizeof(tmp), format, va);
 	va_end(va);
 
-	IOLog("%s", tmp);
+	if (ml_get_interrupts_enabled())
+		IOLog("%s", tmp);
 
 #ifdef DEBUG
 	if (ADDPR(config).debugLock && ADDPR(config).debugBuffer) {
@@ -42,7 +44,7 @@ void LLLog(const char *format, ...) {
 	}
 #endif
 
-	if (ADDPR(debugPrintDelay) > 0)
+	if (ml_get_interrupts_enabled() && ADDPR(debugPrintDelay) > 0)
 		IOSleep(ADDPR(debugPrintDelay));
 }
 
