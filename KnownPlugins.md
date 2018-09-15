@@ -9,7 +9,6 @@ Please note that improperly written immature plugins will not be listed there.
 [AirportBrcmFixup](https://github.com/acidanthera/AirportBrcmFixup) | Various patches for Broadcom Airport Wi-Fi cards | 1.1.0+
 [AppleALC](https://github.com/acidanthera/AppleALC) | Native macOS HD audio for not officially supported codecs | 1.2.0+
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards | [External patch](https://github.com/chunnann/ATH9KFixup/compare/master...black-dragon74:bd9fc8372d56768283a16b3260af0a7eb8d5ef82.diff)
-[AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) | Additional Intel HD 4600 patches for some laptops on 10.12.4+ | 1.2.0+
 [BT4LEContiunityFixup](https://github.com/acidanthera/BT4LEContiunityFixup) | Enable BT4LE-Handoff-Hotspot features | 1.1.0+
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection | 1.1.0+
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Enable lid wake for Intel Graphics Card | 1.6+
@@ -29,3 +28,4 @@ Plugins which functionality was merged into other plugins:
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [Shiki](https://github.com/acidanthera/Shiki) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
