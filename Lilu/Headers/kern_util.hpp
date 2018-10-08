@@ -660,10 +660,11 @@ public:
 	 */
 	T *reserve(size_t num) {
 		if (rsvd < num) {
-			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, num * sizeof(T)));
+            const size_t nsize = (num * 3 + 1) / 2;
+			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, nsize * sizeof(T)));
 			if (nPtr) {
 				ptr = nPtr;
-				rsvd = num;
+				rsvd = nsize;
 			} else {
 				return nullptr;
 			}
@@ -738,7 +739,7 @@ public:
 	 */
 	void deinit() {
 		if (ptr) {
-			for (size_t i = 0; i < cnt; i++)
+			for (size_t i = 0; i < rsvd; i++)
 				deleter(ptr[i]);
 			kern_os_free(ptr);
 			ptr = nullptr;
