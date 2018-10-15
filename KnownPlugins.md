@@ -15,6 +15,7 @@ Please note that improperly written immature plugins will not be listed there.
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware | 1.2.0+
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models | 2.2+
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs | 1.0.0+
+[NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Fixes opening JPEGs with Preview and Quicklook on 10.14 | 1.0.0+
 [VirtualSMC](https://github.com/acidanthera/VirtualSMC) | Advanced SMC emulation | 1.0.0+
 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) | Various patches necessary for GPUs | 1.1.0+
 
