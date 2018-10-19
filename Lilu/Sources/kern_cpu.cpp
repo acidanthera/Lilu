@@ -105,8 +105,6 @@ void CPUInfo::loadCpuInformation() {
 				currentGeneration = CpuGeneration::Skylake;
 				break;
 			case CPU_MODEL_KABYLAKE:
-				currentGeneration = CpuGeneration::KabyLake;
-				break;
 			case CPU_MODEL_KABYLAKE_DT:
 				// Kaby has 0x9 stepping, and Coffee use 0xA / 0xB stepping.
 				if (ver.fmt.stepping == 9)

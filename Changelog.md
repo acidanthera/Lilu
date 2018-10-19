@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.2.8
+- Fixed CPU generation detection for Coffee Lake-U
+
 #### v1.2.7
 - Added support for detecting optimus switch-off
 - Added Sanitize target with ubsan support (thx to NetBSD)
