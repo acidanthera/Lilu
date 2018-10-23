@@ -658,12 +658,13 @@ public:
 	 *
 	 *  @return elements ptr or null
 	 */
+	template <size_t Mul = 1>
 	T *reserve(size_t num) {
 		if (rsvd < num) {
-			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, num * sizeof(T)));
+			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, Mul * num * sizeof(T)));
 			if (nPtr) {
 				ptr = nPtr;
-				rsvd = num;
+				rsvd = Mul * num;
 			} else {
 				return nullptr;
 			}
@@ -700,8 +701,9 @@ public:
 	 *
 	 *  @return true on success
 	 */
+	template <size_t Mul = 1>
 	bool push_back(T &element) {
-		if (reserve(cnt+1)) {
+		if (reserve<Mul>(cnt+1)) {
 			ptr[cnt] = element;
 			cnt++;
 			return true;
@@ -718,8 +720,9 @@ public:
 	 *
 	 *  @return true on success
 	 */
+	template <size_t Mul = 1>
 	bool push_back(T &&element) {
-		if (reserve(cnt+1)) {
+		if (reserve<Mul>(cnt+1)) {
 			ptr[cnt] = element;
 			cnt++;
 			return true;

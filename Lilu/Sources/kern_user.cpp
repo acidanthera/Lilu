@@ -790,7 +790,7 @@ bool UserPatcher::loadFilesForPatching() {
 												   entry->page->p[0], entry->page->p[1], entry->page->p[2], entry->page->p[3],
 												   entry->page->p[4], entry->page->p[5], entry->page->p[6], entry->page->p[7]);
 											// Save entry in lookupStorage
-											if (!lookupStorage.push_back(entry)) {
+											if (!lookupStorage.push_back<2>(entry)) {
 												SYSLOG("user", "failed to push entry to LookupStorage");
 												LookupStorage::deleter(entry);
 												entry = nullptr;
@@ -824,7 +824,7 @@ bool UserPatcher::loadFilesForPatching() {
 										continue;
 									}
 									ref->i = p; // Set the reference patch
-									if (!entry->refs.push_back(ref)) {
+									if (!entry->refs.push_back<2>(ref)) {
 										SYSLOG("user", "failed to insert PatchRef");
 										LookupStorage::PatchRef::deleter(ref);
 										continue;
@@ -834,8 +834,8 @@ bool UserPatcher::loadFilesForPatching() {
 								if (ref) {
 									DBGLOG("user", "pushing off %llX to patch", valueOff);
 									// These values belong to the current ref
-									ref->pageOffs.push_back(valueOff);
-									ref->segOffs.push_back(segOff);
+									ref->pageOffs.push_back<2>(valueOff);
+									ref->segOffs.push_back<2>(segOff);
 								}
 								count--;
 							} else {
@@ -867,7 +867,7 @@ bool UserPatcher::loadLookups() {
 			for (size_t p = 0; p < lookupStorage.size(); p++) {
 				uint64_t val = *reinterpret_cast<uint64_t *>(lookupStorage[p]->page->p + off);
 				if (p >= lookupCurr.size()) {
-					lookupCurr.push_back(val);
+					lookupCurr.push_back<2>(val);
 				} else {
 					lookupCurr[p] = val;
 				}
