@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.2.8
 - Fixed CPU generation detection for Coffee Lake-U
+- Fixed PEGP detection with 3D Controller `class-code`
 
 #### v1.2.7
 - Added support for detecting optimus switch-off

@@ -149,6 +149,10 @@ namespace WIOKit {
 	struct ClassCode {
 		enum : uint32_t {
 			VGAController     = 0x030000,
+			// I have never seen this one, but laptops are evil.
+			XGAController     = 0x030100,
+			// Some laptops use this for Optimus GPUs.
+			Ex3DController    = 0x030200,
 			DisplayController = 0x038000,
 			PCIBridge         = 0x060400,
 			// Watch out for PCISubclassMask, 0x040380 is common on laptops.
