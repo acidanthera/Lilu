@@ -15,8 +15,70 @@
 #include <mach/vm_map.h>
 #include <mach-o/fat.h>
 #include <kern/task.h>
+#include <kern/cs_blobs.h>
+#include <sys/vm.h>
 
 static UserPatcher *that {nullptr};
+
+kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
+	// On 10.14 XNU attempted to fix broken W^X and introduced several changes:
+	// 1. vm_protect (vm_map_protect) got a call to cs_process_enforcement (formerly cs_enforcement), which aborts
+	//    with a KERN_PROTECTION_FAILURE abort on failure. So far global codesign enforcement is not enabled,
+	//    and it is enough to remove CS_ENFORCEMENT from each process specifically. A thing to consider in future
+	//    macOS versions. Watch out for sysctl vm.cs_process_enforcemen.
+	// 2. More processes get CS_KILL in addition to CS_ENFORCEMENT, which does not let us easily lift CS_ENFORCEMENT
+	//    during the vm_protect call, we also should remove CS_KILL from the process we patch. This slightly lowers
+	//    the security, but only for the patched process, and in no worse way than 10.13 by default. Watch out for
+	//    vm.cs_force_kill in the future.
+	auto currproc = current_proc();
+	if ((new_protection & (VM_PROT_EXECUTE|VM_PROT_WRITE)) == (VM_PROT_EXECUTE|VM_PROT_WRITE) &&
+		getKernelVersion() >= KernelVersion::Mojave && currproc != nullptr) {
+		DBGLOG("user", "found request for W^X switch-off %d", new_protection);
+
+		// struct proc layout usually changes with time, so we will calculate the offset based on partial layout:
+		// struct        pgrp *p_pgrp;   /* Pointer to process group. (LL) */
+		// uint32_t      p_csflags;      /* flags for codesign (PL) */
+		// uint32_t      p_pcaction;     /* action  for process control on starvation */
+		// uint8_t       p_uuid[16];     /* from LC_UUID load command */
+		// cpu_type_t    p_cputype;
+		// cpu_subtype_t p_cpusubtype;
+		if (csFlagsOffset == 0) {
+			for (size_t off = 0x200; off < 0x400; off += sizeof (uint32_t)) {
+				auto csOff = off - sizeof(uint8_t[16]) - sizeof(uint32_t)*2;
+				auto cpu = getMember<uint32_t>(currproc, off);
+				auto subcpu = getMember<uint32_t>(currproc, off + sizeof (uint32_t)) & ~CPU_SUBTYPE_MASK;
+				if ((cpu == CPU_TYPE_X86_64 || cpu == CPU_TYPE_I386) &&
+					(subcpu == CPU_SUBTYPE_X86_64_ALL || subcpu == CPU_SUBTYPE_X86_64_H) &&
+					!(getMember<uint32_t>(currproc, csOff) & CS_KILLED)) {
+					csFlagsOffset = csOff;
+					break;
+				}
+			}
+
+			// Force xnu-4903.221.2 offset by default, 10.14.1 b5
+			if (csFlagsOffset != 0) {
+				DBGLOG("user", "found p_csflags offset %X", (uint32_t)csFlagsOffset);
+			} else {
+				SYSLOG("user", "falling back to hardcoded p_csflags offset");
+				csFlagsOffset = 0x308;
+			}
+		}
+
+		uint32_t &flags = getMember<uint32_t>(currproc, csFlagsOffset);
+		if (flags & CS_ENFORCEMENT) {
+			DBGLOG("user", "W^X is enforced %X, disabling", flags);
+			flags &= ~(CS_KILL|CS_ENFORCEMENT);
+			auto r = vm_protect(map, start, size, set_maximum, new_protection);
+			SYSLOG_COND(r != KERN_SUCCESS, "user", "W^X removal failed with %d", r);
+			// Restore the enforcement for now.
+			flags |= CS_ENFORCEMENT;
+			return r;
+		}
+	}
+
+	// Forward to the original proc routine
+	return vm_protect(map, start, size, set_maximum, new_protection);
+}
 
 int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action_t action, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3) {
 	// Make sure this is ours
@@ -104,17 +166,17 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 					for (maybe = 0; maybe < sz; maybe++) {
 						if (lookup.c[i][maybe] == value) {
 							// We have a possible match
-							DBGLOG("user", "found a possible match for %lu of %llX\n", i, value);
+							DBGLOG("user", "found a possible match for %lu of %llX", i, value);
 							break;
 						}
 					}
 				} else {
 					if (lookup.c[i][maybe] != value) {
 						// We failed
-						DBGLOG("user", "failure not matching %lu of %llX to expected %llX\n", i, value, lookup.c[i][maybe]);
+						DBGLOG("user", "failure not matching %lu of %llX to expected %llX", i, value, lookup.c[i][maybe]);
 						maybe = sz;
 					} else {
-						DBGLOG("user", "found a possible match for %lu of %llX\n", i, value);
+						DBGLOG("user", "found a possible match for %lu of %llX", i, value);
 					}
 				}
 			
@@ -132,7 +194,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						sz = ref->pageOffs.size();
 						
 						
-						DBGLOG("user", "found what we are looking for %X %X %X %X %X %X %X %X\n", rpatch.find[0],
+						DBGLOG("user", "found what we are looking for %X %X %X %X %X %X %X %X", rpatch.find[0],
 								rpatch.size > 1 ? rpatch.find[1] : 0xff,
 								rpatch.size > 2 ? rpatch.find[2] : 0xff,
 								rpatch.size > 3 ? rpatch.find[3] : 0xff,
@@ -143,7 +205,7 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						);
 						
 						if (sz > 0 && MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
-							DBGLOG("user", "obtained write permssions\n");
+							DBGLOG("user", "obtained write permssions");
 						
 							for (size_t i = 0; i < sz; i++) {
 								uint8_t *patch = const_cast<uint8_t *>(ptr + ref->pageOffs[i]);
@@ -167,14 +229,14 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 							}
 						
 							if (MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock) == KERN_SUCCESS) {
-								DBGLOG("user", "restored write permssions\n");
+								DBGLOG("user", "restored write permssions");
 							}
 						} else {
-							SYSLOG("user", "failed to obtain write permssions for %lu\n", sz);
+							SYSLOG("user", "failed to obtain write permssions for %lu", sz);
 						}
 					}
 				} else {
-					DBGLOG("user", "failed to match a complete page with %lu\n", maybe);
+					DBGLOG("user", "failed to match a complete page with %lu", maybe);
 				}
 			}
 		}
@@ -286,7 +348,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			// Enable writing for the calculated regions
 			for (size_t i = 0; i < 3; i++) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
-					auto res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
+					auto res = vmProtect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to change memory protection (%lu, %d)", i, res);
 						return true;
@@ -322,7 +384,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			// Restore protection flags
 			for (size_t i = 0; i < 3; i++) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
-					res = vm_protect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
+					res = vmProtect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to restore memory protection (%lu, %d)", i, res);
 						return true;
@@ -349,12 +411,12 @@ vm_address_t UserPatcher::injectSegment(vm_map_t taskPort, vm_address_t addr, ui
 	}
 
 	auto writeProt = prot|VM_PROT_READ|VM_PROT_WRITE;
-	ret = vm_protect(taskPort, addr, size, FALSE, writeProt);
+	ret = vmProtect(taskPort, addr, size, FALSE, writeProt);
 	if (ret == KERN_SUCCESS) {
 		ret = orgVmMapWriteUser(taskPort, payload, addr, size);
 		if (ret == KERN_SUCCESS) {
 			if (writeProt != prot)
-				ret = vm_protect(taskPort, addr, size, FALSE, prot);
+				ret = vmProtect(taskPort, addr, size, FALSE, prot);
 			if (ret == KERN_SUCCESS)
 				return addr;
 			else
@@ -451,7 +513,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 				// Note, that we don't restore memory protection if we fail somewhere (no need to push something non-critical)
 				// Enable writing for the calculated regions
 				if (!(prots[i] & VM_PROT_WRITE)) {
-					auto res = vm_protect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]|VM_PROT_WRITE);
+					auto res = vmProtect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to change memory protection (%lu, %d)", i, res);
 						return false;
@@ -470,7 +532,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 			// Restore protection flags
 			for (size_t i = 0; i < arrsize(prots); i++) {
 				if (!(prots[i] & VM_PROT_WRITE)) {
-					res = vm_protect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]);
+					res = vmProtect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to restore memory protection (%lu, %d)", i, res);
 						return true;
@@ -519,7 +581,7 @@ proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new
 	proc_t rp = that->orgProcExecSwitchTask(p, current_task, new_task, new_thread);
 
 	if (that->pendingPatchCallback) {
-		DBGLOG("user", "firing hook from procExecSwitchTask\n");
+		DBGLOG("user", "firing hook from procExecSwitchTask");
 		that->patchBinary(that->orgGetTaskMap(new_task), that->pendingPath, that->pendingPathLen);
 		that->pendingPatchCallback = false;
 	}
@@ -555,7 +617,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 			}
 			
 			if (modStart && modEnd && offNum && patch.cpu == cpu) {
-				DBGLOG("user", "patch for %s in %lX %lX\n", mod->path, modStart, modEnd);
+				DBGLOG("user", "patch for %s in %lX %lX", mod->path, modStart, modEnd);
 				auto tmp = Buffer::create<uint8_t>(patch.size);
 				if (tmp) {
 					for (size_t k = 0; k < offNum; k++) {
@@ -565,20 +627,22 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 							bool comparison = !memcmp(tmp, applyChanges? patch.find : patch.replace, patch.size);
 							DBGLOG("user", "%d/%d found %X %X %X %X", applyChanges, comparison, tmp[0], tmp[1], tmp[2], tmp[3]);
 							if (comparison) {
-								if (vm_protect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE) == KERN_SUCCESS) {
-									DBGLOG("user", "obtained write permssions\n");
+								r = vmProtect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE);
+								if (r == KERN_SUCCESS) {
+									DBGLOG("user", "obtained write permssions");
 									
 									r = orgVmMapWriteUser(taskPort, applyChanges ? patch.replace : patch.find, place, patch.size);
 
 									if (r != KERN_SUCCESS)
 										SYSLOG("user", "patching %llX -> res %d", place, r);
 										
-									if (vm_protect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_EXECUTE) == KERN_SUCCESS) {
-										DBGLOG("user", "restored write permssions\n");
-									}
-
+									r = vmProtect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_EXECUTE);
+									if (r == KERN_SUCCESS)
+										DBGLOG("user", "restored write permssions");
+									else
+										DBGLOG("user", "failed to restore write permssions %d", r);
 								} else {
-									SYSLOG("user", "failed to obtain write permissions for patching");
+									SYSLOG("user", "failed to obtain write permissions for patching %d", r);
 								}
 							} else if (ADDPR(debugEnabled)) {
 								for (size_t i = 0; i < patch.size; i++) {
@@ -814,7 +878,7 @@ bool UserPatcher::loadFilesForPatching() {
 									}
 								}
 								
-								DBGLOG("user", "ref find %d\n", ref != nullptr);
+								DBGLOG("user", "ref find %d", ref != nullptr);
 								
 								// Or add a new patch reference
 								if (!ref) {
@@ -989,7 +1053,7 @@ bool UserPatcher::hookMemoryAccess() {
 		patcher->clearError();
 		return false;
 	}
-	
+
 	orgVmMapCheckProtection = reinterpret_cast<t_vmMapCheckProtection>(patcher->solveSymbol(KernelPatcher::KernelID, "_vm_map_check_protection"));
 	if (patcher->getError() != KernelPatcher::Error::NoError) {
 		SYSLOG("user", "failed to resolve _vm_map_check_protection");

@@ -464,7 +464,12 @@ private:
 	 *  Validation cookie
 	 */
 	void *cookie {nullptr};
-	
+
+	/**
+	 *  Flags for codesign (PL) offset in struct proc. (uint32_t p_csflags)
+	 */
+	size_t csFlagsOffset {0};
+
 	/**
 	 *  Exec callback
 	 *
@@ -479,6 +484,12 @@ private:
 	 *  @return 0 to allow further execution
 	 */
 	static int execListener(kauth_cred_t credential, void *idata, kauth_action_t action, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3);
+
+	/**
+	 *  Unrestricted vm_protect, that takes care of Mojave codesign limitations for everyone's good.
+	 *  See vm_protect description.
+	 */
+	kern_return_t vmProtect(vm_map_t map, vm_offset_t start, vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection);
 
 	/**
 	 *  Callback invoked at process loading

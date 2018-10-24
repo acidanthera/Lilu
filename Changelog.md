@@ -4,7 +4,9 @@ Lilu Changelog
 #### v1.2.8
 - Fixed CPU generation detection for Coffee Lake-U
 - Fixed PEGP detection with 3D Controller `class-code`
+- Fixed userspace patcher compatibility with macOS Mojave
 - Allow manually specified reservation in `evector`
+- Improved version information printing in DEBUG builds
 
 #### v1.2.7
 - Added support for detecting optimus switch-off
