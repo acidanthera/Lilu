@@ -15,10 +15,16 @@
 #include <mach/vm_map.h>
 #include <mach-o/fat.h>
 #include <kern/task.h>
-#include <kern/cs_blobs.h>
 #include <sys/vm.h>
 
 static UserPatcher *that {nullptr};
+
+// kern/cs_blobs.h is not available in older Xcode SDK, provide the declarations ourselves.
+#ifndef CS_ENFORCEMENT
+#define CS_KILL                     0x00000200  /* kill process if it becomes invalid */
+#define CS_ENFORCEMENT              0x00001000  /* require enforcement */
+#define CS_KILLED                   0x01000000  /* was killed by kernel for invalidity */
+#endif
 
 kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
 	// On 10.14 XNU attempted to fix broken W^X and introduced several changes:
