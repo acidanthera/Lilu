@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#
+#  cov-csrutil
+#  Lilu
+#
+#  Copyright © 2018 vit9696. All rights reserved.
+#
+
+echo 'System Integrity Protection status: disabled.'

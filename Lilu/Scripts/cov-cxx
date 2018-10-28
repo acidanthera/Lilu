@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#
+#  cov-cxx
+#  Lilu
+#
+#  Copyright © 2018 vit9696. All rights reserved.
+#
+
+if [ "${COVERITY_CXX}" = "" ]; then
+  COVERITY_CXX="/usr/bin/clang++"
+fi
+
+if [ "${COVERITY_RESULTS_DIR}" = "" ]; then
+  COVERITY_RESULTS_DIR="cov-int"
+fi
+
+if [ "${COVERITY_CXX_LOG}" != "" ]; then
+  touch "${COVERITY_CXX_LOG}"
+  echo "${COVERITY_CXX} $@" >> "${COVERITY_CXX_LOG}"
+fi
+
+# Make sure compiler code is always returned and do not mess with other tools!
+cov-translate --dir "${COVERITY_RESULTS_DIR}" "${COVERITY_CXX}" "$@" &>/dev/null
+"${COVERITY_CXX}" "$@"

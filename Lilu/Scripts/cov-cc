@@ -1,0 +1,25 @@
+#!/bin/bash
+
+#
+#  cov-cc
+#  Lilu
+#
+#  Copyright © 2018 vit9696. All rights reserved.
+#
+
+if [ "${COVERITY_CC}" = "" ]; then
+  COVERITY_CC="/usr/bin/clang"
+fi
+
+if [ "${COVERITY_RESULTS_DIR}" = "" ]; then
+  COVERITY_RESULTS_DIR="cov-int"
+fi
+
+if [ "${COVERITY_CC_LOG}" != "" ]; then
+  touch "${COVERITY_CC_LOG}"
+  echo "${COVERITY_CC} $@" >> "${COVERITY_CC_LOG}"
+fi
+
+# Make sure compiler code is always returned and do not mess with other tools!
+cov-translate --dir "${COVERITY_RESULTS_DIR}" "${COVERITY_CC}" "$@" &>/dev/null
+"${COVERITY_CC}" "$@"
