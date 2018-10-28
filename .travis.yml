@@ -12,8 +12,6 @@ matrix:
     script:
       - xcodebuild -configuration Debug
       - xcodebuild -configuration Release
-      - xcodebuild analyze -quiet -scheme Lilu -configuration Debug CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
-      - xcodebuild analyze -quiet -scheme Lilu -configuration Release CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
 
     deploy:
       provider: releases
@@ -24,6 +22,13 @@ matrix:
         secure: cXnUEbDAuHaL6XcN4qazrgAnAc4sqVXYzXX/GedJlaulWgrovLeUGEBqNEshodXPD+DJWcpVVZQgvrYHW9BsQfcZLWNXM4XfAbpN2FC36Y+KDNVXwjI1WRiIeDO7jr6DPnH+49Nrl1c/zvPKjKHOiuJVurBPf3A/KIQeOfcW5AYFH+gDuVIw0tplfdjVgFEAJ6/kmZ41P1cgO2oEe/O8+TdfvwOuIMfbNTgxyDQatR6HNYwPfcUCEB6GyG/DPu9Sc6ia/K8nGlfJzOPGIsjjhObnTGX9hMw4IGaUv5+15w8ounj2D2erEnEk5k7RaWCx2jx/aviKZ7+vokNuL0sRCZeuzYCrSaXp4MkAb2Ak/dVcIcXV9cVKowS3+9jt04RdPtBi6s0dCcK+82akJq/8irUnX1Hr+5tCI5uKOGdRhMSvjsD1dc3Vp40kbnGa0WwtRXonTuuIJ6rOchdIitUxADMhxngx0xop+M4nUeprLHcXQcWEN2kDKdAEBaNW68QcugZcOK+PqeMHC/kYdiuo/i0hJ6KEZm3GLf6IY/83Mhz5hqBoL4wqpjlucS5BnxCnRH8vPJqi3gDE2YpTM/XhUxQ6LLRiWMcWHHXdfeOBajtf5HVTiM6R50qUbUWcbhIFhrIiCQQJHewJHQWBDzIVdp7S698Jsofihi73nf9fue4=
       on:
         tags: true
+
+  - os: osx
+    compiler: clang
+
+    script:
+      - xcodebuild analyze -quiet -scheme Lilu -configuration Debug CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
+      - xcodebuild analyze -quiet -scheme Lilu -configuration Release CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
 
   - os: osx
     compiler: clang
