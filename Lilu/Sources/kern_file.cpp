@@ -71,12 +71,12 @@ int FileIO::writeBufferToFile(const char *path, void *buffer, size_t size, int f
 		if (!err) {
 			err = vnode_close(vnode, FWASWRITTEN, ctxt);
 			if (err)
-				SYSLOG("file", "vnode_close(%s) failed with error %d!\n", path, err);
+				SYSLOG("file", "vnode_close(%s) failed with error %d!", path, err);
 		} else {
 			SYSLOG("file", "failed to write %s file of %lu size", path, size);
 		}
 	} else {
-		SYSLOG("file", "failed to create file %s with error %d\n", path, err);
+		SYSLOG("file", "failed to create file %s with error %d", path, err);
 	}
 	
 	vfs_context_rele(ctxt);

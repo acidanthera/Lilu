@@ -212,8 +212,10 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 	auto data = OSData::withBytes(payloadBuf, payloadSize);
 	replacePayload(nullptr, payloadSize);
 	if (data) {
-		if (dtEntry->setProperty(key, data))
+		if (dtEntry->setProperty(key, data)) {
+			data->release();
 			return true;
+		}
 
 		if (opts & OptSensitive)
 			Crypto::zeroMemory(data->getLength(), const_cast<void *>(data->getBytesNoCopy()));
@@ -237,7 +239,6 @@ bool NVStorage::remove(const char *key, bool sensitive) {
 		auto data = OSDynamicCast(OSData, dtEntry->getProperty(key));
 		if (data && data->getLength() > 0) {
 			Crypto::zeroMemory(data->getLength(), const_cast<void *>(data->getBytesNoCopy()));
-			//FIXME: check reference count here
 			dtEntry->setProperty(key, data);
 			sync();
 		}

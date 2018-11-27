@@ -252,9 +252,12 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 						DBGLOG("dev", "found %s on pci bridge", safeString(pciobj->getName()));
 						if (WIOKit::getOSDataValue(pciobj, "vendor-id", pcivendor) &&
 							WIOKit::getOSDataValue(pciobj, "class-code", pcicode)) {
+							pcicode &= WIOKit::ClassCode::PCISubclassMask;
 
 							if (pcicode == WIOKit::ClassCode::DisplayController ||
-								pcicode == WIOKit::ClassCode::VGAController) {
+								pcicode == WIOKit::ClassCode::VGAController ||
+								pcicode == WIOKit::ClassCode::Ex3DController ||
+								pcicode == WIOKit::ClassCode::XGAController) {
 								DBGLOG("dev", "found GFX0 device %s at %s by %04X",
 									   safeString(pciobj->getName()), safeString(name),  pcivendor);
 								v.video = pciobj;

@@ -120,7 +120,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 			DBGLOG("patcher", "ignoring %s because it is unused", id);
 			code = Error::Unsupported;
 		}
-	} else if (!kinfos.push_back(info)) {
+	} else if (!kinfos.push_back<2>(info)) {
 		SYSLOG("patcher", "unable to store loaded MachInfo for %s", id);
 		code = Error::MemoryIssue;
 	} else {
@@ -242,7 +242,7 @@ void KernelPatcher::waitOnKext(KextHandler *handler) {
 	if (handler->loaded)
 		waitingForAlreadyLoadedKexts = true;
 	
-	if (!khandlers.push_back(handler)) {
+	if (!khandlers.push_back<2>(handler)) {
 		code = Error::MemoryIssue;
 	}
 }
@@ -381,9 +381,9 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
 
 		if (revertible) {
-			auto oidx = kpatches.push_back(opcode);
-			auto aidx = kpatches.push_back(argument);
-			auto didx = disp ? kpatches.push_back(disp) : 0;
+			auto oidx = kpatches.push_back<4>(opcode);
+			auto aidx = kpatches.push_back<4>(argument);
+			auto didx = disp ? kpatches.push_back<4>(disp) : 0;
 
 			if (oidx && aidx && (!disp || didx))
 				return trampoline;

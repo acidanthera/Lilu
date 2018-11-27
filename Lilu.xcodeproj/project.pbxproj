@@ -343,6 +343,7 @@
 				1C748C281C21952C0024EED2 /* Products */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 1;
 		};
 		1C748C281C21952C0024EED2 /* Products */ = {
 			isa = PBXGroup;
@@ -904,7 +905,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.7;
+				MODULE_VERSION = 1.2.8;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -967,7 +968,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.7;
+				MODULE_VERSION = 1.2.8;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -1079,7 +1080,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.7;
+				MODULE_VERSION = 1.2.8;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",

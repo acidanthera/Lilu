@@ -19,7 +19,7 @@ bool ADDPR(startSuccess) = true;
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;
 
-#ifndef LILU_CUSTOM_IOKIT_INIT
+#if !defined(LILU_CUSTOM_KMOD_INIT) || !defined(LILU_CUSTOM_IOKIT_INIT)
 
 static const char kextVersion[] {
 #ifdef DEBUG
@@ -31,6 +31,10 @@ static const char kextVersion[] {
 	getBuildYear<0>(), getBuildYear<1>(), getBuildYear<2>(), getBuildYear<3>(), '-',
 	getBuildMonth<0>(), getBuildMonth<1>(), '-', getBuildDay<0>(), getBuildDay<1>(), '\0'
 };
+
+#endif
+
+#ifndef LILU_CUSTOM_IOKIT_INIT
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
@@ -73,6 +77,7 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 								ADDPR(config).maxKernel, ADDPR(debugEnabled));
 		
 		if (error == LiluAPI::Error::NoError) {
+			DBGLOG("init", "%s bootstrap %s", xStringify(PRODUCT_NAME), kextVersion);
 			ADDPR(startSuccess) = true;
 			ADDPR(config).pluginStart();
 		} else {

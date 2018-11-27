@@ -117,7 +117,7 @@ LiluAPI::Error LiluAPI::onPatcherLoad(t_patcherLoaded callback, void *user) {
 	pcall->first = callback;
 	pcall->second = user;
 
-	if (!patcherLoadedCallbacks.push_back(pcall)) {
+	if (!patcherLoadedCallbacks.push_back<2>(pcall)) {
 		SYSLOG("api", "failed to store stored_pair<t_patcherLoaded>");
 		pcall->deleter(pcall);
 		return Error::MemoryError;
@@ -139,7 +139,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 		pcall->first = callback;
 		pcall->second = user;
 
-		if (!kextLoadedCallbacks.push_back(pcall)) {
+		if (!kextLoadedCallbacks.push_back<4>(pcall)) {
 			SYSLOG("api", "failed to store stored_pair<t_kextLoaded>");
 			pcall->deleter(pcall);
 			return Error::MemoryError;
@@ -158,7 +158,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 		pkext->first = infos;
 		pkext->second = num;
 
-		if (!storedKexts.push_back(pkext)) {
+		if (!storedKexts.push_back<4>(pkext)) {
 			SYSLOG("api", "failed to store stored_pair<KextInfo>");
 			pkext->deleter(pkext);
 			return Error::MemoryError;
@@ -186,7 +186,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 		pcall->first = callback;
 		pcall->second = user;
 
-		if (!binaryLoadedCallbacks.push_back(pcall)) {
+		if (!binaryLoadedCallbacks.push_back<2>(pcall)) {
 			SYSLOG("api", "failed to store stored_pair<t_binaryLoaded>");
 			pcall->deleter(pcall);
 			return Error::MemoryError;
@@ -196,7 +196,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 	// Filter disabled processes right away and store the rest
 	for (size_t i = 0; i < num; i++) {
 		if (infos[i].section != UserPatcher::ProcInfo::SectionDisabled &&
-			!storedProcs.push_back(&infos[i])) {
+			!storedProcs.push_back<2>(&infos[i])) {
 			SYSLOG("api", "failed to store ProcInfo");
 			return Error::MemoryError;
 		}
@@ -204,7 +204,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 
 	// Store all the binary mods
 	for (size_t i = 0; i < modnum; i++) {
-		if (!storedBinaryMods.push_back(&mods[i])) {
+		if (!storedBinaryMods.push_back<2>(&mods[i])) {
 			SYSLOG("api", "failed to store BinaryModInfo");
 			return Error::MemoryError;
 		}
@@ -224,7 +224,7 @@ LiluAPI::Error LiluAPI::onEntitlementRequest(t_entitlementRequested callback, vo
 	ecall->first = callback;
 	ecall->second = user;
 
-	if (!entitlementRequestedCallbacks.push_back(ecall)) {
+	if (!entitlementRequestedCallbacks.push_back<2>(ecall)) {
 		SYSLOG("api", "failed to store stored_pair<t_entitlementRequested>");
 		ecall->deleter(ecall);
 		return Error::MemoryError;

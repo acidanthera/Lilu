@@ -50,6 +50,7 @@ namespace CPUInfo {
 	 *  Names are altered to avoid conflicts just in case.
 	 *  Last update: xnu-4570.41.2
 	 *  Some details could be found on http://instlatx64.atw.hu and https://en.wikichip.org/wiki/64-bit_architecture#x86
+	 *  Also: https://www.intel.com/content/dam/www/public/us/en/documents/sa00115-microcode-update-guidance.pdf
 	 */
 	enum CpuModel {
 		CPU_MODEL_UNKNOWN        =  0x00,

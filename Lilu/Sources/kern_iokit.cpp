@@ -41,7 +41,7 @@ namespace WIOKit {
 
 		if (space == 0) {
 			space = getMember<uint32_t>(service, 0xA8);
-			DBGLOG("igfx", "read pci config discovered %s space to be 0x%08X", safeString(service->getName()), space);
+			DBGLOG("iokit", "read pci config discovered %s space to be 0x%08X", safeString(service->getName()), space);
 		}
 
 		if (size != 0) {
@@ -268,10 +268,17 @@ namespace WIOKit {
 				DBGLOG("iokit", "fixing compatible to have %s", name);
 				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
 				lilu_os_memcpy(&compatibleBuf[compatibleSz], name, nameSize);
-				entry->setProperty("compatible", OSData::withBytes(compatibleBuf, compatibleBufSz));
-				return true;
+				auto compatibleProp = OSData::withBytes(compatibleBuf, compatibleBufSz);
+				Buffer::deleter(compatibleBuf);
+				if (compatibleProp) {
+					entry->setProperty("compatible", compatibleProp);
+					compatibleProp->release();
+					return true;
+				} else {
+					SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);
+				}
 			} else {
-				SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);
+				SYSLOG("iokit", "compatible buffer memory alloc failure %u for %s", compatibleBufSz, name);
 			}
 		}
 
