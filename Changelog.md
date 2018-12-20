@@ -6,6 +6,7 @@ Lilu Changelog
 - Added ThreadLocal APIs
 - Added `KernelPatcher::eraseCoverageInstPrefix` API
 - Fixed race condition during bootstrap (thx @Download-Fritz)
+- Fixed potential race condition during user patching
 
 #### v1.2.8
 - Fixed CPU generation detection for Coffee Lake-U

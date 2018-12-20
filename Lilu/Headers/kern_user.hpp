@@ -313,22 +313,27 @@ private:
 	 *  Kernel patcher instance
 	 */
 	KernelPatcher *patcher {nullptr};
-	
+
 	/**
-	 *  Patch requested for path
+	 *  Pending callback entry
 	 */
-	char pendingPath[MAXPATHLEN] {};
-	
+	struct PendingUser {
+		/**
+		 *  Patch requested for path
+		 */
+		char path[MAXPATHLEN] {};
+
+		/**
+		 *  Patch requested for path
+		 */
+		uint32_t pathLen {0};
+	};
+
 	/**
-	 *  Patch requested for path
+	 *  Stored pending callback
 	 */
-	uint32_t pendingPathLen {0};
-	
-	/**
-	 *  Patch requested
-	 */
-	bool pendingPatchCallback {false};
-	
+	ThreadLocal<PendingUser *, 8> pending;
+
 	/**
 	 *  Current minimal proc name length
 	 */

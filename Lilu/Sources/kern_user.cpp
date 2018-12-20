@@ -109,6 +109,11 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 	that = this;
 	patchDyldSharedCache = !preferSlowMode;
 	patcher = &kernelPatcher;
+
+	if (!pending.init()) {
+		SYSLOG("user", "failed to allocate pending storage");
+		return false;
+	}
 	
 	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, &cookie);
 	
@@ -152,7 +157,8 @@ void UserPatcher::deinit() {
 		kauth_unlisten_scope(listener);
 		listener = nullptr;
 	}
-	
+
+	pending.deinit();
 	lookupStorage.deinit();
 	for (size_t i = 0; i < Lookup::matchNum; i++)
 		lookup.c[i].deinit();
@@ -279,9 +285,17 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 					DBGLOG("user", "caught %s performing injection", path);
 					if (orgProcExecSwitchTask) {
 						DBGLOG("user", "requesting proc_exec_switch_task patch");
-						lilu_os_strlcpy(pendingPath, path, MAXPATHLEN);
-						pendingPathLen = len;
-						pendingPatchCallback = true;
+
+						PANIC_COND(pending.get(), "user", "found dangling user patch request");
+						auto p = new PendingUser;
+						if (p != nullptr) {
+							lilu_os_strlcpy(p->path, path, MAXPATHLEN);
+							p->pathLen = len;
+							PANIC_COND(!pending.set(p), "user", "failed to set user patch request");
+						} else {
+							SYSLOG("user", "failed to allocate pending user callback");
+						}
+
 					} else {
 						patchBinary(orgCurrentMap(), path, len);
 					}
@@ -586,10 +600,12 @@ int UserPatcher::vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entr
 proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread) {
 	proc_t rp = that->orgProcExecSwitchTask(p, current_task, new_task, new_thread);
 
-	if (that->pendingPatchCallback) {
+	auto entry = that->pending.get();
+	if (entry) {
 		DBGLOG("user", "firing hook from procExecSwitchTask");
-		that->patchBinary(that->orgGetTaskMap(new_task), that->pendingPath, that->pendingPathLen);
-		that->pendingPatchCallback = false;
+		that->patchBinary(that->orgGetTaskMap(new_task), (*entry)->path, (*entry)->pathLen);
+		PANIC_COND(!that->pending.erase(), "user", "failed to remove pending user patch");
+		delete *entry;
 	}
 
 	return rp;
