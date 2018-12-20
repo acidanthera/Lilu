@@ -176,6 +176,29 @@ bool KernelPatcher::compatibleKernel(uint32_t min, uint32_t max) {
 			(max == KernelAny || max >= getKernelVersion());
 }
 
+void KernelPatcher::eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count) {
+	static constexpr uint8_t IncInstPrefix[] {0x48, 0xFF, 0x05}; // inc qword ptr [rip + (disp32 in next 4 bytes)]
+	static constexpr size_t IncInstSize {7};
+
+	for (size_t i = 0; i < count; i++) {
+		auto instSize = Disassembler::quickInstructionSize(reinterpret_cast<mach_vm_address_t>(addr), 1);
+		if (instSize == 0) break; // Unknown instruction
+
+		if (instSize == IncInstSize && !memcmp(reinterpret_cast<void *>(addr), IncInstPrefix, sizeof(IncInstPrefix))) {
+			auto status = MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock);
+			if (status == KERN_SUCCESS) {
+				for (size_t j = 0; j < IncInstSize; j++)
+					reinterpret_cast<uint8_t *>(addr)[j] = 0x90; // nop
+				MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock);
+				DBGLOG("patcher", "coverage instruction patched, we're cleared for routing");
+			} else {
+				SYSLOG("patcher", "coverage instruction patch failed to change protection %d", status);
+			}
+		}
+		addr += instSize;
+	}
+}
+
 mach_vm_address_t KernelPatcher::solveSymbol(size_t id, const char *symbol) {
 	if (id < kinfos.size()) {
 		auto addr = kinfos[id]->solveSymbol(symbol);

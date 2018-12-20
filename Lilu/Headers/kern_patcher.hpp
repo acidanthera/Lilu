@@ -165,7 +165,15 @@ public:
 	 *  @return true on success
 	 */
 	EXPORT static bool compatibleKernel(uint32_t min, uint32_t max);
-	
+
+	/**
+	 *  Erase coverage instruction prefix (like inc qword ptr[]), that causes function routing to fail
+	 *
+	 *  @param addr   address to valid instruction code
+	 *  @param count  amount of instructions to inspect
+	 */
+	EXPORT void eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count=5);
+
 	/**
 	 *  Solve a kinfo symbol
 	 *
