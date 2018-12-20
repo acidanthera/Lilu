@@ -5,6 +5,7 @@ Lilu Changelog
 - Added `kern_atomic.hpp` header to support atomic types with old Clang
 - Added ThreadLocal APIs
 - Added `KernelPatcher::eraseCoverageInstPrefix` API
+- Fixed race condition during bootstrap (thx @Download-Fritz)
 
 #### v1.2.8
 - Fixed CPU generation detection for Coffee Lake-U

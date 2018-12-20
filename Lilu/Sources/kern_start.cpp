@@ -66,8 +66,11 @@ bool Configuration::performInit() {
 	
 	lilu.processPatcherLoadCallbacks(kernelPatcher);
 	
-	initialised = userPatcher.init(kernelPatcher, preferSlowMode);
-	if (!initialised) {
+	bool ok = userPatcher.init(kernelPatcher, preferSlowMode);
+	if (ok) {
+		// We are safely locked, just need to ensure atomicity
+		atomic_store_explicit(&initialised, true, memory_order_relaxed);
+	} else {
 		DBGLOG("config", "initialisation failed");
 		userPatcher.deinit();
 		kernelPatcher.deinit();
@@ -83,20 +86,12 @@ bool Configuration::performInit() {
 }
 
 int Configuration::policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabel) {
-	if (!ADDPR(config).initialised) {
-		DBGLOG("config", "init via mac_mount_check_remount");
-		ADDPR(config).performInit();
-	}
-	
+	ADDPR(config).policyInit("mac_mount_check_remount");
 	return 0;
 }
 
 int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t auth, vnode_t vp, ...) {
-	if (!ADDPR(config).initialised) {
-		DBGLOG("config", "init via mac_cred_check_label_update_execve");
-		ADDPR(config).performInit();
-	}
-	
+	ADDPR(config).policyInit("mac_cred_check_label_update_execve");
 	return 0;
 }
 
@@ -237,9 +232,9 @@ bool Configuration::getBootArguments() {
 	
 	DBGLOG("config", "version %s, args: disabled %d, debug %d, slow %d, decompress %d",
 		   kextVersion, isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
-	
+
 	if (isDisabled) {
-		SYSLOG("init", "found a disabling argument or no arguments, exiting");
+		SYSLOG("config", "found a disabling argument or no arguments, exiting");
 	} else {
 		// Decide on booter
 		if (!preferSlowMode) {
@@ -252,21 +247,39 @@ bool Configuration::getBootArguments() {
 	return !isDisabled;
 }
 
+bool Configuration::registerPolicy() {
+	DBGLOG("config", "initialising policy");
+
+	policyLock = IOLockAlloc();
+
+	if (policyLock == nullptr) {
+		SYSLOG("config", "failed to alloc policy lock");
+		return false;
+	}
+
+	if (!policy.registerPolicy()) {
+		SYSLOG("config", "failed to register the policy");
+		IOLockFree(policyLock);
+		policyLock = nullptr;
+		return false;
+	}
+
+	startSuccess = true;
+	return true;
+}
+
 extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
+	// Initialise config status
+	atomic_init(&ADDPR(config).initialised, false);
 	// We should be aware of the CPU we run on.
 	CPUInfo::loadCpuInformation();
 	// Make EFI runtime services available now, since they are standalone.
 	EfiRuntimeServices::activate();
 
 	if (ADDPR(config).getBootArguments()) {
-		DBGLOG("init", "initialising policy");
-		
 		lilu.init();
-		
-		if (ADDPR(config).policy.registerPolicy())
-			ADDPR(config).startSuccess = true;
-		else
-			SYSLOG("init", "failed to register the policy");
+
+		ADDPR(config).registerPolicy();
 	}
 	
 	return KERN_SUCCESS;

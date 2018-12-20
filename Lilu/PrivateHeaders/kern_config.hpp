@@ -12,6 +12,7 @@
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_policy.hpp>
 #include <Headers/kern_util.hpp>
+#include <Headers/kern_atomic.hpp>
 #include <kern/thread_call.h>
 
 class Configuration {
@@ -61,6 +62,23 @@ private:
 	bool performInit();
 
 	/**
+	 *  Initialise kernel and user patchers from policy handler
+	 */
+	void policyInit(const char *name) {
+		(void)name;
+
+		// Outer check is used here to avoid unnecessary locking after we initialise
+		if (!atomic_load_explicit(&initialised, memory_order_relaxed)) {
+			IOLockLock(policyLock);
+			if (!atomic_load_explicit(&initialised, memory_order_relaxed)) {
+				DBGLOG("config", "init via %s", name);
+				performInit();
+			}
+			IOLockUnlock(policyLock);
+		}
+	}
+
+	/**
 	 *  TrustedBSD policy called at exec
 	 *
 	 *  @param old Existing subject credential
@@ -85,6 +103,11 @@ private:
 	mac_policy_ops policyOps {
 		.mpo_policy_initbsd					= Policy::dummyPolicyInitBSD
 	};
+
+	/**
+	 *  TrustedBSD policy handlers are not thread safe
+	 */
+	IOLock *policyLock {nullptr};
 
 #ifdef DEBUG
 	/**
@@ -119,6 +142,13 @@ public:
 	 *  @return true if allowed to continue
 	 */
 	bool getBootArguments();
+
+	/**
+	 *  Register TrustedBSD policy
+	 *
+	 *  @return true on success
+	 */
+	bool registerPolicy();
 
 	/**
 	 *  Disable the extension by default
@@ -168,7 +198,7 @@ public:
 	/**
 	 *  Initialisation status (are we done initialising?)
 	 */
-	bool initialised {false};
+	_Atomic(bool) initialised;
 
 	/**
 	 *  User patcher

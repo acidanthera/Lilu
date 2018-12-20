@@ -698,8 +698,6 @@ public:
 	}
 };
 
-static ThreadLocal<int, 2> test;
-
 /**
  *  Use this deleter when storing scalar types
  */
