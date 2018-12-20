@@ -10,6 +10,7 @@
 
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_compat.hpp>
+#include <Headers/kern_atomic.hpp>
 
 #include <libkern/libkern.h>
 #include <libkern/OSDebug.h>
@@ -571,27 +572,14 @@ struct Page {
 template <typename T, size_t N>
 class ThreadLocal {
 	/**
-	 *  A pair of thread/value
+	 *  A list of tread identifiers
 	 */
-	struct Local {
-		thread_t thread;
-		T value;
-	};
+	_Atomic(thread_t) threads[N];
 
 	/**
-	 *  A list of thread/value references
+	 *  A list of value references
 	 */
-	Local values[N] {};
-
-	/**
-	 *  Synchronisation lock
-	 */
-	IOLock *lock {};
-
-	/**
-	 *  Amount of currently used slots
-	 */
-	size_t cnt {0};
+	T values[N] {};
 
 public:
 	/**
@@ -599,23 +587,19 @@ public:
 	 *
 	 *  @return true on success
 	 */
-	bool init() {
-		lock = IOLockAlloc();
-		return lock != nullptr;
+	void init() {
+		for (auto &thread : threads)
+			atomic_init(&thread, nullptr);
 	}
 
 	/**
 	 *  Deinitialise storage
 	 */
 	void deinit() {
-		if (lock) {
-			IOLockFree(lock);
-			lock = nullptr;
-		}
-
-		for (size_t i = 0; i < cnt; i++)
+		for (size_t i = 0; i < N; i++) {
+			atomic_store_explicit(&threads[i], nullptr, memory_order_relaxed);
 			values[i] = {};
-		cnt = 0;
+		}
 	}
 
 	/**
@@ -626,28 +610,25 @@ public:
 	 *  @return true on success
 	 */
 	bool set(T value) {
-		auto curr = current_thread();
-		IOLockLock(lock);
+		auto currThread = current_thread();
+		T *ptr = nullptr;
 
-		Local *ptr = nullptr;
-		for (size_t i = 0; i < cnt; i++) {
-			if (values[i].thread == curr) {
-				// Found previous value
+		// Find previous value if any
+		for (size_t i = 0; ptr == nullptr && i < N; i++)
+			if (atomic_load_explicit(&threads[i], memory_order_acquire) == currThread)
 				ptr = &values[i];
-				break;
-			} else if (ptr == nullptr && values[i].thread == nullptr) {
-				// Found gap, but continue looking for previous value
+
+		// Find null value if any
+		for (size_t i = 0; ptr == nullptr && i < N; i++) {
+			thread_t nullThread = nullptr;
+			if (atomic_compare_exchange_strong_explicit(&threads[i], &nullThread, currThread,
+				memory_order_acq_rel, memory_order_acq_rel))
 				ptr = &values[i];
-			}
 		}
 
-		// Insert at the end
-		if (ptr == nullptr && cnt < arrsize(values))
-			ptr = &values[cnt++];
+		// Insert if we can
+		if (ptr) *ptr = value;
 
-		if (ptr) *ptr = {curr, value};
-
-		IOLockUnlock(lock);
 		return ptr != nullptr;
 	}
 
@@ -657,19 +638,13 @@ public:
 	 *  @return pointer to stored value on success
 	 */
 	T *get() {
-		auto curr = current_thread();
-		IOLockLock(lock);
+		auto currThread = current_thread();
 
-		T *ptr = nullptr;
-		for (size_t i = 0; i < cnt; i++) {
-			if (values[i].thread == curr) {
-				ptr = &values[i].value;
-				break;
-			}
-		}
+		for (size_t i = 0; i < N; i++)
+			if (atomic_load_explicit(&threads[i], memory_order_acquire) == currThread)
+				return &values[i];
 
-		IOLockUnlock(lock);
-		return ptr;
+		return nullptr;
 	}
 
 	/**
@@ -678,23 +653,18 @@ public:
 	 *  @return true on success
 	 */
 	bool erase() {
-		auto curr = current_thread();
-		IOLockLock(lock);
+		auto currThread = current_thread();
 
-		Local *ptr = nullptr;
-		for (size_t i = 0; i < cnt; i++) {
-			if (values[i].thread == curr) {
-				ptr = &values[i];
-				// Evicting last one, shrink the used list
-				if (i+1 == cnt) cnt--;
-				break;
+		for (size_t i = 0; i < N; i++) {
+			if (atomic_load_explicit(&threads[i], memory_order_acquire) == currThread) {
+				values[i] = {};
+				thread_t nullThread = nullptr;
+				return atomic_compare_exchange_strong_explicit(&threads[i], &currThread,
+					nullThread, memory_order_acq_rel, memory_order_acq_rel);
 			}
 		}
 
-		if (ptr) *ptr = {};
-
-		IOLockUnlock(lock);
-		return ptr != nullptr;
+		return false;
 	}
 };
 

@@ -110,10 +110,7 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 	patchDyldSharedCache = !preferSlowMode;
 	patcher = &kernelPatcher;
 
-	if (!pending.init()) {
-		SYSLOG("user", "failed to allocate pending storage");
-		return false;
-	}
+	pending.init();
 	
 	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, &cookie);
 	
