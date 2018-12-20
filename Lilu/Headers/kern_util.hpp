@@ -566,6 +566,141 @@ struct Page {
 };
 
 /**
+ *  Thread specific container of T values in up to N threads
+ */
+template <typename T, size_t N>
+class ThreadLocal {
+	/**
+	 *  A pair of thread/value
+	 */
+	struct Local {
+		thread_t thread;
+		T value;
+	};
+
+	/**
+	 *  A list of thread/value references
+	 */
+	Local values[N] {};
+
+	/**
+	 *  Synchronisation lock
+	 */
+	IOLock *lock {};
+
+	/**
+	 *  Amount of currently used slots
+	 */
+	size_t cnt {0};
+
+public:
+	/**
+	 *  Initialise storage
+	 *
+	 *  @return true on success
+	 */
+	bool init() {
+		lock = IOLockAlloc();
+		return lock != nullptr;
+	}
+
+	/**
+	 *  Deinitialise storage
+	 */
+	void deinit() {
+		if (lock) {
+			IOLockFree(lock);
+			lock = nullptr;
+		}
+
+		for (size_t i = 0; i < cnt; i++)
+			values[i] = {};
+		cnt = 0;
+	}
+
+	/**
+	 *  Set or overwrite thread specific value
+	 *
+	 *  @param value  value to store
+	 *
+	 *  @return true on success
+	 */
+	bool set(T value) {
+		auto curr = current_thread();
+		IOLockLock(lock);
+
+		Local *ptr = nullptr;
+		for (size_t i = 0; i < cnt; i++) {
+			if (values[i].thread == curr) {
+				// Found previous value
+				ptr = &values[i];
+				break;
+			} else if (ptr == nullptr && values[i].thread == nullptr) {
+				// Found gap, but continue looking for previous value
+				ptr = &values[i];
+			}
+		}
+
+		// Insert at the end
+		if (ptr == nullptr && cnt < arrsize(values))
+			ptr = &values[cnt++];
+
+		if (ptr) *ptr = {curr, value};
+
+		IOLockUnlock(lock);
+		return ptr != nullptr;
+	}
+
+	/**
+	 *  Get thread specific value
+	 *
+	 *  @return pointer to stored value on success
+	 */
+	T *get() {
+		auto curr = current_thread();
+		IOLockLock(lock);
+
+		T *ptr = nullptr;
+		for (size_t i = 0; i < cnt; i++) {
+			if (values[i].thread == curr) {
+				ptr = &values[i].value;
+				break;
+			}
+		}
+
+		IOLockUnlock(lock);
+		return ptr;
+	}
+
+	/**
+	 *  Unset thread specific value if present
+	 *
+	 *  @return true on success
+	 */
+	bool erase() {
+		auto curr = current_thread();
+		IOLockLock(lock);
+
+		Local *ptr = nullptr;
+		for (size_t i = 0; i < cnt; i++) {
+			if (values[i].thread == curr) {
+				ptr = &values[i];
+				// Evicting last one, shrink the used list
+				if (i+1 == cnt) cnt--;
+				break;
+			}
+		}
+
+		if (ptr) *ptr = {};
+
+		IOLockUnlock(lock);
+		return ptr != nullptr;
+	}
+};
+
+static ThreadLocal<int, 2> test;
+
+/**
  *  Use this deleter when storing scalar types
  */
 template <typename T>
