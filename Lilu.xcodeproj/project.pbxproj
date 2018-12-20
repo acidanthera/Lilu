@@ -211,6 +211,7 @@
 		CE77590E211D8B200063EAE6 /* kern_time.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_time.hpp; sourceTree = "<group>"; };
 		CE775913211DE0F20063EAE6 /* cpu_topology.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cpu_topology.h; sourceTree = "<group>"; };
 		CE775915211DE30F0063EAE6 /* pmCPU.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pmCPU.h; sourceTree = "<group>"; };
+		CE80D65A21CC0B2C0051A8CB /* kern_atomic.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atomic.hpp; sourceTree = "<group>"; };
 		CEA03B5920ED6D0200BA842F /* kern_devinfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_devinfo.hpp; sourceTree = "<group>"; };
 		CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_devinfo.cpp; path = Lilu/Sources/kern_devinfo.cpp; sourceTree = "<group>"; };
 		CEA5F5D520B88EF2008E6E8A /* qsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = qsort.cpp; sourceTree = "<group>"; };
@@ -367,6 +368,7 @@
 			children = (
 				CED5DBE420A8538D001FE8CF /* Guid */,
 				CE2E7BE91E2C7583009AC62A /* kern_api.hpp */,
+				CE80D65A21CC0B2C0051A8CB /* kern_atomic.hpp */,
 				CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */,
 				CE74B24C1F72D64000F90A08 /* kern_compat.hpp */,
 				CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */,
@@ -905,7 +907,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.8;
+				MODULE_VERSION = 1.2.9;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -968,7 +970,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.8;
+				MODULE_VERSION = 1.2.9;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -1080,7 +1082,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = kern_start;
 				MODULE_STOP = kern_stop;
-				MODULE_VERSION = 1.2.8;
+				MODULE_VERSION = 1.2.9;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
