@@ -8,7 +8,6 @@ Please note that improperly written immature plugins will not be listed there.
 |:-----|:------------------|
 [AirportBrcmFixup](https://github.com/acidanthera/AirportBrcmFixup) | Various patches for Broadcom Airport Wi-Fi cards
 [AppleALC](https://github.com/acidanthera/AppleALC) | Native macOS HD audio for not officially supported codecs
-[AppleBacklightFixup](https://bitbucket.org/RehabMan/applebacklightfixup) | Workarounds Clover limitation to [patch AppleBacklight.kext](https://bitbucket.org/RehabMan/applebacklightfixup/src/18e6a1ab096fa93119b395c666f8740f232db6b9/AppleBacklightFixup/kern_applbkl.cpp?at=master&fileviewer=file-view-default#kern_applbkl.cpp-38) in OS Installer and Recovery, original repository by [hieplpvip](https://github.com/hieplpvip/AppleBacklightFixup)
 [ATH9KFixup](https://bitbucket.org/RehabMan/ath9kfixup) | Various patches for unsupported Atheros Wi-Fi cards, original repository by [chunnann](https://github.com/chunnann/ATH9KFixup)
 [BT4LEContiunityFixup](https://github.com/acidanthera/BT4LEContiunityFixup) | Enable BT4LE-Handoff-Hotspot features
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
@@ -24,6 +23,7 @@ Plugins which functionality was merged into other plugins:
 | Name | Short description |
 |:-----|:------------------|
 [AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[AppleBacklightFixup](https://github.com/hieplpvip/AppleBacklightFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen), equivalent to setting `FBAlternatePWMIncrement1/2` bit in flags.
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
