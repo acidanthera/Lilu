@@ -39,7 +39,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
 	// When calling kauth_cred_get() for the current_thread.
-	//FIXME: This needs a better solution...
+	//TODO: Try to find a better solution...
 	if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
 		SYSLOG("mach", "current context has no credential, it's too early");
 		return error;
@@ -48,7 +48,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	// Attempt to load directly from the filesystem
 	(void)fsfallback;
 
-	//FIXME: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
+	//TODO: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
 	// We are fine to detect prelinked usage (#27), but prelinked may not contain certain kexts and even more
 	// it may contain different kexts (#30). In theory we should be able to compare _PrelinkInterfaceUUID with
 	// LC_UUID like OSKext::registerIdentifier does, but this would overcomplicate the logic with no practical
@@ -206,13 +206,14 @@ mach_vm_address_t MachInfo::findKernelBase() {
 			auto segmentCommand = reinterpret_cast<segment_command_64 *>(tmp + sizeof(mach_header_64));
 			if (!strncmp(segmentCommand->segname, "__TEXT", sizeof(segmentCommand->segname))) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
-				return tmp;
+				break;
 			}
 		}
 
 		tmp -= KASLRAlignment;
 	}
-	return 0;
+
+	return tmp;
 }
 
 bool MachInfo::setInterrupts(bool enable) {
@@ -657,15 +658,11 @@ void MachInfo::updatePrelinkInfo() {
 		} else {
 			SYSLOG("mach", "unable to find prelink info section");
 		}
-	} else {
-		//DBGLOG("mach", "dict present %d kernel %d buf present %d", prelink_dict != nullptr, isKernel, file_buf != nullptr);
 	}
 }
 
 uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing) {
 	updatePrelinkInfo();
-
-	//DBGLOG("mach", "looking up %s kext in prelink", identifier);
 
 	if (prelink_dict) {
 		static OSArray *imageArr = nullptr;
@@ -700,8 +697,6 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 
 						SYSLOG("mach", "unable to obtain addr and size for %s at %u of %u prelink", identifier, i, imageNum);
 						return nullptr;
-					} else {
-						//DBGLOG("mach", "prelink %u of %u contains %s id", i, imageNum, imageID ? imageID->getCStringNoCopy() : "(null)");
 					}
 				} else {
 					SYSLOG("mach", "prelink %u of %u is not a dictionary", i, imageNum);

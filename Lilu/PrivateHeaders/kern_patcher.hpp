@@ -42,8 +42,7 @@ namespace Patch {
 
 	template <typename T>
 	static void writeType(mach_vm_address_t addr, T value) {
-		// Completely forbidden to IOLog with disabled interrupts as of High Sierra
-		// DBGLOG("private @ writing to %X value of %lu which is %X", static_cast<uint32_t>(addr), sizeof(T), (unsigned int)value);
+		// It is completely forbidden to IOLog with disabled interrupts as of High Sierra, yet DBGLOG may bypass it if needed.
 		*reinterpret_cast<T *>(addr) = value;
 	}
 
@@ -66,11 +65,11 @@ namespace Patch {
 	};
 
 	union All {
-		All(P<Variant::U8> &&v) : u8(v) {}
-		All(P<Variant::U16> &&v) : u16(v) {}
-		All(P<Variant::U32> &&v) : u32(v) {}
-		All(P<Variant::U64> &&v) : u64(v) {}
-		All(P<Variant::U128> &&v) : u128(v) {}
+		explicit All(P<Variant::U8> &&v) : u8(v) {}
+		explicit All(P<Variant::U16> &&v) : u16(v) {}
+		explicit All(P<Variant::U32> &&v) : u32(v) {}
+		explicit All(P<Variant::U64> &&v) : u64(v) {}
+		explicit All(P<Variant::U128> &&v) : u128(v) {}
 		
 		P<Variant::U8> u8;
 		P<Variant::U16> u16;

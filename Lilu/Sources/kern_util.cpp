@@ -49,9 +49,11 @@ void lilu_os_log(const char *format, ...) {
 }
 
 const char *strstr(const char *stack, const char *needle, size_t len) {
-	if (!len && !(len = strlen(needle)))
-		return stack;
-	
+	if (len == 0) {
+		len = strlen(needle);
+		if (len == 0) return stack;
+	}
+
 	const char *i = needle;
 
 	while (*stack) {

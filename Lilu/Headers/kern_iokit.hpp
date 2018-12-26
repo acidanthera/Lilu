@@ -18,7 +18,7 @@
 namespace WIOKit {
 
 	/**
-	 *  AppleHDAEngine::getLocation teaches us to use while(1) when talking to IOReg
+	 *  AppleHDAEngine::getLocation teaches us to use loop infinitely when talking to IOReg
 	 *  This feels mad and insane, since it may prevent the system from booting.
 	 *  Although this had never happened, we will use a far bigger fail-safe stop value.
 	 */

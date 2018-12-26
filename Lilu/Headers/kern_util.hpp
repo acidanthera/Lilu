@@ -672,7 +672,7 @@ public:
  *  Use this deleter when storing scalar types
  */
 template <typename T>
-static void emptyDeleter(T) {}
+static void emptyDeleter(T) { /* no dynamic alloc */ }
 
 template <typename T, typename Y, void (*deleterT)(T)=emptyDeleter<T>, void (*deleterY)(Y)=emptyDeleter<Y>>
 struct ppair {
@@ -761,13 +761,13 @@ public:
 	 *
 	 *  @return elements ptr or null
 	 */
-	template <size_t Mul = 1>
+	template <size_t MUL = 1>
 	T *reserve(size_t num) {
 		if (rsvd < num) {
-			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, Mul * num * sizeof(T)));
+			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, MUL * num * sizeof(T)));
 			if (nPtr) {
 				ptr = nPtr;
-				rsvd = Mul * num;
+				rsvd = MUL * num;
 			} else {
 				return nullptr;
 			}
@@ -804,9 +804,9 @@ public:
 	 *
 	 *  @return true on success
 	 */
-	template <size_t Mul = 1>
+	template <size_t MUL = 1>
 	bool push_back(T &element) {
-		if (reserve<Mul>(cnt+1)) {
+		if (reserve<MUL>(cnt+1)) {
 			ptr[cnt] = element;
 			cnt++;
 			return true;
@@ -823,9 +823,9 @@ public:
 	 *
 	 *  @return true on success
 	 */
-	template <size_t Mul = 1>
+	template <size_t MUL = 1>
 	bool push_back(T &&element) {
-		if (reserve<Mul>(cnt+1)) {
+		if (reserve<MUL>(cnt+1)) {
 			ptr[cnt] = element;
 			cnt++;
 			return true;
@@ -891,9 +891,9 @@ inline constexpr char getBuildMonth() {
 			return "11"[i];
 		case ' ceD':
 			return "12"[i];
+		default:
+			return '0';
 	}
-
-	return '0';
 }
 
 template <size_t i>

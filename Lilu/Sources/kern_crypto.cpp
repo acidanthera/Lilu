@@ -15,12 +15,6 @@ static_assert(Crypto::BlockSize == AES_BLOCK_SIZE, "Invalid block size!");
 static_assert(Crypto::BlockSize <= SHA256_BLOCK_SIZE ||
 			  Crypto::MinDigestSize > SHA256_BLOCK_SIZE, "Hash function does not provide enough data");
 
-uint8_t *Crypto::genPlatformKey(const uint8_t *seed, uint32_t size) {
-	SYSLOG("crypto", "genPlatformKey is currently unimplemented");
-
-	return nullptr;
-}
-
 uint8_t *Crypto::genUniqueKey(uint32_t size) {
 	if (size < BlockSize) {
 		SYSLOG("crypto", "invalid key size %u", size);
@@ -44,9 +38,8 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		return nullptr;
 	}
 	
-	uint8_t *pkey = nullptr;
-	if (!key && !(pkey = genPlatformKey())) {
-		SYSLOG("crypto", "encrypt unable to obtain platform key");
+	if (!key) {
+		SYSLOG("crypto", "encrypt unable to obtain encryption key");
 		return nullptr;
 	}
 	
@@ -72,7 +65,7 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 			read_random(enc->iv, BlockSize);
 			
 			aes_encrypt_ctx ctx;
-			auto ret = aes_encrypt_key(key ? key : pkey, BlockSize, &ctx);
+			auto ret = aes_encrypt_key(key, BlockSize, &ctx);
 			if (ret == aes_good) {
 				ret = aes_encrypt_cbc(dataBuf, enc->iv, encSize / BlockSize, enc->buf, &ctx);
 				if (ret == aes_good)
@@ -98,12 +91,7 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 	} else {
 		SYSLOG("crypto", "encrypt failed to allocate src buffer of %u bytes", encSize);
 	}
-	
-	if (pkey) {
-		zeroMemory(BlockSize, pkey);
-		Buffer::deleter(pkey);
-	}
-	
+
 	return encBuf;
 }
 
@@ -113,9 +101,8 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		return nullptr;
 	}
 	
-	uint8_t *pkey = nullptr;
-	if (!key && !(pkey = genPlatformKey())) {
-		SYSLOG("crypto", "decrypt unable to obtain platform key");
+	if (!key) {
+		SYSLOG("crypto", "decrypt unable to obtain decryption key");
 		return nullptr;
 	}
 	
@@ -124,7 +111,7 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 	auto decBuf = Buffer::create<uint8_t>(size);
 	if (decBuf) {
 		aes_decrypt_ctx ctx;
-		auto ret = aes_decrypt_key(key ? key : pkey, BlockSize, &ctx);
+		auto ret = aes_decrypt_key(key, BlockSize, &ctx);
 		if (ret == aes_good) {
 			auto enc = reinterpret_cast<const Encrypted *>(src);
 			ret = aes_decrypt_cbc(enc->buf, enc->iv, size / BlockSize, decBuf, &ctx);
@@ -153,12 +140,7 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 			decBuf = nullptr;
 		}
 	}
-	
-	if (pkey) {
-		zeroMemory(BlockSize, pkey);
-		Buffer::deleter(pkey);
-	}
-	
+
 	return decBuf;
 }
 

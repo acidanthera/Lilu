@@ -13,14 +13,14 @@
 
 #include <mach/mach_types.h>
 
+#include <Library/LegacyIOService.h>
+
 #ifdef LILU_KEXTPATCH_SUPPORT
 static KernelPatcher *that {nullptr};
 static SInt32 updateSummariesEntryCount;
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 IOSimpleLock *KernelPatcher::kernelWriteLock {nullptr};
-
-#include <Library/LegacyIOService.h>
 
 KernelPatcher::Error KernelPatcher::getError() {
 	return code;
@@ -70,11 +70,11 @@ void KernelPatcher::init() {
 void KernelPatcher::deinit() {
 	// Remove the patches
 	if (kinfos.size() > 0) {
-		if (kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
+		if (MachInfo::setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
 			for (size_t i = 0, n = kpatches.size(); i < n; i++) {
 				kpatches[i]->restore();
 			}
-			kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
+			MachInfo::setKernelWriting(false, kernelWriteLock);
 		} else {
 			SYSLOG("patcher", "failed to change kernel protection at patch removal");
 		}
@@ -307,7 +307,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *starting
 
 	size_t changes {0};
 	
-	if (kinfo->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
+	if (MachInfo::setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "lookup patching failed to write to kernel");
 		code = Error::MemoryProtection;
 		return;
@@ -324,7 +324,7 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *starting
 		}
 	}
 	
-	if (kinfo->setKernelWriting(false, kernelWriteLock) != KERN_SUCCESS) {
+	if (MachInfo::setKernelWriting(false, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "lookup patching failed to disable kernel writing");
 		code = Error::MemoryProtection;
 		return;
@@ -388,7 +388,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		return EINVAL;
 	}
 	
-	if (kernelRoute && kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
+	if (kernelRoute && MachInfo::setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "cannot change kernel memory protection");
 		code = Error::MemoryProtection;
 		Patch::deleter(opcode); Patch::deleter(argument);
@@ -401,7 +401,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 	if (disp) disp->patch();
 
 	if (kernelRoute) {
-		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
+		MachInfo::setKernelWriting(false, kernelWriteLock);
 
 		if (revertible) {
 			auto oidx = kpatches.push_back<4>(opcode);
@@ -426,10 +426,10 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_t *opcodes, size_t opnum, bool buildWrapper, bool kernelRoute) {
 	// Simply overwrite the function in the easiest case
 	if (!buildWrapper) {
-		if (!kernelRoute || kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
+		if (!kernelRoute || MachInfo::setKernelWriting(true, kernelWriteLock) == KERN_SUCCESS) {
 			lilu_os_memcpy(reinterpret_cast<void *>(from), opcodes, opnum);
 			if (kernelRoute)
-				kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
+				MachInfo::setKernelWriting(false, kernelWriteLock);
 		} else {
 			SYSLOG("patcher", "block overwrite failed to change protection");
 			code = Error::MemoryProtection;
@@ -506,7 +506,7 @@ uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribut
 mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
 	// Doing it earlier to workaround stack corruption due to a possible 10.12 bug.
 	// Otherwise in rare cases there will be random KPs with corrupted stack data.
-	if (kinfos[KernelID]->setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
+	if (MachInfo::setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "failed to set executable permissions");
 		code = Error::MemoryProtection;
 		return 0;
@@ -516,7 +516,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	size_t off = Disassembler::quickInstructionSize(func, min);
 	
 	if (!off || off > PAGE_SIZE - LongJump) {
-		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
+		MachInfo::setKernelWriting(false, kernelWriteLock);
 		SYSLOG("patcher", "unsupported destination offset %lu", off);
 		code = Error::DisasmFailure;
 		return 0;
@@ -527,7 +527,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 	tempExecutableMemoryOff += off + LongJump + opnum;
 	
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
-		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
+		MachInfo::setKernelWriting(false, kernelWriteLock);
 		SYSLOG("patcher", "not enough executable memory requested %ld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
 		code = Error::DisasmFailure;
 	} else {
@@ -538,7 +538,7 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		// Copy the prologue, assuming it is PIC
 		lilu_os_memcpy(tempDataPtr + opnum, reinterpret_cast<void *>(func), off);
 
-		kinfos[KernelID]->setKernelWriting(false, kernelWriteLock);
+		MachInfo::setKernelWriting(false, kernelWriteLock);
 		
 		// Add a jump
 		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, true, false);
@@ -562,9 +562,9 @@ void KernelPatcher::onKextSummariesUpdated() {
 		//
 		// For this reason on 10.12 and above the outer function is routed, and so far it
 		// seems to cause fewer issues. Regarding syncing:
-		//  - the only place modifying gLoadedKextSummaries is updateLoadedKextSummaries;
-		//  - updateLoadedKextSummaries is called from load/unload separately;
-		//  - sKextSummariesLock is not exported or visible.
+		//  - the only place modifying gLoadedKextSummaries is updateLoadedKextSummaries
+		//  - updateLoadedKextSummaries is called from load/unload separately
+		//  - sKextSummariesLock is not exported or visible
 		// As a result no syncing should be necessary but there are guards for future
 		// changes and in case of any misunderstanding.
 		
@@ -625,21 +625,19 @@ void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries
 		auto curr = summaries[i];
 		for (size_t j = 0; j < khandlers.size(); j++) {
 			auto handler = khandlers[j];
-			if (handler->loaded) {
-				if (!strncmp(handler->id, curr.name, KMOD_MAX_NAME)) {
-					DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", curr.name, CASTKADDR(curr.address));
-					if (!kinfos[handler->index]->isCurrentBinary(curr.address)) {
-						SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", curr.name, CASTKADDR(curr.address));
-						continue;
-					}
-					handler->address = curr.address;
-					handler->size = curr.size;
-					handler->handler(handler);
-					// Remove the item
-					if (!that->khandlers[j]->reloadable)
-						that->khandlers.erase(j);
-					break;
+			if (handler->loaded && !strncmp(handler->id, curr.name, KMOD_MAX_NAME)) {
+				DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", curr.name, CASTKADDR(curr.address));
+				if (!kinfos[handler->index]->isCurrentBinary(curr.address)) {
+					SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", curr.name, CASTKADDR(curr.address));
+					continue;
 				}
+				handler->address = curr.address;
+				handler->size = curr.size;
+				handler->handler(handler);
+				// Remove the item
+				if (!that->khandlers[j]->reloadable)
+					that->khandlers.erase(j);
+				break;
 			}
 		}
 	}

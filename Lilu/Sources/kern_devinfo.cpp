@@ -272,10 +272,8 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 
 					pciiterator->release();
 
-					if (v.video) {
-						if (!videoExternal.push_back(v))
-							SYSLOG("dev", "failed to push video gpu");
-					}
+					if (v.video && !videoExternal.push_back(v))
+						SYSLOG("dev", "failed to push video gpu");
 				}
 			}
 		}

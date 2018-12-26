@@ -345,13 +345,10 @@ uint8_t *Compression::compress(uint32_t compression, uint32_t &dstlen, const uin
 	auto compressedBuf = buffer ? buffer : Buffer::create<uint8_t>(dstlen);
 	if (compressedBuf) {
 		uint8_t *endptr = nullptr;
-		switch (compression) {
-			case ModeLZSS:
-				endptr = compress_lzss(compressedBuf, dstlen, src, srclen);
-				break;
-			default:
-				SYSLOG("comp", "unsupported compression format %X", compression);
-		}
+		if (compression == ModeLZSS)
+			endptr = compress_lzss(compressedBuf, dstlen, src, srclen);
+		else
+			SYSLOG("comp", "unsupported compression format %X", compression);
 		
 		if (endptr) {
 			dstlen = static_cast<uint32_t>(endptr-compressedBuf);

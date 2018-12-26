@@ -86,7 +86,7 @@ private:
 	 *
 	 *  @return 0 on success
 	 */
-	static int policyCredCheckLabelUpdateExecve(kauth_cred_t old, vnode_t vp, ...);
+	static int policyCredCheckLabelUpdateExecve(kauth_cred_t, vnode_t, ...);
 
 	/**
 	 *  TrustedBSD policy called before remounting
@@ -95,7 +95,7 @@ private:
 	 *  @param mp       mount point
 	 *  @param mlabel    mount point label
 	 */
-	static int policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabel);
+	static int policyCheckRemount(kauth_cred_t, mount *, label *);
 
 	/**
 	 *  TrustedBSD policy options

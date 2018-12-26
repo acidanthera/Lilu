@@ -51,23 +51,7 @@ namespace Crypto {
 		while (len--)
 			*vptr++ = '\0';
 	}
-	
-	/**
-	 *  Generates a platform specific encryption key to be used for later encryption/decryption.
-	 *  Use very cautiously, this generates a key that should be reproducible on the same hardware.
-	 *  This means that the key is NOT meant protect the data from decryption on the same machine,
-	 *  but it only tries to circumvent cases when some blobs containing sensitive information
-	 *  (e.g. nvram dumps) were accidentally shared.
-	 *
-	 *  This is currently UNIMPLEMENTED
-	 *
-	 *  @param seed  prefixed data blob used for key generation
-	 *  @param size  seed size
-	 *
-	 *  @return generated key of at least BlockSize bits long (must be freeded by Buffer::deleter) or nullptr
-	 */
-	EXPORT uint8_t *genPlatformKey(const uint8_t *seed=nullptr, uint32_t size=0);
-	
+
 	/**
 	 *  Generates cryptographically secure encryption key (from /dev/random)
 	 *
@@ -78,7 +62,7 @@ namespace Crypto {
 	/**
 	 *  Encrypts data of specified size and stores in Encrypted format
 	 *
-	 *  @param key  encryption key returned by genUniqueKey, genPlatformKey (default if null)
+	 *  @param key  encryption key returned by genUniqueKey
 	 *  @param src  source data
 	 *  @param size data size, encrypted size is returned on success
 	 *
@@ -89,7 +73,7 @@ namespace Crypto {
 	/**
 	 *  Decrypts data of specified size stored in Encrypted format
 	 *
-	 *  @param key  encryption key returned by genUniqueKey, genPlatformKey (default if null)
+	 *  @param key  encryption key returned by genUniqueKey
 	 *  @param src  source data
 	 *  @param size data size, decrypted size is returned on success
 	 *

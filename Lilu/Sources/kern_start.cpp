@@ -85,12 +85,12 @@ bool Configuration::performInit() {
 	return true;
 }
 
-int Configuration::policyCheckRemount(kauth_cred_t cred, mount *mp, label *mlabel) {
+int Configuration::policyCheckRemount(kauth_cred_t, mount *, label *) {
 	ADDPR(config).policyInit("mac_mount_check_remount");
 	return 0;
 }
 
-int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t auth, vnode_t vp, ...) {
+int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t, vnode_t, ...) {
 	ADDPR(config).policyInit("mac_cred_check_label_update_execve");
 	return 0;
 }
@@ -268,7 +268,7 @@ bool Configuration::registerPolicy() {
 	return true;
 }
 
-extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
+extern "C" kern_return_t kern_start(kmod_info_t *, void *) {
 	// Initialise config status
 	atomic_init(&ADDPR(config).initialised, false);
 	// We should be aware of the CPU we run on.
@@ -285,6 +285,6 @@ extern "C" kern_return_t kern_start(kmod_info_t * ki, void *d) {
 	return KERN_SUCCESS;
 }
 
-extern "C" kern_return_t kern_stop(kmod_info_t *ki, void *d) {
+extern "C" kern_return_t kern_stop(kmod_info_t *, void *) {
 	return ADDPR(config).startSuccess ? KERN_FAILURE : KERN_SUCCESS;
 }

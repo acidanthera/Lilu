@@ -119,7 +119,7 @@ LiluAPI::Error LiluAPI::onPatcherLoad(t_patcherLoaded callback, void *user) {
 
 	if (!patcherLoadedCallbacks.push_back<2>(pcall)) {
 		SYSLOG("api", "failed to store stored_pair<t_patcherLoaded>");
-		pcall->deleter(pcall);
+		stored_pair<t_patcherLoaded>::deleter(pcall);
 		return Error::MemoryError;
 	}
 
@@ -141,7 +141,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 
 		if (!kextLoadedCallbacks.push_back<4>(pcall)) {
 			SYSLOG("api", "failed to store stored_pair<t_kextLoaded>");
-			pcall->deleter(pcall);
+			stored_pair<t_kextLoaded>::deleter(pcall);
 			return Error::MemoryError;
 		}
 	}
@@ -160,7 +160,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 
 		if (!storedKexts.push_back<4>(pkext)) {
 			SYSLOG("api", "failed to store stored_pair<KextInfo>");
-			pkext->deleter(pkext);
+			stored_pair<KernelPatcher::KextInfo *, size_t>::deleter(pkext);
 			return Error::MemoryError;
 		}
 	}
@@ -169,10 +169,7 @@ LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t
 }
 
 LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, UserPatcher::t_BinaryLoaded callback, void *user, UserPatcher::BinaryModInfo *mods, size_t modnum) {
-	// It seems to partially work
-	// Offer no support for user patcher before 10.9
-	//if (getKernelVersion() <= KernelVersion::MountainLion)
-	//	return Error::IncompatibleOS;
+	// We do not officially support user patcher prior to 10.9, yet it seems to partially work
 
 	// Store the callbacks
 	if (callback) {
@@ -188,7 +185,7 @@ LiluAPI::Error LiluAPI::onProcLoad(UserPatcher::ProcInfo *infos, size_t num, Use
 
 		if (!binaryLoadedCallbacks.push_back<2>(pcall)) {
 			SYSLOG("api", "failed to store stored_pair<t_binaryLoaded>");
-			pcall->deleter(pcall);
+			stored_pair<UserPatcher::t_BinaryLoaded>::deleter(pcall);
 			return Error::MemoryError;
 		}
 	}
@@ -226,7 +223,7 @@ LiluAPI::Error LiluAPI::onEntitlementRequest(t_entitlementRequested callback, vo
 
 	if (!entitlementRequestedCallbacks.push_back<2>(ecall)) {
 		SYSLOG("api", "failed to store stored_pair<t_entitlementRequested>");
-		ecall->deleter(ecall);
+		stored_pair<t_entitlementRequested>::deleter(ecall);
 		return Error::MemoryError;
 	}
 

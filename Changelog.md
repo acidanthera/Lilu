@@ -3,6 +3,7 @@ Lilu Changelog
 
 #### v1.3.0
 - Fixed a rare kernel panic on user patch failure
+- Removed unimplemented `genPlatformKey` API
 
 #### v1.2.9
 - Added `kern_atomic.hpp` header to support atomic types with old Clang

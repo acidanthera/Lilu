@@ -42,12 +42,12 @@ kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t 
 		DBGLOG("user", "found request for W^X switch-off %d", new_protection);
 
 		// struct proc layout usually changes with time, so we will calculate the offset based on partial layout:
-		// struct        pgrp *p_pgrp;   /* Pointer to process group. (LL) */
-		// uint32_t      p_csflags;      /* flags for codesign (PL) */
-		// uint32_t      p_pcaction;     /* action  for process control on starvation */
-		// uint8_t       p_uuid[16];     /* from LC_UUID load command */
-		// cpu_type_t    p_cputype;
-		// cpu_subtype_t p_cpusubtype;
+		// struct        pgrp *p_pgrp   Pointer to process group. (LL)
+		// uint32_t      p_csflags      flags for codesign (PL)
+		// uint32_t      p_pcaction     action  for process control on starvation
+		// uint8_t       p_uuid[16]     from LC_UUID load command
+		// cpu_type_t    p_cputype
+		// cpu_subtype_t p_cpusubtype
 		if (csFlagsOffset == 0) {
 			for (size_t off = 0x200; off < 0x400; off += sizeof (uint32_t)) {
 				auto csOff = off - sizeof(uint8_t[16]) - sizeof(uint32_t)*2;
@@ -86,17 +86,13 @@ kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t 
 	return vm_protect(map, start, size, set_maximum, new_protection);
 }
 
-int UserPatcher::execListener(kauth_cred_t credential, void *idata, kauth_action_t action, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3) {
+int UserPatcher::execListener(kauth_cred_t, void *idata, kauth_action_t action, uintptr_t, uintptr_t arg1, uintptr_t, uintptr_t) {
 	// Make sure this is ours
-	if (that->activated) {
-		if (idata == &that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
-			const char *path = reinterpret_cast<const char *>(arg1);
-			that->onPath(path, static_cast<uint32_t>(strlen(path)));
-		} else {
-			//DBGLOG("user", "listener did not match our needs action %d cookie %d", action, idata == &that->cookie);
-		}
+	if (that->activated && idata == &that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
+		const char *path = reinterpret_cast<const char *>(arg1);
+		that->onPath(path, static_cast<uint32_t>(strlen(path)));
 	}
-	
+
 	return 0;
 }
 
@@ -263,8 +259,6 @@ boolean_t UserPatcher::codeSignValidateRangeWrapper(void *blobs, memory_object_t
 	
 	if (res)
 		that->performPagePatch(data, data_size);
-	
-	/*DBGLOG("user", "cs_validate_range %llX %llX %llX %llX -> %llX %llX", (uint64_t)blobs, (uint64_t)pager, range_offset, (uint64_t)data, data_size, (uint64_t)tainted);*/
 
 	return res;
 }
@@ -291,11 +285,11 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 							delete *previous;
 						}
 
-						auto p = new PendingUser;
-						if (p != nullptr) {
-							lilu_os_strlcpy(p->path, path, MAXPATHLEN);
-							p->pathLen = len;
-							PANIC_COND(!pending.set(p), "user", "failed to set user patch request");
+						auto pend = new PendingUser;
+						if (pend != nullptr) {
+							lilu_os_strlcpy(pend->path, path, MAXPATHLEN);
+							pend->pathLen = len;
+							PANIC_COND(!pending.set(pend), "user", "failed to set user patch request");
 						} else {
 							SYSLOG("user", "failed to allocate pending user callback");
 						}
@@ -366,7 +360,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 				}
 			}
 			
-			//FIXME: check the space available
+			//TODO: Should implement a check whether the space is available to ensure that we do not break processes.
 			
 			// Note, that we don't restore memory protection if we fail somewhere (no need to push something non-critical)
 			// Enable writing for the calculated regions
@@ -468,7 +462,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 	kern_return_t err = orgVmMapReadUser(taskPort, baseAddr, tmpBufferData, sizeof(tmpBufferData));
 	auto machHeader = reinterpret_cast<mach_header_64 *>(tmpBufferData);
 	if (err == KERN_SUCCESS){
-		if ((machHeader->magic == MH_MAGIC_64 || machHeader->magic == MH_MAGIC)) {
+		if (machHeader->magic == MH_MAGIC_64 || machHeader->magic == MH_MAGIC) {
 			size_t hdrSize = machHeader->magic == MH_MAGIC ? sizeof(mach_header) : sizeof(mach_header_64);
 			uintptr_t newEp = hdrSize + machHeader->sizeofcmds;
 			if (newEp + PAGE_SIZE > sizeof(tmpBufferData)) {
@@ -671,10 +665,10 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 									SYSLOG("user", "failed to obtain write permissions for patching %d", r);
 								}
 							} else if (ADDPR(debugEnabled)) {
-								for (size_t i = 0; i < patch.size; i++) {
-									auto v = (applyChanges? patch.find : patch.replace)[i];
-									if (tmp[i] != v) {
-										DBGLOG("user", "miss at %lu: %02X vs %02X", i, tmp[i], v);
+								for (size_t l = 0; l < patch.size; l++) {
+									auto v = (applyChanges? patch.find : patch.replace)[l];
+									if (tmp[l] != v) {
+										DBGLOG("user", "miss at %lu: %02X vs %02X", l, tmp[l], v);
 										break;
 									}
 								}
@@ -750,9 +744,9 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
 	uint32_t ebx = 0;
-	if (CPUInfo::getCpuid(7, 0, nullptr, &ebx)) {
-		if ((ebx & CPUInfo::bit_AVX2) && getKernelVersion() >= KernelVersion::Yosemite)
-			buffer = FileIO::readFileToBuffer(SharedCacheMapHaswell, bufferSize);
+	if (CPUInfo::getCpuid(7, 0, nullptr, &ebx) && (ebx & CPUInfo::bit_AVX2) &&
+		getKernelVersion() >= KernelVersion::Yosemite) {
+		buffer = FileIO::readFileToBuffer(SharedCacheMapHaswell, bufferSize);
 	}
 
 	if (!buffer)

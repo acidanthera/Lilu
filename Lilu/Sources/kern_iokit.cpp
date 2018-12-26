@@ -50,8 +50,7 @@ namespace WIOKit {
 					return read8(service, space, reg);
 				case 16:
 					return read16(service, space, reg);
-				case 32:
-				default:
+				default: /* assume 32-bit otherwise */
 					return read32(service, space, reg);
 			}
 		}
@@ -191,7 +190,6 @@ namespace WIOKit {
 				while ((res = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
 					const char *resname = res->getName();
 					
-					//DBGLOG("iokit", "iterating over %s", resname);
 					if (resname && !strncmp(prefix, resname, len)) {
 						found = proc ? proc(user, res) : true;
 						if (found) {
@@ -268,11 +266,11 @@ namespace WIOKit {
 				DBGLOG("iokit", "fixing compatible to have %s", name);
 				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
 				lilu_os_memcpy(&compatibleBuf[compatibleSz], name, nameSize);
-				auto compatibleProp = OSData::withBytes(compatibleBuf, compatibleBufSz);
+				auto compatibleData = OSData::withBytes(compatibleBuf, compatibleBufSz);
 				Buffer::deleter(compatibleBuf);
-				if (compatibleProp) {
-					entry->setProperty("compatible", compatibleProp);
-					compatibleProp->release();
+				if (compatibleData) {
+					entry->setProperty("compatible", compatibleData);
+					compatibleData->release();
 					return true;
 				} else {
 					SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);

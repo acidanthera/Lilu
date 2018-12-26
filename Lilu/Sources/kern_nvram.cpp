@@ -66,13 +66,13 @@ uint8_t *NVStorage::read(const char *key, uint32_t &size, uint8_t opts, const ui
 		payloadBuf  += sizeof(Header);
 		payloadSize -= sizeof(Header);
 
-		auto replacePayload = [&payloadBuf, &payloadAlloc, opts](const uint8_t *buf, uint32_t orgSize) {
+		auto replacePayload = [&payloadBuf, &payloadAlloc, opts](const uint8_t *newBuf, uint32_t orgSize) {
 			if (payloadAlloc) {
 				auto buf = const_cast<uint8_t *>(payloadBuf);
 				if (opts & OptSensitive) Crypto::zeroMemory(orgSize, buf);
 				Buffer::deleter(buf);
 			}
-			payloadBuf   = buf;
+			payloadBuf   = newBuf;
 			payloadAlloc = true;
 		};
 
@@ -156,13 +156,13 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 	auto payloadBuf   = src;
 	auto payloadSize  = size;
 
-	auto replacePayload = [&payloadBuf, &payloadAlloc, opts](const uint8_t *buf, uint32_t orgSize) {
+	auto replacePayload = [&payloadBuf, &payloadAlloc, opts](const uint8_t *newBuf, uint32_t orgSize) {
 		if (payloadAlloc) {
 			auto buf = const_cast<uint8_t *>(payloadBuf);
 			if (opts & OptSensitive) Crypto::zeroMemory(orgSize, buf);
 			Buffer::deleter(buf);
 		}
-		payloadBuf   = buf;
+		payloadBuf   = newBuf;
 		payloadAlloc = true;
 	};
 
@@ -295,8 +295,7 @@ uint8_t *NVStorage::compress(const uint8_t *src, uint32_t &size, bool sensitive)
 		*reinterpret_cast<uint32_t *>(buf) = size;
 		DBGLOG("nvram", "compress saves dstSize = %u, srcSize = %u", dstSize, size);
 		if (Compression::compress(Compression::ModeLZSS, dstSize, src, size, buf + sizeof(uint32_t))) {
-			// size was updated by compress
-			//Buffer::resize(buf, size + sizeof(uint32_t));
+			// Buffer was already resized by compress
 			size = dstSize + sizeof(uint32_t);
 			DBGLOG("nvram", "compress result size = %u", size);
 			Buffer::resize(buf, size);

@@ -88,7 +88,7 @@ void EfiRuntimeServices::activate() {
 }
 
 EfiRuntimeServices *EfiRuntimeServices::get(bool lock) {
-	//FIXME: To be completely honest we should lock gAppleEFIRuntimeLock here, but it is not public :/
+	//TODO: To be completely honest we should lock gAppleEFIRuntimeLock here, but it is not public :/
 	// The current approach is that EfiRuntimeServices are only allowed to be used before AppleEFIRuntime is loaded.
 	if (instance && lock)
 		IOLockLock(instance->accessLock);
