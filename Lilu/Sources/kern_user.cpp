@@ -283,7 +283,14 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 					if (orgProcExecSwitchTask) {
 						DBGLOG("user", "requesting proc_exec_switch_task patch");
 
-						PANIC_COND(pending.get(), "user", "found dangling user patch request");
+						auto previous = pending.get();
+						if (previous) {
+							// This is possible when execution does not happen, and thus we do not remove the patch.
+							DBGLOG("user", "found dangling user patch request");
+							PANIC_COND(!that->pending.erase(), "user", "failed to remove dangling user patch");
+							delete *previous;
+						}
+
 						auto p = new PendingUser;
 						if (p != nullptr) {
 							lilu_os_strlcpy(p->path, path, MAXPATHLEN);
