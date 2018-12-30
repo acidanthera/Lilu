@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.3.1
+- Lowered version compatibility to 1.2.0 to let plugins load
+
 #### v1.3.0
 - Fixed a rare kernel panic on user patch failure
 - Removed unimplemented `genPlatformKey` API

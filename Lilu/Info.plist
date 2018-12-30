@@ -21,7 +21,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(MODULE_VERSION)</string>
 	<key>OSBundleCompatibleVersion</key>
-	<string>$(MODULE_VERSION:base).0</string>
+	<string>1.2.0</string>
 	<key>IOKitPersonalities</key>
 	<dict>
 		<key>as.vit9696.Lilu</key>
