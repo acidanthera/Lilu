@@ -1,6 +1,9 @@
 Lilu Changelog
 ==============
 
+#### v1.3.2
+- Extended supported firmware vendor list
+
 #### v1.3.1
 - Lowered version compatibility to 1.2.0 to let plugins load
 

@@ -129,15 +129,25 @@ void DeviceInfo::updateFirmwareVendor() {
 
 				//TODO: Add more vendors here (like branded Phoenix or Intel).
 				Matching matching[] {
+					// All Apple-made hardware.
 					{FirmwareVendor::Apple, u"Apple", sizeof(u"Apple")},
+					// Parallels Desktop virtual machines.
 					{FirmwareVendor::Parallels, u"Parallels Software International Inc.", sizeof(u"Parallels Software International Inc.")},
+					// VMware Fusion, Workstation, Player, ESXi virtual machines.
 					{FirmwareVendor::VMware, u"VMware, Inc.", sizeof(u"VMware, Inc.")},
+					// OVMF firmware for QEMU or XEN.
 					{FirmwareVendor::EDKII, u"EDK II", sizeof(u"EDK II")},
+					// Two variants of AMI APTIO firmware names. Shorter one is older.
 					{FirmwareVendor::AMI, u"American Megatrends", sizeof(u"American Megatrends")},
 					{FirmwareVendor::AMI, u"American Megatrends Inc.", sizeof(u"American Megatrends Inc.")},
+					// Branded Insyde H2O firmwares.
 					{FirmwareVendor::Insyde, u"INSYDE Corp.", sizeof(u"INSYDE Corp.")},
+					// Branded Phoenix firmwares.
 					{FirmwareVendor::Phoenix, u"Phoenix Technologies Ltd.", sizeof(u"Phoenix Technologies Ltd.")},
-					{FirmwareVendor::HP, u"HPQ", sizeof(u"HPQ")}
+					// Legacy HP firmwares found in old HP ProBooks, which were based on Insyde or Phoenix.
+					{FirmwareVendor::HP, u"HPQ", sizeof(u"HPQ")},
+					// New FSP-based HP firmwares found in hardware like HP ProDesk 400 G4 Mini
+					{FirmwareVendor::HP, u"HP", sizeof(u"HP")}
 				};
 
 				for (size_t i = 0; i < arrsize(matching); i++) {
