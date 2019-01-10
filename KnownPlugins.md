@@ -8,13 +8,14 @@ Please note that improperly written immature plugins will not be listed there.
 |:-----|:------------------|
 [AirportBrcmFixup](https://github.com/acidanthera/AirportBrcmFixup) | Various patches for Broadcom Airport Wi-Fi cards
 [AppleALC](https://github.com/acidanthera/AppleALC) | Native macOS HD audio for not officially supported codecs
-[ATH9KFixup](https://bitbucket.org/RehabMan/ath9kfixup) | Various patches for unsupported Atheros Wi-Fi cards, original repository by [chunnann](https://github.com/chunnann/ATH9KFixup)
+[ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards
 [BT4LEContiunityFixup](https://github.com/acidanthera/BT4LEContiunityFixup) | Enable BT4LE-Handoff-Hotspot features
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
 [NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Workarounds Quicklook issues on 10.14 when using macmodels with IGPU on CPUs without IGPU. Can be used as an alternative to `MacPro6,1` model
+[SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
 [VirtualSMC](https://github.com/acidanthera/VirtualSMC) | Advanced SMC emulation
 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) | Various patches necessary for GPUs
 
