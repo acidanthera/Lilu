@@ -11,6 +11,7 @@ Please note that improperly written immature plugins will not be listed there.
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards
 [BT4LEContiunityFixup](https://github.com/acidanthera/BT4LEContiunityFixup) | Enable BT4LE-Handoff-Hotspot features
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
+[DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
