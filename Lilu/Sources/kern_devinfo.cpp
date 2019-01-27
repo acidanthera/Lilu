@@ -231,7 +231,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 			// Strip interface, as we only care about class and subclass
 			code &= WIOKit::ClassCode::PCISubclassMask;
 
-			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD))
+			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD && vendor != WIOKit::VendorID::AMDZEN))
 				continue;
 
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
@@ -272,10 +272,16 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 									   safeString(pciobj->getName()), safeString(name),  pcivendor);
 								v.video = pciobj;
 								v.vendor = pcivendor;
-							} else if (pcicode == WIOKit::ClassCode::HDADevice) {
+							} else if (pcicode == WIOKit::ClassCode::HDADevice && pcivendor != WIOKit::VendorID::AMDZEN) {
 								DBGLOG("dev", "found HDAU device %s at %s by %04X",
 									   safeString(pciobj->getName()), safeString(name), pcivendor);
 								v.audio = pciobj;
+							} else if (pcicode == WIOKit::ClassCode::HDADevice) {
+								// On modern AMD platforms built-in audio devices sits on a PCI bridge just any other device.
+								// Luckily it has a distinct device-id for the time being.
+								DBGLOG("dev", "found AMD HDEF device %s at %s by %04X",
+									   safeString(pciobj->getName()), safeString(name), pcivendor);
+								audioBuiltinAnalog = pciobj;
 							}
 						}
 					}
