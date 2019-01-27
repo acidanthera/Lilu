@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.3.3
 - Added support for modern AMD device scanning by @AlGreyy
+- Added support for VMware device scanning
 
 #### v1.3.2
 - Extended supported firmware vendor list

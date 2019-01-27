@@ -587,7 +587,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 				}
 				if (that->khandlers.size() > 0) {
 					OSKextLoadedKextSummary &last = (*that->loadedKextSummaries)->summaries[num-1];
-					DBGLOG("patcher", "last kext is %llX and its name is %.*s", last.address, KMOD_MAX_NAME, last.name);
+					DBGLOG("patcher", "last kext is " PRIKADDR " and its name is %.*s", CASTKADDR(last.address), KMOD_MAX_NAME, last.name);
 					// We may add khandlers items inside the handler
 					for (size_t i = 0; i < that->khandlers.size(); i++) {
 						auto handler = that->khandlers[i];
