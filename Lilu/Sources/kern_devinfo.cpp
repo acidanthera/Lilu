@@ -231,7 +231,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 			// Strip interface, as we only care about class and subclass
 			code &= WIOKit::ClassCode::PCISubclassMask;
 
-			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD))
+			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD && vendor != WIOKit::VendorID::AMDZEN))
 				continue;
 
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
@@ -273,9 +273,17 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 								v.video = pciobj;
 								v.vendor = pcivendor;
 							} else if (pcicode == WIOKit::ClassCode::HDADevice) {
+
+								if (pcivendor == WIOKit::VendorID::AMDZEN) {
+									DBGLOG("dev", "found HDEF (Zen Platform) device %s at %s by %04X", safeString(pciobj->getName()), safeString(name), pcivendor);
+									audioBuiltinAnalog = pciobj;
+//									
+								} else {
 								DBGLOG("dev", "found HDAU device %s at %s by %04X",
 									   safeString(pciobj->getName()), safeString(name), pcivendor);
 								v.audio = pciobj;
+
+								}
 							}
 						}
 					}
