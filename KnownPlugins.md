@@ -26,7 +26,7 @@ Plugins which functionality was merged into other plugins:
 |:-----|:------------------|
 [AzulPatcher4600](https://github.com/coderobe/AzulPatcher4600) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [AppleBacklightFixup](https://github.com/hieplpvip/AppleBacklightFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
-[EnableLidWake](https://github.com/syscl/EnableLidWake) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen), equivalent to setting `FBAlternatePWMIncrement1/2` bit in flags.
+[EnableLidWake](https://github.com/syscl/EnableLidWake) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
