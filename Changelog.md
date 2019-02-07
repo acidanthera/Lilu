@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.3.4
+- Added implicit `eraseCoverageInstPrefix` to `routeMultiple`
+
 #### v1.3.3
 - Added support for modern AMD device scanning by @AlGreyy
 - Added support for VMware device scanning

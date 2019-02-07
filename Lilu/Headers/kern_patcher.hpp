@@ -175,6 +175,15 @@ public:
 	EXPORT void eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count=5);
 
 	/**
+	 *  Erase coverage instruction prefix (like inc qword ptr[]), that causes function routing to fail
+	 *
+	 *  @param addr   address to valid instruction code
+	 *  @param count  amount of instructions to inspect
+	 *  @param limit  amount of bytes to inspect
+	 */
+	EXPORT void eraseCoverageInstPrefix(mach_vm_address_t addr, off_t count, off_t limit);
+
+	/**
 	 *  Solve a kinfo symbol
 	 *
 	 *  @param id      loaded kinfo id
