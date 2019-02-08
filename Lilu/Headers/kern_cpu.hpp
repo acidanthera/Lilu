@@ -48,7 +48,7 @@ namespace CPUInfo {
 	 *  Intel CPU models as returned by CPUID
 	 *  The list is synchronised and updated with XNU source code (osfmk/i386/cpuid.h).
 	 *  Names are altered to avoid conflicts just in case.
-	 *  Last update: xnu-4570.41.2
+	 *  Last update: xnu-4903.221.2
 	 *  Some details could be found on http://instlatx64.atw.hu and https://en.wikichip.org/wiki/64-bit_architecture#x86
 	 *  Also: https://www.intel.com/content/dam/www/public/us/en/documents/sa00115-microcode-update-guidance.pdf
 	 */
