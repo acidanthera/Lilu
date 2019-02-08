@@ -181,7 +181,7 @@ public:
 	 *  @param count  amount of instructions to inspect
 	 *  @param limit  amount of bytes to inspect
 	 */
-	EXPORT void eraseCoverageInstPrefix(mach_vm_address_t addr, off_t count, off_t limit);
+	EXPORT void eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count, off_t limit);
 
 	/**
 	 *  Solve a kinfo symbol

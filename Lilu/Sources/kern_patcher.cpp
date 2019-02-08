@@ -177,15 +177,15 @@ bool KernelPatcher::compatibleKernel(uint32_t min, uint32_t max) {
 }
 
 void KernelPatcher::eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count) {
-	eraseCoverageInstPrefix(addr, static_cast<off_t>(count), -1);
+	eraseCoverageInstPrefix(addr, count, -1);
 }
 
-void KernelPatcher::eraseCoverageInstPrefix(mach_vm_address_t addr, off_t count, off_t limit) {
+void KernelPatcher::eraseCoverageInstPrefix(mach_vm_address_t addr, size_t count, off_t limit) {
 	static constexpr uint8_t IncInstPrefix[] {0x48, 0xFF, 0x05}; // inc qword ptr [rip + (disp32 in next 4 bytes)]
 	static constexpr size_t IncInstSize {7};
 
 	off_t totalInstSize = 0;
-	for (off_t i = 0; i < count; i++) {
+	for (size_t i = 0; i < count; i++) {
 		auto instSize = Disassembler::quickInstructionSize(reinterpret_cast<mach_vm_address_t>(addr), 1);
 		if (instSize == 0) break; // Unknown instruction
 
