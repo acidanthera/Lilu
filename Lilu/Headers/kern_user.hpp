@@ -241,7 +241,6 @@ private:
 	t_vmMapCheckProtection orgVmMapCheckProtection {nullptr};
 	t_vmMapReadUser orgVmMapReadUser {nullptr};
 	t_vmMapWriteUser orgVmMapWriteUser {nullptr};
-	mach_vm_address_t orgProcExecSwitchTask {};
 	mach_vm_address_t orgTaskSetMainThreadQos {};
 	
 	/**
@@ -255,7 +254,6 @@ private:
 	static void execsigs(proc_t p, thread_t thread);
 	static int vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, memory_object_control_t sr_file_control);
 	static int vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, mach_vm_offset_t slid_mapping, memory_object_control_t sr_file_control);
-	static proc_t procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread);
 	static void taskSetMainThreadQos(task_t task, thread_t main_thread);
 
 	/**

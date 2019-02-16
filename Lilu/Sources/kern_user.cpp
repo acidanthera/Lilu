@@ -274,7 +274,7 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 					(match == ProcInfo::MatchSuffix && !strncmp(p->path, path + (len - p->len), p->len+1)) ||
 					(match == ProcInfo::MatchAny && strstr(path, p->path))) {
 					DBGLOG("user", "caught %s performing injection", path);
-					if (orgProcExecSwitchTask || orgTaskSetMainThreadQos) {
+					if (orgTaskSetMainThreadQos) {
 						DBGLOG("user", "requesting delayed patch " PRIKADDR, CASTKADDR(current_thread()));
 
 						auto previous = pending.get();
@@ -292,7 +292,10 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 							// This should not happen after we added task_set_main_thread_qos hook, which gets always called
 							// unlike proc_exec_switch_task. Increasing pending count to 32 should accomodate for most CPUs.
 							// Still do not cause a kernel panic but rather just report this.
-							SYSLOG_COND(!pending.set(pend), "user", "failed to set user patch request, report this!!!");
+							if (!pending.set(pend)) {
+								SYSLOG("user", "failed to set user patch request, report this!!!");
+								delete pend;
+							}
 						} else {
 							SYSLOG("user", "failed to allocate pending user callback");
 						}
@@ -596,21 +599,6 @@ int UserPatcher::vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entr
 	that->patchSharedCache(that->orgCurrentMap(), slide, CPU_TYPE_X86_64);
 
 	return FunctionCast(vmSharedRegionSlideMojave, that->orgVmSharedRegionSlideMojave)(slide, entry_start_address, entry_size, slide_start, slide_size, slid_mapping, sr_file_control);
-}
-
-proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread) {
-	//TODO: This may be obsolete, now that we have taskSetMainThreadQos.
-	proc_t rp = FunctionCast(procExecSwitchTask, that->orgProcExecSwitchTask)(p, current_task, new_task, new_thread);
-
-	auto entry = that->pending.get();
-	if (entry) {
-		DBGLOG("user", "firing hook from proc_exec_switch_task " PRIKADDR, CASTKADDR(current_thread()));
-		that->patchBinary(that->orgGetTaskMap(new_task), (*entry)->path, (*entry)->pathLen);
-		PANIC_COND(!that->pending.erase(), "user", "failed to remove pending user patch in proc_exec_switch_task");
-		delete *entry;
-	}
-
-	return rp;
 }
 
 void UserPatcher::taskSetMainThreadQos(task_t task, thread_t main_thread) {
@@ -1110,13 +1098,9 @@ bool UserPatcher::hookMemoryAccess() {
 	// On 10.12.1 b4 Apple decided not to let current_map point to the current process
 	// For this reason we have to obtain the map with the other methods
 	if (getKernelVersion() >= KernelVersion::Sierra) {
-		KernelPatcher::RouteRequest requests[] {
-			{"_proc_exec_switch_task", procExecSwitchTask, orgProcExecSwitchTask},
-			{"_task_set_main_thread_qos", taskSetMainThreadQos, orgTaskSetMainThreadQos}
-		};
-
-		if (!patcher->routeMultiple(KernelPatcher::KernelID, requests, 0, 0, true, false)) {
-			DBGLOG("user", "failed to hook _proc_exec_switch_task/_task_set_main_thread_qos");
+		KernelPatcher::RouteRequest request {"_task_set_main_thread_qos", taskSetMainThreadQos, orgTaskSetMainThreadQos};
+		if (!patcher->routeMultiple(KernelPatcher::KernelID, &request, 1, 0, 0, true, false)) {
+			DBGLOG("user", "failed to hook _task_set_main_thread_qos");
 			// This is not an error, early 10.12 versions have no such function
 		}
 	}
