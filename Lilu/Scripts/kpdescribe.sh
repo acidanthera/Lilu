@@ -87,7 +87,7 @@ fi
 kexts=()
 for kextdir in ${kextdirs[@]}; do
 	if [ -d "$kextdir" ]; then
-		kexts+=$(find "$kextdir" -name Info.plist)
+		kexts+=($(find "$kextdir" -name Info.plist))
 	fi
 done
 
@@ -141,7 +141,7 @@ while (( $# != 0 )); do
 	done)
 
 	i=0
-	unset name version start end kfiles
+	unset name version start end kfile
 	while (( i < ${#ranges[@]} )); do
 		read n v s e <<< $(echo "${ranges[$i]}")
 		name[i]=$n
@@ -150,6 +150,10 @@ while (( $# != 0 )); do
 		end[i]=$e
 
 		for kext in ${kexts[@]}; do
+			if [ ! -f "$kext" ]; then
+				continue
+			fi
+
 			kname=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$kext" 2>&1)
 			if [ "$kname" != "$n" ]; then
 				continue
@@ -157,7 +161,9 @@ while (( $# != 0 )); do
 			kver=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$kext" 2>&1)
 			if [[ "$kver" =~ "$v" ]]; then
 				path="$(dirname "$kext")/MacOS/$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$kext" 2>&1)"
-				if [ -f "$path" ]; then kfile[i]="$path" ; fi
+				if [ -f "$path" ]; then
+					kfile[i]="$path"
+				fi
 			else
 				echo "Version mismatch for $kname ($kver vs $v)"
 			fi

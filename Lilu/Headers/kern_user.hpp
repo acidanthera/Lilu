@@ -220,34 +220,29 @@ private:
 	 */
 	using vm_shared_region_t = void *;
 	using shared_file_mapping_np = void *;
-	using t_codeSignValidatePageWrapper = boolean_t (*)(void *, memory_object_t, memory_object_offset_t, const void *, unsigned *);
-	using t_codeSignValidateRangeWrapper = boolean_t (*)(void *, memory_object_t, memory_object_offset_t, const void *, memory_object_size_t, unsigned *);
-	using t_vmSharedRegionMapFile = kern_return_t (*)(vm_shared_region_t, unsigned int, shared_file_mapping_np *, memory_object_control_t, memory_object_size_t, void *, uint32_t, user_addr_t slide_start, user_addr_t);
-	using t_vmSharedRegionSlide = int (*)(uint32_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, mach_vm_size_t, memory_object_control_t);
-	using t_vmSharedRegionSlideMojave = int (*)(uint32_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, mach_vm_size_t, mach_vm_offset_t, memory_object_control_t);
 	using t_currentMap = vm_map_t (*)(void);
 	using t_getTaskMap = vm_map_t (*)(task_t);
 	using t_getMapMin = vm_map_offset_t (*)(vm_map_t);
 	using t_vmMapCheckProtection = boolean_t (*)(vm_map_t, vm_offset_t, vm_offset_t, vm_prot_t);
 	using t_vmMapReadUser = kern_return_t (*)(vm_map_t, vm_map_address_t, const void *, vm_size_t);
 	using t_vmMapWriteUser = kern_return_t (*)(vm_map_t, const void *, vm_map_address_t, vm_size_t);
-	using t_procExecSwitchTask = proc_t (*)(proc_t, task_t, task_t, thread_t);
 
 	/**
 	 *  Original kernel function trampolines
 	 */
-	t_codeSignValidatePageWrapper orgCodeSignValidatePageWrapper {nullptr};
-	t_codeSignValidateRangeWrapper orgCodeSignValidateRangeWrapper {nullptr};
-	t_vmSharedRegionMapFile orgVmSharedRegionMapFile {nullptr};
-	t_vmSharedRegionSlide orgVmSharedRegionSlide {nullptr};
-	t_vmSharedRegionSlideMojave orgVmSharedRegionSlideMojave {nullptr};
+	mach_vm_address_t orgCodeSignValidatePageWrapper {};
+	mach_vm_address_t orgCodeSignValidateRangeWrapper {};
+	mach_vm_address_t orgVmSharedRegionMapFile {};
+	mach_vm_address_t orgVmSharedRegionSlide {};
+	mach_vm_address_t orgVmSharedRegionSlideMojave {};
 	t_currentMap orgCurrentMap {nullptr};
 	t_getMapMin orgGetMapMin {nullptr};
 	t_getTaskMap orgGetTaskMap {nullptr};
 	t_vmMapCheckProtection orgVmMapCheckProtection {nullptr};
 	t_vmMapReadUser orgVmMapReadUser {nullptr};
 	t_vmMapWriteUser orgVmMapWriteUser {nullptr};
-	t_procExecSwitchTask orgProcExecSwitchTask {nullptr};
+	mach_vm_address_t orgProcExecSwitchTask {};
+	mach_vm_address_t orgTaskSetMainThreadQos {};
 	
 	/**
 	 *  Kernel function wrappers
@@ -261,6 +256,7 @@ private:
 	static int vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, memory_object_control_t sr_file_control);
 	static int vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, mach_vm_offset_t slid_mapping, memory_object_control_t sr_file_control);
 	static proc_t procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread);
+	static void taskSetMainThreadQos(task_t task, thread_t main_thread);
 
 	/**
 	 *  Applies page patches to the memory range
@@ -332,7 +328,7 @@ private:
 	/**
 	 *  Stored pending callback
 	 */
-	ThreadLocal<PendingUser *, 8> pending;
+	ThreadLocal<PendingUser *, 32> pending;
 
 	/**
 	 *  Current minimal proc name length

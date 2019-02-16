@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.3.4
 - Added implicit `eraseCoverageInstPrefix` to `routeMultiple`
+- Fixed user patcher kernel panic when running process via `posix_spawn` without exec
 
 #### v1.3.3
 - Added support for modern AMD device scanning by @AlGreyy

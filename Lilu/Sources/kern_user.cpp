@@ -249,13 +249,13 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 }
 
 boolean_t UserPatcher::codeSignValidatePageWrapper(void *blobs, memory_object_t pager, memory_object_offset_t page_offset, const void *data, unsigned *tainted) {
-	boolean_t res = that->orgCodeSignValidatePageWrapper(blobs, pager, page_offset, data, tainted);
+	boolean_t res = FunctionCast(codeSignValidatePageWrapper, that->orgCodeSignValidatePageWrapper)(blobs, pager, page_offset, data, tainted);
 	if (res) that->performPagePatch(data, PAGE_SIZE);
 	return res;
 }
 
 boolean_t UserPatcher::codeSignValidateRangeWrapper(void *blobs, memory_object_t pager, memory_object_offset_t range_offset, const void *data, memory_object_size_t data_size, unsigned *tainted) {
-	boolean_t res = that->orgCodeSignValidateRangeWrapper(blobs, pager, range_offset, data, data_size, tainted);
+	boolean_t res = FunctionCast(codeSignValidateRangeWrapper, that->orgCodeSignValidateRangeWrapper)(blobs, pager, range_offset, data, data_size, tainted);
 	
 	if (res)
 		that->performPagePatch(data, data_size);
@@ -274,14 +274,14 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 					(match == ProcInfo::MatchSuffix && !strncmp(p->path, path + (len - p->len), p->len+1)) ||
 					(match == ProcInfo::MatchAny && strstr(path, p->path))) {
 					DBGLOG("user", "caught %s performing injection", path);
-					if (orgProcExecSwitchTask) {
-						DBGLOG("user", "requesting proc_exec_switch_task patch");
+					if (orgProcExecSwitchTask || orgTaskSetMainThreadQos) {
+						DBGLOG("user", "requesting delayed patch " PRIKADDR, CASTKADDR(current_thread()));
 
 						auto previous = pending.get();
 						if (previous) {
 							// This is possible when execution does not happen, and thus we do not remove the patch.
 							DBGLOG("user", "found dangling user patch request");
-							PANIC_COND(!that->pending.erase(), "user", "failed to remove dangling user patch");
+							PANIC_COND(!pending.erase(), "user", "failed to remove dangling user patch");
 							delete *previous;
 						}
 
@@ -289,7 +289,10 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 						if (pend != nullptr) {
 							lilu_os_strlcpy(pend->path, path, MAXPATHLEN);
 							pend->pathLen = len;
-							PANIC_COND(!pending.set(pend), "user", "failed to set user patch request");
+							// This should not happen after we added task_set_main_thread_qos hook, which gets always called
+							// unlike proc_exec_switch_task. Increasing pending count to 32 should accomodate for most CPUs.
+							// Still do not cause a kernel panic but rather just report this.
+							SYSLOG_COND(!pending.set(pend), "user", "failed to set user patch request, report this!!!");
 						} else {
 							SYSLOG("user", "failed to allocate pending user callback");
 						}
@@ -570,7 +573,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 }
 
 kern_return_t UserPatcher::vmSharedRegionMapFile(vm_shared_region_t shared_region, unsigned int mappings_count, shared_file_mapping_np *mappings, memory_object_control_t file_control, memory_object_size_t file_size, void *root_dir, uint32_t slide, user_addr_t slide_start, user_addr_t slide_size) {
-	auto res = that->orgVmSharedRegionMapFile(shared_region, mappings_count, mappings, file_control, file_size, root_dir, slide, slide_start, slide_size);
+	auto res = FunctionCast(vmSharedRegionMapFile, that->orgVmSharedRegionMapFile)(shared_region, mappings_count, mappings, file_control, file_size, root_dir, slide, slide_start, slide_size);
 	if (!slide) {
 		that->patchSharedCache(that->orgCurrentMap(), 0, CPU_TYPE_X86_64);
 	}
@@ -583,7 +586,7 @@ int UserPatcher::vmSharedRegionSlide(uint32_t slide, mach_vm_offset_t entry_star
 	
 	that->patchSharedCache(that->orgCurrentMap(), slide, CPU_TYPE_X86_64);
 	
-	return that->orgVmSharedRegionSlide(slide, entry_start_address, entry_size, slide_start, slide_size, sr_file_control);
+	return FunctionCast(vmSharedRegionSlide, that->orgVmSharedRegionSlide)(slide, entry_start_address, entry_size, slide_start, slide_size, sr_file_control);
 }
 
 int UserPatcher::vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entry_start_address, mach_vm_size_t entry_size, mach_vm_offset_t slide_start, mach_vm_size_t slide_size, mach_vm_offset_t slid_mapping, memory_object_control_t sr_file_control) {
@@ -592,21 +595,34 @@ int UserPatcher::vmSharedRegionSlideMojave(uint32_t slide, mach_vm_offset_t entr
 
 	that->patchSharedCache(that->orgCurrentMap(), slide, CPU_TYPE_X86_64);
 
-	return that->orgVmSharedRegionSlideMojave(slide, entry_start_address, entry_size, slide_start, slide_size, slid_mapping, sr_file_control);
+	return FunctionCast(vmSharedRegionSlideMojave, that->orgVmSharedRegionSlideMojave)(slide, entry_start_address, entry_size, slide_start, slide_size, slid_mapping, sr_file_control);
 }
 
 proc_t UserPatcher::procExecSwitchTask(proc_t p, task_t current_task, task_t new_task, thread_t new_thread) {
-	proc_t rp = that->orgProcExecSwitchTask(p, current_task, new_task, new_thread);
+	//TODO: This may be obsolete, now that we have taskSetMainThreadQos.
+	proc_t rp = FunctionCast(procExecSwitchTask, that->orgProcExecSwitchTask)(p, current_task, new_task, new_thread);
 
 	auto entry = that->pending.get();
 	if (entry) {
-		DBGLOG("user", "firing hook from procExecSwitchTask");
+		DBGLOG("user", "firing hook from proc_exec_switch_task " PRIKADDR, CASTKADDR(current_thread()));
 		that->patchBinary(that->orgGetTaskMap(new_task), (*entry)->path, (*entry)->pathLen);
-		PANIC_COND(!that->pending.erase(), "user", "failed to remove pending user patch");
+		PANIC_COND(!that->pending.erase(), "user", "failed to remove pending user patch in proc_exec_switch_task");
 		delete *entry;
 	}
 
 	return rp;
+}
+
+void UserPatcher::taskSetMainThreadQos(task_t task, thread_t main_thread) {
+	FunctionCast(taskSetMainThreadQos, that->orgTaskSetMainThreadQos)(task, main_thread);
+
+	auto entry = that->pending.get();
+	if (entry) {
+		DBGTRACE("user", "firing hook from task_set_main_thread_qos " PRIKADDR, CASTKADDR(current_thread()));
+		that->patchBinary(that->orgGetTaskMap(task), (*entry)->path, (*entry)->pathLen);
+		PANIC_COND(!that->pending.erase(), "user", "failed to remove pending user patch in task_set_main_thread_qos");
+		delete *entry;
+	}
 }
 
 void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t cpu, bool applyChanges) {
@@ -1026,9 +1042,7 @@ bool UserPatcher::hookMemoryAccess() {
 	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range");
 	
 	if (patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidateRangeWrapper = reinterpret_cast<t_codeSignValidateRangeWrapper>(
-			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true)
-		);
+		orgCodeSignValidateRangeWrapper = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true);
 		
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
 			SYSLOG("user", "failed to hook _cs_validate_range");
@@ -1038,9 +1052,7 @@ bool UserPatcher::hookMemoryAccess() {
 	} else if (static_cast<void>(patcher->clearError()),
 			   static_cast<void>(kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page")),
 			   patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidatePageWrapper = reinterpret_cast<t_codeSignValidatePageWrapper>(
-			patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true)
-		);
+		orgCodeSignValidatePageWrapper = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true);
 
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
 			SYSLOG("user", "failed to hook _cs_validate_page");
@@ -1098,22 +1110,13 @@ bool UserPatcher::hookMemoryAccess() {
 	// On 10.12.1 b4 Apple decided not to let current_map point to the current process
 	// For this reason we have to obtain the map with the other methods
 	if (getKernelVersion() >= KernelVersion::Sierra) {
-		kern = patcher->solveSymbol(KernelPatcher::KernelID, "_proc_exec_switch_task");
-		
-		if (patcher->getError() == KernelPatcher::Error::NoError) {
-			orgProcExecSwitchTask = reinterpret_cast<t_procExecSwitchTask>(
-				patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(procExecSwitchTask), true, true)
-			);
-			
-			if (patcher->getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("user", "failed to hook _proc_exec_switch_task");
-				patcher->clearError();
-				return false;
-			}
-			
-		} else {
-			DBGLOG("user", "failed to resolve _proc_exec_switch_task");
-			patcher->clearError();
+		KernelPatcher::RouteRequest requests[] {
+			{"_proc_exec_switch_task", procExecSwitchTask, orgProcExecSwitchTask},
+			{"_task_set_main_thread_qos", taskSetMainThreadQos, orgTaskSetMainThreadQos}
+		};
+
+		if (!patcher->routeMultiple(KernelPatcher::KernelID, requests, 0, 0, true, false)) {
+			DBGLOG("user", "failed to hook _proc_exec_switch_task/_task_set_main_thread_qos");
 			// This is not an error, early 10.12 versions have no such function
 		}
 	}
@@ -1122,10 +1125,8 @@ bool UserPatcher::hookMemoryAccess() {
 		kern = patcher->solveSymbol(KernelPatcher::KernelID, "_vm_shared_region_map_file");
 		
 		if (patcher->getError() == KernelPatcher::Error::NoError) {
-			orgVmSharedRegionMapFile = reinterpret_cast<t_vmSharedRegionMapFile>(
-				patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionMapFile), true, true)
-			);
-			
+			orgVmSharedRegionMapFile = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionMapFile), true, true);
+
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
 				SYSLOG("user", "failed to hook _vm_shared_region_map_file");
 				patcher->clearError();
@@ -1142,15 +1143,10 @@ bool UserPatcher::hookMemoryAccess() {
 		
 		if (patcher->getError() == KernelPatcher::Error::NoError) {
 			// 10.14 takes an extra argument here.
-			if (getKernelVersion() >= KernelVersion::Mojave) {
-				orgVmSharedRegionSlideMojave = reinterpret_cast<t_vmSharedRegionSlideMojave>(
-					patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlideMojave), true, true)
-				);
-			} else {
-				orgVmSharedRegionSlide = reinterpret_cast<t_vmSharedRegionSlide>(
-					patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true)
-				);
-			}
+			if (getKernelVersion() >= KernelVersion::Mojave)
+				orgVmSharedRegionSlideMojave = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlideMojave), true, true);
+			else
+				orgVmSharedRegionSlide = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true);
 
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
 				SYSLOG("user", "failed to hook _vm_shared_region_slide");
