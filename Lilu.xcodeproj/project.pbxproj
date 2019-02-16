@@ -905,8 +905,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MODULE_NAME = as.vit9696.Lilu;
-				MODULE_START = kern_start;
-				MODULE_STOP = kern_stop;
+				MODULE_START = "$(PRODUCT_NAME)_kern_start";
+				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
 				MODULE_VERSION = 1.3.4;
 				OTHER_CFLAGS = (
 					"-mmmx",
@@ -968,8 +968,8 @@
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MODULE_NAME = as.vit9696.Lilu;
-				MODULE_START = kern_start;
-				MODULE_STOP = kern_stop;
+				MODULE_START = "$(PRODUCT_NAME)_kern_start";
+				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
 				MODULE_VERSION = 1.3.4;
 				OTHER_CFLAGS = (
 					"-mmmx",
@@ -1080,8 +1080,8 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				MODULE_NAME = as.vit9696.Lilu;
-				MODULE_START = kern_start;
-				MODULE_STOP = kern_stop;
+				MODULE_START = "$(PRODUCT_NAME)_kern_start";
+				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
 				MODULE_VERSION = 1.3.4;
 				OTHER_CFLAGS = (
 					"-mmmx",

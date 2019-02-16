@@ -4,6 +4,7 @@ Lilu Changelog
 - Added implicit `eraseCoverageInstPrefix` to `routeMultiple`
 - Fixed user patcher kernel panic when running process via `posix_spawn` without exec
 - Fixed user patcher codesign issues on recent 10.14 versions with SIP
+- Changed `kern_start` and `kern_stop` to contain product prefix to avoid collisions
 
 #### v1.3.3
 - Added support for modern AMD device scanning by @AlGreyy
