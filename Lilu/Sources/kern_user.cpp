@@ -21,10 +21,18 @@ static UserPatcher *that {nullptr};
 
 // kern/cs_blobs.h is not available in older Xcode SDK, provide the declarations ourselves.
 #ifndef CS_ENFORCEMENT
+#define CS_INVALID_ALLOWED          0x00000020  /* (macOS Only) Page invalidation allowed by task port policy */
+#define CS_HARD                     0x00000100  /* don't load invalid pages */
 #define CS_KILL                     0x00000200  /* kill process if it becomes invalid */
 #define CS_ENFORCEMENT              0x00001000  /* require enforcement */
 #define CS_KILLED                   0x01000000  /* was killed by kernel for invalidity */
+#define CS_DEBUGGED                 0x10000000  /* process is currently or has previously been debugged and allowed to run with invalid pages */
 #endif
+
+struct procref {
+	LIST_ENTRY(proc) p_list; /* List of all processes. */
+	task_t task;             /* corresponding task (static)*/
+};
 
 kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
 	// On 10.14 XNU attempted to fix broken W^X and introduced several changes:
@@ -36,7 +44,7 @@ kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t 
 	//    during the vm_protect call, we also should remove CS_KILL from the process we patch. This slightly lowers
 	//    the security, but only for the patched process, and in no worse way than 10.13 by default. Watch out for
 	//    vm.cs_force_kill in the future.
-	auto currproc = current_proc();
+	auto currproc = reinterpret_cast<procref *>(current_proc());
 	if ((new_protection & (VM_PROT_EXECUTE|VM_PROT_WRITE)) == (VM_PROT_EXECUTE|VM_PROT_WRITE) &&
 		getKernelVersion() >= KernelVersion::Mojave && currproc != nullptr) {
 		DBGLOG("user", "found request for W^X switch-off %d", new_protection);
@@ -73,11 +81,16 @@ kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t 
 		uint32_t &flags = getMember<uint32_t>(currproc, csFlagsOffset);
 		if (flags & CS_ENFORCEMENT) {
 			DBGLOG("user", "W^X is enforced %X, disabling", flags);
-			flags &= ~(CS_KILL|CS_ENFORCEMENT);
+			flags &= ~(CS_KILL|CS_HARD|CS_ENFORCEMENT);
+			// Changing CS_HARD, CS_DEBUGGED, and vm_map switch protection is not required, yet may avoid issues
+			// in the future.
+			flags |= CS_DEBUGGED;
+			if (that->orgVmMapSwitchProtect)
+				that->orgVmMapSwitchProtect(that->orgGetTaskMap(currproc->task), false);
 			auto r = vm_protect(map, start, size, set_maximum, new_protection);
 			SYSLOG_COND(r != KERN_SUCCESS, "user", "W^X removal failed with %d", r);
-			// Restore the enforcement for now.
-			flags |= CS_ENFORCEMENT;
+			// Initially thought that we could return CS_ENFORCEMENT, yet this causes certain binaries to crash,
+			// like WindowServer patched by -cdfon.
 			return r;
 		}
 	}
@@ -1072,6 +1085,13 @@ bool UserPatcher::hookMemoryAccess() {
 		SYSLOG("user", "failed to resolve _get_task_map");
 		patcher->clearError();
 		return false;
+	}
+
+	orgVmMapSwitchProtect = reinterpret_cast<t_vmMapSwitchProtect>(patcher->solveSymbol(KernelPatcher::KernelID, "_vm_map_switch_protect"));
+	if (patcher->getError() != KernelPatcher::Error::NoError) {
+		DBGLOG("user", "failed to resolve _vm_map_switch_protect");
+		patcher->clearError();
+		// Not an error, may be missing
 	}
 
 	orgVmMapCheckProtection = reinterpret_cast<t_vmMapCheckProtection>(patcher->solveSymbol(KernelPatcher::KernelID, "_vm_map_check_protection"));

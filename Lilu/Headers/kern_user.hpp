@@ -223,6 +223,7 @@ private:
 	using t_currentMap = vm_map_t (*)(void);
 	using t_getTaskMap = vm_map_t (*)(task_t);
 	using t_getMapMin = vm_map_offset_t (*)(vm_map_t);
+	using t_vmMapSwitchProtect = void (*)(vm_map_t, boolean_t);
 	using t_vmMapCheckProtection = boolean_t (*)(vm_map_t, vm_offset_t, vm_offset_t, vm_prot_t);
 	using t_vmMapReadUser = kern_return_t (*)(vm_map_t, vm_map_address_t, const void *, vm_size_t);
 	using t_vmMapWriteUser = kern_return_t (*)(vm_map_t, const void *, vm_map_address_t, vm_size_t);
@@ -238,6 +239,7 @@ private:
 	t_currentMap orgCurrentMap {nullptr};
 	t_getMapMin orgGetMapMin {nullptr};
 	t_getTaskMap orgGetTaskMap {nullptr};
+	t_vmMapSwitchProtect orgVmMapSwitchProtect {nullptr};
 	t_vmMapCheckProtection orgVmMapCheckProtection {nullptr};
 	t_vmMapReadUser orgVmMapReadUser {nullptr};
 	t_vmMapWriteUser orgVmMapWriteUser {nullptr};
