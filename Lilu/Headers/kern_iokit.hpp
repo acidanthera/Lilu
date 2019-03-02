@@ -157,6 +157,8 @@ namespace WIOKit {
 			Ex3DController    = 0x030200,
 			DisplayController = 0x038000,
 			PCIBridge         = 0x060400,
+			// HDA device on some laptops liek Acer Aspire VN7-592G (INSYDE)
+			HDAMmDevice       = 0x040100,
 			// Watch out for PCISubclassMask, 0x040380 is common on laptops.
 			HDADevice         = 0x040300,
 			// This does not seem to be documented. It works on Haswell at least.

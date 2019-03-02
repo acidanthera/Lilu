@@ -239,7 +239,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				DBGLOG("dev", "found IGPU device %s", safeString(name));
 				videoBuiltin = obj;
 				requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
-			} else if (code == WIOKit::ClassCode::HDADevice) {
+			} else if (code == WIOKit::ClassCode::HDADevice || code == WIOKit::ClassCode::HDAMmDevice) {
 				if (vendor == WIOKit::VendorID::Intel && name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
 					DBGLOG("dev", "found HDAU device %s", safeString(name));
 					audioBuiltinDigital = obj;
@@ -273,7 +273,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 									   safeString(pciobj->getName()), safeString(name),  pcivendor);
 								v.video = pciobj;
 								v.vendor = pcivendor;
-							} else if (pcicode == WIOKit::ClassCode::HDADevice) {
+							} else if (pcicode == WIOKit::ClassCode::HDADevice || pcicode == WIOKit::ClassCode::HDAMmDevice) {
 								DBGLOG("dev", "found audio device %s at %s by %04X",
 									   safeString(pciobj->getName()), safeString(name), pcivendor);
 								v.audio = pciobj;
