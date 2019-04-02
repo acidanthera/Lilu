@@ -356,7 +356,7 @@ inline bool checkKernelArgument(const char *name) {
  *  @return numeric kernel version
  */
 constexpr size_t parseModuleVersion(const char *version) {
-	return (version[0] - '0') * 100 + (version[2] - '0') * 10 + (version[4] - '0');
+	return (size_t)(version[0] - '0') * 100 + (version[2] - '0') * 10 + (version[4] - '0');
 }
 
 /**
