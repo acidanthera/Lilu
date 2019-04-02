@@ -780,10 +780,8 @@ public:
 	 *  Erase evector element
 	 *
 	 *  @param index element index
-	 *
-	 *  @return true on success
 	 */
-	bool erase(size_t index, bool free=true) {
+	void erase(size_t index, bool free=true) {
 		deleter(ptr[index]);
 		if (--cnt != index)
 			lilu_os_memmove(&ptr[index], &ptr[index + 1], (cnt - index) * sizeof(T));
@@ -793,8 +791,6 @@ public:
 			ptr = nullptr;
 			rsvd = 0;
 		}
-
-		return true;
 	}
 	
 	/**
