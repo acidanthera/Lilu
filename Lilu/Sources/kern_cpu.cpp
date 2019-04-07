@@ -53,17 +53,24 @@ void CPUInfo::loadCpuInformation() {
 	currentStepping = ver.fmt.stepping;
 
 	// Last but not least detect CPU generation
-	uint32_t generation = 0;
-	if (PE_parse_boot_argn(Configuration::bootargCpu, &generation, sizeof(generation))) {
-		DBGLOG("cpu", "found CPU generation override %u", generation);
-		if (generation < static_cast<uint32_t>(CPUInfo::CpuGeneration::MaxGeneration)) {
-			currentGeneration = static_cast<CPUInfo::CpuGeneration>(generation);
-			return;
-		} else {
-			SYSLOG("cpu", "found invalid CPU generation override %u, falling back...", generation);
-		}
-	}
-
+//	uint32_t generation = 0;
+//	if (PE_parse_boot_argn(Configuration::bootargCpu, &generation, sizeof(generation))) {
+//		DBGLOG("cpu", "found CPU generation override %u", generation);
+//		if (generation < static_cast<uint32_t>(CPUInfo::CpuGeneration::MaxGeneration)) {
+//			currentGeneration = static_cast<CPUInfo::CpuGeneration>(generation);
+//			return;
+//		} else {
+//			SYSLOG("cpu", "found invalid CPU generation override %u, falling back...", generation);
+//		}
+//	}
+	
+	SYSLOG("cpu", "max: hardCoding currentFamily, currentModel, currentGeneration");
+	currentFamily = 6;
+	currentModel = CPU_MODEL_COFFEELAKE;
+	currentGeneration = CpuGeneration::CoffeeLake;
+	return;
+	
+/*
 	// Keep this mostly in sync to cpuid_set_cpufamily from osfmk/i386/cpuid.c
 	if (ver.fmt.family == 6) {
 		switch (currentModel) {
@@ -123,6 +130,7 @@ void CPUInfo::loadCpuInformation() {
 				break;
 		}
 	}
+ */
 }
 
 CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omodel, uint32_t *ostepping) {
