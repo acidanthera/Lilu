@@ -29,9 +29,9 @@ public:
 	static void activate();
 
 	/**
-	 *  Lilu custom GUIDs exports, see Headers/Guid/LiluVariables.h
+	 *  Lilu custom GUIDs exports, see OcSupportPkg/Include/Guid/OcVariables.h
 	 */
-	EXPORT static const EFI_GUID LiluNormalGuid;
+	EXPORT static const EFI_GUID LiluVendorGuid;
 	EXPORT static const EFI_GUID LiluReadOnlyGuid;
 	EXPORT static const EFI_GUID LiluWriteOnlyGuid;
 

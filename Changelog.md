@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.3.6
+- Lilu now uses OpenCore NVRAM variable GUIDs
+
 #### v1.3.5
 - Fixed analog audio device detection on certain laptops with Insyde firmware
 

@@ -235,7 +235,6 @@
 		CEC962431D835DE000E3E772 /* Changelog.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Changelog.md; sourceTree = "<group>"; };
 		CEC962461D835DE000E3E772 /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		CEC962471D835DE000E3E772 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		CED5DBE520A8538D001FE8CF /* LiluVariables.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LiluVariables.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -366,7 +365,6 @@
 		CE2E7B861E2C6A73009AC62A /* Headers */ = {
 			isa = PBXGroup;
 			children = (
-				CED5DBE420A8538D001FE8CF /* Guid */,
 				CE2E7BE91E2C7583009AC62A /* kern_api.hpp */,
 				CE80D65A21CC0B2C0051A8CB /* kern_atomic.hpp */,
 				CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */,
@@ -572,14 +570,6 @@
 				CEC962471D835DE000E3E772 /* README.md */,
 			);
 			name = Docs;
-			sourceTree = "<group>";
-		};
-		CED5DBE420A8538D001FE8CF /* Guid */ = {
-			isa = PBXGroup;
-			children = (
-				CED5DBE520A8538D001FE8CF /* LiluVariables.h */,
-			);
-			path = Guid;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -907,7 +897,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.5;
+				MODULE_VERSION = 1.3.6;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -970,7 +960,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.5;
+				MODULE_VERSION = 1.3.6;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
@@ -1082,7 +1072,7 @@
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
-				MODULE_VERSION = 1.3.5;
+				MODULE_VERSION = 1.3.6;
 				OTHER_CFLAGS = (
 					"-mmmx",
 					"-msse",
