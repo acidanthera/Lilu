@@ -214,7 +214,8 @@ bool DeviceInfo::isConnectorLessPlatformId(uint32_t id) {
 	id == ConnectorLessKabyLakePlatformId1 ||
 	id == ConnectorLessKabyLakePlatformId2 ||
 	id == ConnectorLessCoffeeLakePlatformId1 ||
-	id == ConnectorLessCoffeeLakePlatformId2;
+	id == ConnectorLessCoffeeLakePlatformId2 ||
+	id == ConnectorLessCoffeeLakePlatformId3;
 }
 
 void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {

@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.3.6
 - Lilu now uses OpenCore NVRAM variable GUIDs
+- Add support for `0x3E980003` frame id for CFL refresh
 
 #### v1.3.5
 - Fixed analog audio device detection on certain laptops with Insyde firmware
