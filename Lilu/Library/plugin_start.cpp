@@ -78,6 +78,7 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 		
 		if (error == LiluAPI::Error::NoError) {
 			DBGLOG("init", "%s bootstrap %s", xStringify(PRODUCT_NAME), kextVersion);
+			(void)kextVersion;
 			ADDPR(startSuccess) = true;
 			ADDPR(config).pluginStart();
 		} else {
