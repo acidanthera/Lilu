@@ -1,5 +1,7 @@
 Lilu Changelog
 ==============
+#### v1.3.7
+
 #### v1.3.6
 - Lilu now uses OpenCore NVRAM variable GUIDs
 - Add support for `0x3E980003` frame id for CFL refresh
