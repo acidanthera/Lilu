@@ -257,9 +257,9 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				DBGLOG("dev", "found pci bridge %s", safeString(name));
 				auto pciiterator = IORegistryIterator::iterateOver(obj, gIOServicePlane, kIORegistryIterateRecursively);
 				if (pciiterator) {
-					ExternalVideo v {};
 					IORegistryEntry *pciobj = nullptr;
 					while ((pciobj = OSDynamicCast(IORegistryEntry, pciiterator->getNextObject())) != nullptr) {
+						ExternalVideo v {};
 						uint32_t pcivendor = 0, pcicode = 0;
 						DBGLOG("dev", "found %s on pci bridge", safeString(pciobj->getName()));
 						if (WIOKit::getOSDataValue(pciobj, "vendor-id", pcivendor) &&
@@ -280,21 +280,21 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 								v.audio = pciobj;
 							}
 						}
+
+						if (v.video) {
+							DBGLOG_COND(v.audio, "dev", "marking audio device as HDAU at %s", safeString(v.audio->getName()));
+							if (!videoExternal.push_back(v))
+								SYSLOG("dev", "failed to push video gpu");
+						} else if (v.audio && !audioBuiltinAnalog) {
+							// On modern AMD platforms or VMware built-in audio devices sits on a PCI bridge just any other device.
+							// On AMD it has a distinct Ryzen device-id for the time being, yet on VMware it is just Intel.
+							// To distinguish the devices we use audio card presence as a marker.
+							DBGLOG("dev", "marking audio device as HDEF at %s", safeString(v.audio->getName()));
+							audioBuiltinAnalog = v.audio;
+						}
 					}
 
 					pciiterator->release();
-
-					if (v.video) {
-						DBGLOG_COND(v.audio, "dev", "marking audio device as HDAU at %s", safeString(v.audio->getName()));
-						if (!videoExternal.push_back(v))
-							SYSLOG("dev", "failed to push video gpu");
-					} else if (v.audio && !audioBuiltinAnalog) {
-						// On modern AMD platforms or VMware built-in audio devices sits on a PCI bridge just any other device.
-						// On AMD it has a distinct Ryzen device-id for the time being, yet on VMware it is just Intel.
-						// To distinguish the devices we use audio card presence as a marker.
-						DBGLOG("dev", "marking audio device as HDEF at %s", safeString(v.audio->getName()));
-						audioBuiltinAnalog = v.audio;
-					}
 				}
 			}
 		}
