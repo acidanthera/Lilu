@@ -1,6 +1,7 @@
 Lilu Changelog
 ==============
 #### v1.3.7
+- Allow loading on 10.15 without `-lilubetaall`
 
 #### v1.3.6
 - Lilu now uses OpenCore NVRAM variable GUIDs

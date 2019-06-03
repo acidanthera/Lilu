@@ -47,7 +47,7 @@ private:
 	/**
 	 * Maxmimum supported kernel version
 	 */
-	static constexpr KernelVersion maxKernel {KernelVersion::Mojave};
+	static constexpr KernelVersion maxKernel {KernelVersion::Catalina};
 
 	/**
 	 *  Set once the arguments are parsed

@@ -311,6 +311,7 @@ enum KernelVersion {
 	Sierra        = 16,
 	HighSierra    = 17,
 	Mojave        = 18,
+	Catalina      = 19,
 };
 
 /**
