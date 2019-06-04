@@ -219,7 +219,7 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 
 		if (opts & OptSensitive)
 			Crypto::zeroMemory(data->getLength(), const_cast<void *>(data->getBytesNoCopy()));
-		data->free();
+		data->release();
 	}
 
 	return false;
@@ -277,7 +277,7 @@ bool NVStorage::save(const char *filename, uint32_t max, bool sensitive) {
 		int error = FileIO::writeBufferToFile(filename, s->text(), s->getLength());
 		if (sensitive)
 			Crypto::zeroMemory(s->getLength(), s->text());
-		s->free();
+		s->release();
 		
 		return error == 0;
 	} else {
