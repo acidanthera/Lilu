@@ -57,6 +57,12 @@ extern "C" {
 #include <kern/thread_call.h>
 }
 
+#ifndef LIBKERN_RETURNS_NOT_RETAINED
+#define LIBKERN_RETURNS_NOT_RETAINED
+#define LIBKERN_RETURNS_RETAINED
+#define LIBKERN_CONSUMED
+#endif
+
 #ifndef UINT64_MAX
 #define UINT64_MAX        18446744073709551615ULL
 #endif
@@ -465,7 +471,7 @@ public:
     @param score Pointer to the current driver's probe score, which is used to order multiple matching drivers in the same match category. It defaults to the value of the <code>IOProbeScore</code> property in the drivers property table, or <code>kIODefaultProbeScore</code> if none is specified. The <code>probe</code> method may alter the score to affect start order.
     @result An IOService instance or zero when the probe is unsuccessful. In almost all cases the value of <code>this</code> is returned on success. If another IOService object is returned, the probed instance is detached and freed, and the returned instance is used in its stead for <code>start</code>. */
     
-    virtual IOService * probe(	IOService * 	provider,
+    virtual LIBKERN_RETURNS_NOT_RETAINED IOService * probe(	IOService * 	provider,
 				SInt32 	  *	score );
 
 /*! @function start
@@ -632,7 +638,7 @@ public:
     @param client The IOService object at which matching is taking place.
     @result Returns the IOService instance to be used for location matching. */
 
-    virtual IOService * matchLocation( IOService * client );
+    virtual LIBKERN_RETURNS_NOT_RETAINED IOService * matchLocation( IOService * client );
 
     /* Resource service */
 
@@ -707,7 +713,7 @@ public:
     @param timeout The maximum time to wait.
     @result A published IOService object matching the supplied dictionary. */
 
-    static IOService * waitForService( OSDictionary * matching,
+    static LIBKERN_RETURNS_NOT_RETAINED IOService * waitForService( LIBKERN_CONSUMED OSDictionary * matching,
                             mach_timespec_t * timeout = 0);
 
 /*! @function waitForMatchingService
@@ -1155,10 +1161,10 @@ public:
 
     virtual IOReturn newUserClient( task_t owningTask, void * securityID,
                                     UInt32 type, OSDictionary * properties,
-                                    IOUserClient ** handler );
+                                    LIBKERN_RETURNS_RETAINED IOUserClient ** handler );
 
     virtual IOReturn newUserClient( task_t owningTask, void * securityID,
-                                    UInt32 type, IOUserClient ** handler );
+                                    UInt32 type, LIBKERN_RETURNS_RETAINED IOUserClient ** handler );
 
     /* Return code utilities */
 
@@ -1284,7 +1290,7 @@ private:
 	APPLE_KEXT_COMPATIBILITY_VIRTUAL
     IOReturn resolveInterrupt(IOService *nub, int source);
 	APPLE_KEXT_COMPATIBILITY_VIRTUAL
-    IOReturn lookupInterrupt(int source, bool resolve, IOInterruptController **interruptController);
+    IOReturn lookupInterrupt(int source, bool resolve, LIBKERN_RETURNS_NOT_RETAINED IOInterruptController **interruptController);
 
 
     /* power management */
