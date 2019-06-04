@@ -11,6 +11,7 @@
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
+#include <Library/LegacyLibkernMacros.h>
 
 #include <libkern/c++/OSSerialize.h>
 #include <IOKit/IORegistryEntry.h>
@@ -118,7 +119,7 @@ namespace WIOKit {
 	 *
 	 *  @return property object (must be released) or nullptr
 	 */
-	EXPORT OSSerialize *getProperty(IORegistryEntry *entry, const char *property);
+	EXPORT LIBKERN_RETURNS_RETAINED OSSerialize *getProperty(IORegistryEntry *entry, const char *property);
 
 	/**
 	 *  Model variants
@@ -280,7 +281,7 @@ namespace WIOKit {
 	 *
 	 *  @return entry pointer (must NOT be released) or nullptr (on failure or in proc mode)
 	 */
-	EXPORT IORegistryEntry *findEntryByPrefix(const char *path, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *)=nullptr, bool brute=false, void *user=nullptr);
+	EXPORT LIBKERN_RETURNS_NOT_RETAINED IORegistryEntry *findEntryByPrefix(const char *path, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *)=nullptr, bool brute=false, void *user=nullptr);
 
 	/**
 	 *  Retrieve an ioreg entry by path/prefix
@@ -294,7 +295,7 @@ namespace WIOKit {
 	 *
 	 *  @return entry pointer (must NOT be released) or nullptr (on failure or in proc mode)
 	 */
-	EXPORT IORegistryEntry *findEntryByPrefix(IORegistryEntry *entry, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *)=nullptr, bool brute=false, void *user=nullptr);
+	EXPORT LIBKERN_RETURNS_NOT_RETAINED IORegistryEntry *findEntryByPrefix(IORegistryEntry *entry, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *)=nullptr, bool brute=false, void *user=nullptr);
 
 	/**
 	 *  Check if we are using prelinked kernel/kexts or not

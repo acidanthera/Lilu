@@ -76,6 +76,7 @@
 		CE405ECB1E49EAC800AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */; };
 		CE405ECD1E49EB9500AA0B3D /* kern_start.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405ECC1E49EB9500AA0B3D /* kern_start.hpp */; };
 		CE405EDC1E4A278A00AA0B3D /* kern_config.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE405EDB1E4A278A00AA0B3D /* kern_config.hpp */; };
+		CE6A5E3E22A6F3F800B36F24 /* LegacyLibkernMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = CE6A5E3D22A6F3F800B36F24 /* LegacyLibkernMacros.h */; };
 		CE744A8E1F42100E0077C377 /* hde64.c in Sources */ = {isa = PBXBuildFile; fileRef = CE744A8A1F42100E0077C377 /* hde64.c */; };
 		CE744A8F1F42100E0077C377 /* hde64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8B1F42100E0077C377 /* hde64.h */; };
 		CE744A911F42100E0077C377 /* table64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8D1F42100E0077C377 /* table64.h */; };
@@ -198,6 +199,7 @@
 		CE5E79D5205D803C0025560A /* entry64.S */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = entry64.S; sourceTree = "<group>"; };
 		CE5E79D8205D9E470025560A /* build.tool */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = build.tool; sourceTree = "<group>"; };
 		CE5E79DA205DAEEB0025560A /* wrappers.inc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.pascal; path = wrappers.inc; sourceTree = "<group>"; };
+		CE6A5E3D22A6F3F800B36F24 /* LegacyLibkernMacros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LegacyLibkernMacros.h; sourceTree = "<group>"; };
 		CE744A8A1F42100E0077C377 /* hde64.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hde64.c; sourceTree = "<group>"; };
 		CE744A8B1F42100E0077C377 /* hde64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hde64.h; sourceTree = "<group>"; };
 		CE744A8C1F42100E0077C377 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
@@ -449,6 +451,7 @@
 				CE75B9531EFB619C00D29B40 /* security */,
 				CE5E79D3205D803C0025560A /* wrappers */,
 				CE2E7BE31E2C73B1009AC62A /* LegacyIOService.h */,
+				CE6A5E3D22A6F3F800B36F24 /* LegacyLibkernMacros.h */,
 				CE2E7BE41E2C73B1009AC62A /* libkmod.a */,
 				CE405ED51E4A005F00AA0B3D /* plugin_start.cpp */,
 			);
@@ -583,6 +586,7 @@
 				CE2E7B961E2C6A73009AC62A /* kern_iokit.hpp in Headers */,
 				CE2E7B9C1E2C6A73009AC62A /* kern_user.hpp in Headers */,
 				CE2E7B971E2C6A73009AC62A /* kern_mach.hpp in Headers */,
+				CE6A5E3E22A6F3F800B36F24 /* LegacyLibkernMacros.h in Headers */,
 				CEB6D9861F69B42D005B6AC3 /* cccmac.h in Headers */,
 				CE2E7B991E2C6A73009AC62A /* kern_policy.hpp in Headers */,
 				CE2E7B941E2C6A73009AC62A /* kern_disasm.hpp in Headers */,
@@ -669,7 +673,7 @@
 		1C748C1E1C21952C0024EED2 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1100;
 				ORGANIZATIONNAME = vit9696;
 				TargetAttributes = {
 					1C748C261C21952C0024EED2 = {
@@ -868,6 +872,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
 				DEPLOYMENT_POSTPROCESSING = YES;
@@ -931,6 +936,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
 				DEAD_CODE_STRIPPING = YES;
 				DEPLOYMENT_POSTPROCESSING = YES;
@@ -1043,6 +1049,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
 				DEPLOYMENT_POSTPROCESSING = YES;
