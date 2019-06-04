@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.3.7
 - Allow loading on 10.15 without `-lilubetaall`
 - Add support for Xcode 11 analysis tools
+- Add workaround to 10.15 SDK Dispatch method (use old Xcode when possible)
 
 #### v1.3.6
 - Lilu now uses OpenCore NVRAM variable GUIDs
