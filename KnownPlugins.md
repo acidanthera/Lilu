@@ -9,7 +9,7 @@ Please note that improperly written immature plugins will not be listed there.
 [AirportBrcmFixup](https://github.com/acidanthera/AirportBrcmFixup) | Various patches for Broadcom Airport Wi-Fi cards
 [AppleALC](https://github.com/acidanthera/AppleALC) | Native macOS HD audio for not officially supported codecs
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards
-[BT4LEContiunityFixup](https://github.com/acidanthera/BT4LEContiunityFixup) | Enable BT4LE-Handoff-Hotspot features
+[BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Enable BT4LE-Handoff-Hotspot features
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
