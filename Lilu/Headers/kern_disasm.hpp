@@ -140,7 +140,7 @@ public:
 		bool addr;          // if you want to return the address of exact inst in sig
 		
 		static DisasmSig *create() { return new DisasmSig; }
-		static void deleter(DisasmSig *sig) { delete sig; }
+		static void deleter(DisasmSig *sig NONNULL) { delete sig; }
 	};
 	
 	/**

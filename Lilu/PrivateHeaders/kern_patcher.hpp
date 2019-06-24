@@ -110,7 +110,7 @@ namespace Patch {
 		return new All(P<T>(addr, org, rep));
 	}
 	
-	static void deleter(All *i) {
+	static void deleter(All *i NONNULL) {
 		delete i;
 	}
 }

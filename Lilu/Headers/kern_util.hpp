@@ -190,6 +190,11 @@ extern proc_t kernproc;
 #define DEPRECATE(x) __attribute__((deprecated(x)))
 
 /**
+ *  Non-null argument
+ */
+#define NONNULL __attribute__((nonnull))
+
+/**
  *  Macros to bypass kernel address printing protection
  */
 #define PRIKADDR "0x%08X%08X"
@@ -522,7 +527,7 @@ namespace Buffer {
 	}
 	
 	template <typename T>
-	inline void deleter(T *buf) {
+	inline void deleter(T *buf NONNULL) {
 		lilu_os_free(buf);
 	}
 }
@@ -552,7 +557,7 @@ struct Page {
 	 *
 	 *  @param p page
 	 */
-	EXPORT static void deleter(Page *p);
+	EXPORT static void deleter(Page *p NONNULL);
 	
 	/**
 	 *  Creates a page object
@@ -684,7 +689,7 @@ struct ppair {
 		return new ppair;
 	}
 	
-	static void deleter(ppair *p) {
+	static void deleter(ppair *p NONNULL) {
 		deleterT(p->first);
 		deleterY(p->second);
 		delete p;

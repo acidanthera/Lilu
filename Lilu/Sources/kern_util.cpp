@@ -110,11 +110,9 @@ Page *Page::create() {
 }
 
 void Page::deleter(Page *i) {
-	if (i) {
-		if (i->p)
-			vm_deallocate(kernel_map, reinterpret_cast<vm_address_t>(i->p), PAGE_SIZE);
-		delete i;
-	}
+	if (i->p)
+		vm_deallocate(kernel_map, reinterpret_cast<vm_address_t>(i->p), PAGE_SIZE);
+	delete i;
 }
 
 #ifdef __MAC_10_15

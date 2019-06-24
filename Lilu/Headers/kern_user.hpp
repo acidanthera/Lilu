@@ -381,7 +381,7 @@ private:
 			static PatchRef *create() {
 				return new PatchRef;
 			}
-			static void deleter(PatchRef *r) {
+			static void deleter(PatchRef *r NONNULL) {
 				r->pageOffs.deinit();
 				r->segOffs.deinit();
 				delete r;
@@ -405,7 +405,7 @@ private:
 			return p;
 		}
 		
-		static void deleter(LookupStorage *p) {
+		static void deleter(LookupStorage *p NONNULL) {
 			if (p->page) {
 				Page::deleter(p->page);
 				p->page = nullptr;

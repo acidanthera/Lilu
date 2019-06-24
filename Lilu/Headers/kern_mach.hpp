@@ -174,7 +174,7 @@ public:
 	 *  @return MachInfo object or nullptr
 	 */
 	static MachInfo *create(bool asKernel=false, const char *id=nullptr) { return new MachInfo(asKernel, id); }
-	static void deleter(MachInfo *i) { delete i; }
+	static void deleter(MachInfo *i NONNULL) { delete i; }
 
 	/**
 	 *  Resolve mach data in the kernel

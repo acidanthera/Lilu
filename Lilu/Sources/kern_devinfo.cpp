@@ -366,8 +366,6 @@ DeviceInfo *DeviceInfo::create() {
 }
 
 void DeviceInfo::deleter(DeviceInfo *d) {
-	if (d) {
-		d->videoExternal.deinit();
-		delete d;
-	}
+	d->videoExternal.deinit();
+	delete d;
 }

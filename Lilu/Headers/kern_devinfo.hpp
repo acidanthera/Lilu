@@ -267,7 +267,7 @@ public:
 	 *
 	 *  @param d  device list
 	 */
-	EXPORT static void deleter(DeviceInfo *d);
+	EXPORT static void deleter(DeviceInfo *d NONNULL);
 };
 
 #endif /* kern_devinfo_h */

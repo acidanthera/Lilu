@@ -16,7 +16,7 @@
 
 #include <mach/mach_types.h>
 
-namespace Patch { union All; void deleter(All *); }
+namespace Patch { union All; void deleter(All * NONNULL); }
 #ifdef LILU_KEXTPATCH_SUPPORT
 struct OSKextLoadedKextSummaryHeader;
 struct OSKextLoadedKextSummary;
@@ -248,7 +248,7 @@ public:
 		static KextHandler *create(const char * const i, size_t idx, t_handler h, bool l=false, bool r=false) {
 			return new KextHandler(i, idx, h, l, r);
 		}
-		static void deleter(KextHandler *i) {
+		static void deleter(KextHandler *i NONNULL) {
 			delete i;
 		}
 		
