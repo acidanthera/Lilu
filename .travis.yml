@@ -31,7 +31,7 @@ matrix:
       - xcodebuild analyze -quiet -scheme Lilu -configuration Release CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
 
   - os: osx
-		osx_image: xcode10.2
+    osx_image: xcode10.2
     compiler: clang
 
     before_install:
