@@ -84,6 +84,11 @@ void lilu_os_log(const char *format, ...);
 #define __arraycount(a) (sizeof((a)) / sizeof((a)[0]))
 #endif
 
+// We have that in kern_util.hpp, but that's C
+#ifndef __unreachable
+#define __unreachable() __builtin_unreachable()
+#endif
+
 // Printing macros are not defined by libkern
 #ifndef PRIx8
 #define PRIx8 "hhx"
