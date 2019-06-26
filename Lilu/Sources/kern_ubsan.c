@@ -175,6 +175,13 @@ struct CFunctionTypeMismatchData {
 	struct CTypeDescriptor *mType;
 };
 
+struct CImplicitConversionData {
+	struct CSourceLocation mLocation;
+	struct CTypeDescriptor *mFromType;
+	struct CTypeDescriptor *mToType;
+	uint8_t mKind;
+};
+
 struct CInvalidBuiltinData {
 	struct CSourceLocation mLocation;
 	uint8_t mKind;
@@ -259,6 +266,7 @@ static void DeserializeNumber(char *szLocation, char *pBuffer, size_t zBUfferLen
 static const char *DeserializeTypeCheckKind(uint8_t hhuTypeCheckKind);
 static const char *DeserializeBuiltinCheckKind(uint8_t hhuBuiltinCheckKind);
 static const char *DeserializeCFICheckKind(uint8_t hhuCFICheckKind);
+static const char *DeserializeImplicitConversionCheckKind(uint8_t hhuImplicitConversionCheckKind);
 static bool isNegativeNumber(char *szLocation, struct CTypeDescriptor *pType, unsigned long ulNumber);
 static bool isShiftExponentTooLarge(char *szLocation, struct CTypeDescriptor *pType, unsigned long ulNumber, size_t zWidth);
 
@@ -280,6 +288,8 @@ void __ubsan_handle_float_cast_overflow(struct CFloatCastOverflowData *pData, un
 void __ubsan_handle_float_cast_overflow_abort(struct CFloatCastOverflowData *pData, unsigned long ulFrom);
 void __ubsan_handle_function_type_mismatch(struct CFunctionTypeMismatchData *pData, unsigned long ulFunction);
 void __ubsan_handle_function_type_mismatch_abort(struct CFunctionTypeMismatchData *pData, unsigned long ulFunction);
+void __ubsan_handle_implicit_conversion(struct CImplicitConversionData *pData, unsigned long ulFrom, unsigned long ulTo);
+void __ubsan_handle_implicit_conversion_abort(struct CImplicitConversionData *pData, unsigned long ulFrom, unsigned long ulTo);
 void __ubsan_handle_invalid_builtin(struct CInvalidBuiltinData *pData);
 void __ubsan_handle_invalid_builtin_abort(struct CInvalidBuiltinData *pData);
 void __ubsan_handle_load_invalid_value(struct CInvalidValueData *pData, unsigned long ulVal);
@@ -320,6 +330,7 @@ static void HandleTypeMismatch(bool isFatal, struct CSourceLocation *mLocation, 
 static void HandleVlaBoundNotPositive(bool isFatal, struct CVLABoundData *pData, unsigned long ulBound);
 static void HandleOutOfBounds(bool isFatal, struct COutOfBoundsData *pData, unsigned long ulIndex);
 static void HandleShiftOutOfBounds(bool isFatal, struct CShiftOutOfBoundsData *pData, unsigned long ulLHS, unsigned long ulRHS);
+static void HandleImplicitConversion(bool isFatal, struct CImplicitConversionData *pData, unsigned long ulFrom, unsigned long ulTo);
 static void HandleLoadInvalidValue(bool isFatal, struct CInvalidValueData *pData, unsigned long ulValue);
 static void HandleInvalidBuiltin(bool isFatal, struct CInvalidBuiltinData *pData);
 static void HandleFunctionTypeMismatch(bool isFatal, struct CFunctionTypeMismatchData *pData, unsigned long ulFunction);
@@ -474,6 +485,26 @@ HandleShiftOutOfBounds(bool isFatal, struct CShiftOutOfBoundsData *pData, unsign
 	else
 		Report(isFatal, "UBSan: Undefined Behavior in %s, left shift of %s by %s places cannot be represented in type %s\n",
 		       szLocation, szLHS, szRHS, pData->mLHSType->mTypeName);
+}
+
+static void
+HandleImplicitConversion(bool isFatal, struct CImplicitConversionData *pData, unsigned long ulFrom, unsigned long ulTo)
+{
+	char szLocation[LOCATION_MAXLEN];
+	char szFrom[NUMBER_MAXLEN];
+	char szTo[NUMBER_MAXLEN];
+
+	ASSERT(pData);
+
+	if (isAlreadyReported(&pData->mLocation))
+		return;
+
+	DeserializeLocation(szLocation, LOCATION_MAXLEN, &pData->mLocation);
+	DeserializeNumber(szLocation, szFrom, NUMBER_MAXLEN, pData->mFromType, ulFrom);
+	DeserializeNumber(szLocation, szTo, NUMBER_MAXLEN, pData->mToType, ulTo);
+
+	Report(isFatal, "UBSAN: Undefined Behavior in %s, %s from %s to %s\n",
+	       szLocation, DeserializeImplicitConversionCheckKind(pData->mKind), pData->mFromType->mTypeName, pData->mToType->mTypeName);
 }
 
 static void
@@ -807,6 +838,23 @@ __ubsan_handle_function_type_mismatch_abort(struct CFunctionTypeMismatchData *pD
 	ASSERT(pData);
 
 	HandleFunctionTypeMismatch(false, pData, ulFunction);
+}
+
+void
+__ubsan_handle_implicit_conversion(struct CImplicitConversionData *pData, unsigned long ulFrom, unsigned long ulTo)
+{
+	ASSERT(pData);
+
+	HandleImplicitConversion(false, pData, ulFrom, ulTo);
+}
+
+void
+__ubsan_handle_implicit_conversion_abort(struct CImplicitConversionData *pData, unsigned long ulFrom, unsigned long ulTo)
+{
+
+	ASSERT(pData);
+
+	HandleImplicitConversion(false, pData, ulFrom, ulTo);
 }
 
 void
@@ -1614,6 +1662,22 @@ DeserializeCFICheckKind(uint8_t hhuCFICheckKind)
 	ASSERT(__arraycount(rgczCFICheckKinds) > hhuCFICheckKind);
 
 	return rgczCFICheckKinds[hhuCFICheckKind];
+}
+
+static const char *
+DeserializeImplicitConversionCheckKind(uint8_t hhuImplicitConversionCheckKind)
+{
+	const char *rgczImplicitConversionCheckKind[] = {
+		"integer truncation",
+		"unsigned integer truncation",
+		"signed integer truncation",
+		"integer sign change",
+		"signed integer trunctation or sign change",
+	};
+
+	ASSERT(__arraycount(rgczImplicitConversionCheckKind) > hhuImplicitConversionCheckKind);
+
+	return rgczImplicitConversionCheckKind[hhuImplicitConversionCheckKind];
 }
 
 static bool
