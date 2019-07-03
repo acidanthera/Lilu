@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.3.8
+- Compile Xcode 11 OSObject stubs into plugins to allow mixing compilers
+
 #### v1.3.7
 - Allow loading on 10.15 without `-lilubetaall`
 - Add support for Xcode 11 analysis tools

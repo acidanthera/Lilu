@@ -68,6 +68,11 @@ extern proc_t kernproc;
 #define UNREACHABLE() do { __builtin_unreachable(); } while (0)
 
 /**
+ *  For private fallback symbol definition
+ */
+#define WEAKFUNC __attribute__((weak))
+
+/**
  *  Conditional logging to system log prefixed with you plugin name
  *
  *  @param cond  precondition
