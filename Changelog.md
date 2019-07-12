@@ -1,10 +1,9 @@
 Lilu Changelog
 ==============
-#### v1.3.9
-- Unified release archive names
 
 #### v1.3.8
 - Compile Xcode 11 OSObject stubs into plugins to allow mixing compilers
+- Unified release archive names
 
 #### v1.3.7
 - Allow loading on 10.15 without `-lilubetaall`
