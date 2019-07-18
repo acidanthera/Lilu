@@ -120,7 +120,7 @@ namespace WIOKit {
 		device = getDevice(service);
 		function = getFunction(service);
 	}
-	
+
 	int getComputerModel() {
 		char model[64];
 		if (getComputerInfo(model, sizeof(model), nullptr, 0) && model[0] != '\0') {
@@ -131,7 +131,7 @@ namespace WIOKit {
 		}
 		return ComputerModel::ComputerAny;
 	}
-	
+
 	bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz) {
 		auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
 		if (entry) {
@@ -144,7 +144,7 @@ namespace WIOKit {
 					model[0] = '\0';
 				}
 			}
-			
+
 			if (board && boardsz > 0) {
 				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
 				if (data && data->getLength() > 0) {
@@ -154,15 +154,15 @@ namespace WIOKit {
 					board[0] = '\0';
 				}
 			}
-			
+
 			entry->release();
 			return true;
 		}
-		
+
 		DBGLOG("iokit", "failed to get DT entry");
 		return false;
 	}
-	
+
 	IORegistryEntry *findEntryByPrefix(const char *path, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *), bool brute, void *user) {
 		auto entry = IORegistryEntry::fromPath(path, plane);
 		if (entry) {
@@ -173,23 +173,23 @@ namespace WIOKit {
 		DBGLOG("iokit", "failed to get %s entry", path);
 		return nullptr;
 	}
-	
+
 
 	IORegistryEntry *findEntryByPrefix(IORegistryEntry *entry, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *), bool brute, void *user) {
 		bool found {false};
 		IORegistryEntry *res {nullptr};
-		
+
 		size_t bruteCount {0};
-		
+
 		do {
 			bruteCount++;
 			auto iterator = entry->getChildIterator(plane);
-			
+
 			if (iterator) {
 				size_t len = strlen(prefix);
 				while ((res = OSDynamicCast(IORegistryEntry, iterator->getNextObject())) != nullptr) {
 					const char *resname = res->getName();
-					
+
 					if (resname && !strncmp(prefix, resname, len)) {
 						found = proc ? proc(user, res) : true;
 						if (found) {
@@ -201,15 +201,15 @@ namespace WIOKit {
 						}
 					}
 				}
-				
+
 				iterator->release();
 			} else {
 				SYSLOG("iokit", "failed to iterate over entry");
 				return nullptr;
 			}
-			
+
 		} while (brute && bruteCount < bruteMax && !found);
-		
+
 		if (!found)
 			DBGLOG("iokit", "failed to find %s", prefix);
 		return proc ? nullptr : res;

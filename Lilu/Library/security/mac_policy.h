@@ -6858,7 +6858,7 @@ void            mac_label_set(struct label *l, int slot, intptr_t v);
 #define MAC_NOWAIT  1
 
 /*@}*/
-	
+
 #ifdef __cplusplus
 }
 #endif

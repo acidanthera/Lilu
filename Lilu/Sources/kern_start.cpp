@@ -44,7 +44,7 @@ bool PRODUCT_NAME::start(IOService *provider) {
 		SYSLOG("init", "failed to start the parent");
 		return false;
 	}
-	
+
 	return ADDPR(config).startSuccess;
 }
 
@@ -56,16 +56,16 @@ Configuration ADDPR(config);
 
 bool Configuration::performInit() {
 	kernelPatcher.init();
-		
+
 	if (kernelPatcher.getError() != KernelPatcher::Error::NoError) {
 		DBGLOG("config", "failed to initialise kernel patcher");
 		kernelPatcher.deinit();
 		kernelPatcher.clearError();
 		return false;
 	}
-	
+
 	lilu.processPatcherLoadCallbacks(kernelPatcher);
-	
+
 	bool ok = userPatcher.init(kernelPatcher, preferSlowMode);
 	if (ok) {
 		// We are safely locked, just need to ensure atomicity
@@ -77,9 +77,9 @@ bool Configuration::performInit() {
 		kernelPatcher.clearError();
 		return false;
 	}
-	
+
 	lilu.processUserLoadCallbacks(userPatcher);
-	
+
 	lilu.activate(kernelPatcher, userPatcher);
 
 	return true;
@@ -164,7 +164,7 @@ void Configuration::saveCustomDebugOnDisk(thread_call_param_t, thread_call_param
 
 bool Configuration::getBootArguments() {
 	if (readArguments) return !isDisabled;
-	
+
 	isDisabled = false;
 
 	betaForAll = checkKernelArgument(bootargBetaAll);
@@ -182,7 +182,7 @@ bool Configuration::getBootArguments() {
 	isDisabled |= checkKernelArgument(bootargOff);
 	if (!checkKernelArgument(bootargForce)) {
 		isDisabled |= checkKernelArgument("-s");
-		
+
 		if (!KernelPatcher::compatibleKernel(minKernel, maxKernel)) {
 			if (!betaForAll && !checkKernelArgument(bootargBeta)) {
 				SYSLOG("config", "automatically disabling on an unsupported operating system");
@@ -221,15 +221,15 @@ bool Configuration::getBootArguments() {
 		if (!isDisabled) SYSLOG("config", "enforcing -liluslow on Mavericks and lower");
 		preferSlowMode = true;
 	}
-	
+
 	if (!preferSlowMode && installOrRecovery) {
 		// Since vdyld shared cache is not available
 		if (!isDisabled) SYSLOG("config", "enforcing -liluslow in installer or recovery");
 		preferSlowMode = true;
 	}
-	
+
 	readArguments = true;
-	
+
 	DBGLOG("config", "version %s, args: disabled %d, debug %d, slow %d, decompress %d",
 		   kextVersion, isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
 
@@ -243,7 +243,7 @@ bool Configuration::getBootArguments() {
 			policyOps.mpo_mount_check_remount = policyCheckRemount;
 		}
 	}
-	
+
 	return !isDisabled;
 }
 
@@ -281,7 +281,7 @@ extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 
 		ADDPR(config).registerPolicy();
 	}
-	
+
 	return KERN_SUCCESS;
 }
 

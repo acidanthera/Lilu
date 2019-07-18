@@ -17,12 +17,12 @@ namespace Crypto {
 	 *  Currently this is equal to both key size and block size
 	 */
 	static constexpr uint32_t BlockSize = 16;
-	
+
 	/**
 	 *  Currently this is guaranteed hash size
 	 */
 	static constexpr uint32_t MinDigestSize = 32;
-	
+
 	/**
 	 *  Encrypted data format
 	 */
@@ -32,13 +32,13 @@ namespace Crypto {
 			uint32_t size;				               // Actual encrypted buffer size
 			uint8_t buf[BlockSize - sizeof(uint32_t)]; // Encrypted buffer >= BlockSize
 		};
-		
+
 		union {
 			Data enc;
 			uint8_t buf[BlockSize];
 		};
 	};
-	
+
 	/**
 	 *  Securely erase memory buffer
 	 *  Based off cc_clear from corecrypto (src/cc_clear.c)
@@ -58,7 +58,7 @@ namespace Crypto {
 	 *  @return generated key of at least BlockSize bits long (must be freeded by Buffer::deleter) or nullptr
 	 */
 	EXPORT uint8_t *genUniqueKey(uint32_t size=BlockSize);
-	
+
 	/**
 	 *  Encrypts data of specified size and stores in Encrypted format
 	 *
@@ -69,7 +69,7 @@ namespace Crypto {
 	 *  @param encrypted data in Encrypted format (must be freeded by Buffer::deleter) or nullptr
 	 */
 	EXPORT uint8_t *encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size);
-	
+
 	/**
 	 *  Decrypts data of specified size stored in Encrypted format
 	 *

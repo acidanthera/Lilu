@@ -238,7 +238,7 @@ namespace WIOKit {
 	 *  @param space    adress space
 	 *  @param size     read size for reading custom registers
 	 */
-    EXPORT uint32_t readPCIConfigValue(IORegistryEntry *service, uint32_t reg, uint32_t space = 0, uint32_t size = 0);
+	EXPORT uint32_t readPCIConfigValue(IORegistryEntry *service, uint32_t reg, uint32_t space = 0, uint32_t size = 0);
 
 	/**
 	 *  Retrieve PCI device address
@@ -248,7 +248,7 @@ namespace WIOKit {
 	 *  @param device    device address
 	 *  @param function  function address
 	 */
-    EXPORT void getDeviceAddress(IORegistryEntry *service, uint8_t &bus, uint8_t &device, uint8_t &function);
+	EXPORT void getDeviceAddress(IORegistryEntry *service, uint8_t &bus, uint8_t &device, uint8_t &function);
 
 	/**
 	 *  Retrieve the computer type
@@ -313,7 +313,7 @@ namespace WIOKit {
 	 *
 	 *  @return true on success
 	 */
-    EXPORT bool renameDevice(IORegistryEntry *entry, const char *name, bool compat=true);
+	EXPORT bool renameDevice(IORegistryEntry *entry, const char *name, bool compat=true);
 }
 
 #endif /* kern_iokit_hpp */

@@ -34,7 +34,7 @@
 
 kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *prelink, bool fsfallback) {
 	kern_return_t error = KERN_FAILURE;
-	
+
 	allow_decompress = ADDPR(config).allowDecompress;
 
 	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
@@ -218,42 +218,42 @@ mach_vm_address_t MachInfo::findKernelBase() {
 
 bool MachInfo::setInterrupts(bool enable) {
 	unsigned long flags;
-	
+
 	if (enable)
 		asm volatile("pushf; pop %0; sti" : "=r"(flags));
 	else
 		asm volatile("pushf; pop %0; cli" : "=r"(flags));
-	
+
 	return static_cast<bool>(flags & EFL_IF) != enable;
 }
 
 kern_return_t MachInfo::setKernelWriting(bool enable, IOSimpleLock *lock) {
 	static bool interruptsDisabled = false;
-	
+
 	kern_return_t res = KERN_SUCCESS;
-	
+
 	if (enable) {
 		// Disable preemption
 		if (lock) IOSimpleLockLock(lock);
-		
+
 		// Disable interrupts
 		interruptsDisabled = !setInterrupts(false);
 	}
-	
+
 	if (setWPBit(!enable) != KERN_SUCCESS) {
 		SYSLOG("mach", "failed to set wp bit to %d", !enable);
 		enable = false;
 		res = KERN_FAILURE;
 	}
-	
+
 	if (!enable) {
 		// Enable interrupts if they were on previously
 		if (!interruptsDisabled) setInterrupts(true);
-		
+
 		// Enable preemption
 		if (lock) IOSimpleLockUnlock(lock);
 	}
-	
+
 	return res;
 }
 
@@ -262,17 +262,17 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 		SYSLOG("mach", "no loaded linkedit buffer found");
 		return 0;
 	}
-	
+
 	if (!symboltable_fileoff) {
 		SYSLOG("mach", "no symtable offsets found");
 		return 0;
 	}
-	
+
 	if (!kaslr_slide_set) {
 		SYSLOG("mach", "no slide is present");
 		return 0;
 	}
-	
+
 	// symbols and strings offsets into LINKEDIT
 	// we just read the __LINKEDIT but fileoff values are relative to the full Mach-O
 	// subtract the base of LINKEDIT to fix the value into our buffer
@@ -311,7 +311,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 		SYSLOG("mach", "mach header read failed with %d error", error);
 		return KERN_FAILURE;
 	}
-	
+
 	while (1) {
 		auto magicPtr = reinterpret_cast<uint32_t *>(buffer);
 		if (!isAligned(magicPtr)) {
@@ -396,7 +396,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 				return KERN_FAILURE;
 		}
 	}
-	
+
 	return KERN_FAILURE;
 }
 
@@ -437,7 +437,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 	vmsegment = vmsection = 0;
 	sectionptr = 0;
 	sectionSize = 0;
-	
+
 	auto header = static_cast<mach_header *>(ptr);
 	auto cmd = static_cast<load_command *>(ptr);
 
@@ -528,7 +528,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						DBGLOG("mach", "found section %s size %u in segment %lu", sectionName, sno, vmsegment);
 						return;
 					}
-					
+
 					sect++;
 				}
 			}
@@ -557,12 +557,12 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						DBGLOG("mach", "found section %s size %u in segment %lu", sectionName, sno, vmsegment);
 						return;
 					}
-					
+
 					sect++;
 				}
 			}
 		}
-		
+
 		reinterpret_cast<uintptr_t &>(cmd) += cmd->cmdsize;
 	}
 }
@@ -582,7 +582,7 @@ void MachInfo::freeFileBufferResources() {
 void MachInfo::processMachHeader(void *header) {
 	mach_header_64 *mh = static_cast<mach_header_64 *>(header);
 	size_t headerSize = sizeof(mach_header_64);
-	
+
 	// point to the first load command
 	auto addr    = static_cast<uint8_t *>(header) + headerSize;
 	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
@@ -720,19 +720,19 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		running_text_addr = 0;
 		memory_size = 0;
 	}
-	
+
 	if (kaslr_slide_set) return KERN_SUCCESS;
-	
+
 	if (size > 0)
 		memory_size = size;
-	
+
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 	if (base != 0) {
 		// get the vm address of __TEXT segment
 		auto mh = reinterpret_cast<mach_header_64 *>(base);
 		auto headerSize = sizeof(mach_header_64);
-		
+
 		load_command *loadCmd;
 		auto addr = reinterpret_cast<uint8_t *>(base) + headerSize;
 		auto endaddr = reinterpret_cast<uint8_t *>(base) + HeaderSize;
@@ -760,7 +760,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 			addr += loadCmd->cmdsize;
 		}
 	}
-	
+
 	// compute kaslr slide
 	if (running_text_addr && running_mh) {
 		if (!slide) // This is kernel image
@@ -768,13 +768,13 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		else // This is kext image
 			kaslr_slide = prelink_slid ? prelink_vmaddr : slide;
 		kaslr_slide_set = true;
-		
+
 		DBGLOG("mach", "aslr/load slide is 0x%llx", kaslr_slide);
 	} else {
 		SYSLOG("mach", "couldn't find the running addresses");
 		return KERN_FAILURE;
 	}
-	
+
 	return KERN_SUCCESS;
 }
 
@@ -850,7 +850,7 @@ bool MachInfo::isCurrentBinary(mach_vm_address_t base) {
 
 kern_return_t MachInfo::setWPBit(bool enable) {
 	static bool writeProtectionDisabled = false;
-	
+
 	uintptr_t cr0 = get_cr0();
 
 	if (enable && !writeProtectionDisabled) {
@@ -859,7 +859,7 @@ kern_return_t MachInfo::setWPBit(bool enable) {
 		set_cr0(cr0);
 		return (get_cr0() & CR0_WP) != 0 ? KERN_SUCCESS : KERN_FAILURE;
 	}
-	
+
 	if (!enable) {
 		// Remove the WP bit
 		writeProtectionDisabled = (cr0 & CR0_WP) == 0;
@@ -868,6 +868,6 @@ kern_return_t MachInfo::setWPBit(bool enable) {
 			set_cr0(cr0);
 		}
 	}
-	
+
 	return (get_cr0() & CR0_WP) == 0 ? KERN_SUCCESS : KERN_FAILURE;
 }

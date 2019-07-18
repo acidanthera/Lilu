@@ -67,20 +67,20 @@ const char *strstr(const char *stack, const char *needle, size_t len) {
 		}
 		stack++;
 	}
-	
+
 	return nullptr;
 }
 
 char *strrchr(const char *stack, int ch) {
 	if (!stack)
 		return nullptr;
-	
+
 	char *rtnval = nullptr;
 	do {
 		if (*stack == ch)
 			rtnval = const_cast<char *>(stack);
 	} while (*stack++);
-	
+
 	return rtnval;
 }
 
@@ -101,7 +101,7 @@ bool Page::alloc() {
 
 bool Page::protect(vm_prot_t prot) {
 	if (!p) return false;
-	
+
 	return vm_protect(kernel_map, reinterpret_cast<vm_address_t>(p), PAGE_SIZE, FALSE, prot) == KERN_SUCCESS;
 }
 

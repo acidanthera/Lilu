@@ -29,10 +29,10 @@ struct encode_state {
 	 * left & right children & parent. These constitute binary search trees.
 	 */
 	int lchild[RBSIZE + 1], rchild[RBSIZE + 257], parent[RBSIZE + 1];
-	
+
 	/* ring buffer of size N, with extra F-1 bytes to aid string comparison */
 	uint8_t text_buf[RBSIZE + UPLIM - 1];
-	
+
 	/*
 	 * match_length of longest match.
 	 * These are set by the insert_node() procedure.
@@ -48,7 +48,7 @@ static size_t decompress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	const uint8_t *srcend = src + srclen;
 	int  i, j, k, r, c;
 	unsigned int flags;
-	
+
 	dst = dststart;
 	for (i = 0; i < static_cast<int>(RBSIZE - UPLIM); i++)
 		text_buf[i] = ' ';
@@ -77,7 +77,7 @@ static size_t decompress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 			}
 		}
 	}
-	
+
 	return dst - dststart;
 }
 
@@ -92,9 +92,9 @@ static size_t decompress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
  * Note there are 256 trees. */
 static void init_state(encode_state *sp) {
 	size_t i;
-	
+
 	memset(sp, 0, sizeof(*sp));
-	
+
 	for (i = 0; i < RBSIZE - UPLIM; i++)
 		sp->text_buf[i] = ' ';
 	for (i = RBSIZE + 1; i <= RBSIZE + 256; i++)
@@ -114,7 +114,7 @@ static void init_state(encode_state *sp) {
 static void insert_node(encode_state *sp, int r) {
 	int  i, p, cmp;
 	uint8_t  *key;
-	
+
 	cmp = 1;
 	key = &sp->text_buf[r];
 	p = RBSIZE + 1 + key[0];
@@ -163,7 +163,7 @@ static void insert_node(encode_state *sp, int r) {
 /* deletes node p from tree */
 static void delete_node(encode_state *sp, int p) {
 	int  q;
-	
+
 	if (sp->parent[p] == NIL)
 		return;  /* not in tree */
 	if (sp->rchild[p] == NIL)
@@ -196,18 +196,18 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	uint8_t *result = nullptr;
 	/* Encoding state, mostly tree but some current match stuff */
 	encode_state *sp;
-	
+
 	int  i, c, len, r, s, last_match_length, code_buf_ptr;
 	uint8_t code_buf[17], mask;
 	auto srcend = src + srclen;
 	auto dstend = dst + dstlen;
-	
+
 	/* initialize trees */
 	sp = Buffer::create<encode_state>(1);
 	if (!sp) goto finish;
-	
+
 	init_state(sp);
-	
+
 	/*
 	 * code_buf[1..16] saves eight units of code, and code_buf[0] works
 	 * as eight flags, "1" representing that the unit is an unencoded
@@ -216,16 +216,16 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	 */
 	code_buf[0] = 0;
 	code_buf_ptr = mask = 1;
-	
+
 	/* Clear the buffer with any character that will appear often. */
 	s = 0;  r = RBSIZE - UPLIM;
-	
+
 	/* Read F bytes into the last F bytes of the buffer */
 	for (len = 0; len < static_cast<int>(UPLIM) && src < srcend; len++)
 		sp->text_buf[r + len] = *src++;
 	if (!len)
 		goto finish;
-	
+
 	/*
 	 * Insert the F strings, each of which begins with one or more
 	 * 'space' characters.  Note the order in which these strings are
@@ -233,7 +233,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	 */
 	for (i = 1; i <= static_cast<int>(UPLIM); i++)
 		insert_node(sp, r - i);
-	
+
 	/*
 	 * Finally, insert the whole string just read.
 	 * The global variables match_length and match_position are set.
@@ -269,24 +269,24 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 			delete_node(sp, s);    /* Delete old strings and */
 			c = *src++;
 			sp->text_buf[s] = c;    /* read new bytes */
-			
+
 			/*
 			 * If the position is near the end of buffer, extend the buffer
 			 * to make string comparison easier.
 			 */
 			if (s < static_cast<int>(UPLIM - 1))
 				sp->text_buf[s + RBSIZE] = c;
-			
+
 			/* Since this is a ring buffer, increment the position modulo N. */
 			s = (s + 1) & (RBSIZE - 1);
 			r = (r + 1) & (RBSIZE - 1);
-			
+
 			/* Register the string in text_buf[r..r+F-1] */
 			insert_node(sp, r);
 		}
 		while (i++ < last_match_length) {
 			delete_node(sp, s);
-			
+
 			/* After the end of text, no need to read, */
 			s = (s + 1) & (RBSIZE - 1);
 			r = (r + 1) & (RBSIZE - 1);
@@ -295,7 +295,7 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 				insert_node(sp, r);
 		}
 	} while (len > 0);   /* until length of string to be processed is zero */
-	
+
 	if (code_buf_ptr > 1) {    /* Send remaining code. */
 		for (i = 0; i < code_buf_ptr; i++)
 			if (dst < dstend)
@@ -303,12 +303,12 @@ static uint8_t *compress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 			else
 				goto finish;
 	}
-	
+
 	result = dst;
-	
+
 finish:
 	if (sp) Buffer::deleter(sp);
-	
+
 	return result;
 }
 
@@ -326,18 +326,18 @@ uint8_t *Compression::decompress(uint32_t compression, uint32_t dstlen, const ui
 			default:
 				SYSLOG("comp", "unsupported decompression format %X", compression);
 		}
-		
+
 		if (size == dstlen) {
 			return decompressedBuf;
 		} else {
 			SYSLOG("compression", "failed to correctly decompress the data");
 		}
-		
+
 		if (!buffer) Buffer::deleter(decompressedBuf);
 	} else {
 		SYSLOG("comp", "failed to allocate memory for decompression buffer of %u", dstlen);
 	}
-	
+
 	return 0;
 }
 
@@ -349,7 +349,7 @@ uint8_t *Compression::compress(uint32_t compression, uint32_t &dstlen, const uin
 			endptr = compress_lzss(compressedBuf, dstlen, src, srclen);
 		else
 			SYSLOG("comp", "unsupported compression format %X", compression);
-		
+
 		if (endptr) {
 			dstlen = static_cast<uint32_t>(endptr-compressedBuf);
 			if (!buffer) Buffer::resize(compressedBuf, dstlen);
@@ -357,12 +357,12 @@ uint8_t *Compression::compress(uint32_t compression, uint32_t &dstlen, const uin
 		} else {
 			SYSLOG("compression", "failed to correctly compress the data");
 		}
-		
+
 		if (!buffer) Buffer::deleter(compressedBuf);
 	} else {
 		SYSLOG("comp", "failed to allocate memory for compression buffer of %u", dstlen);
 	}
-	
+
 	return nullptr;
 }
 

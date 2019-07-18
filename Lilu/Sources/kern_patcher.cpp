@@ -50,7 +50,7 @@ void KernelPatcher::init() {
 			return;
 		}
 	}
-	
+
 	if (!kernelWriteLock) {
 		kernelWriteLock = IOSimpleLockAlloc();
 		if (!kernelWriteLock) {
@@ -59,7 +59,7 @@ void KernelPatcher::init() {
 			return;
 		}
 	}
-	
+
 	if (kinfos[KernelID]->getRunningAddresses() != KERN_SUCCESS) {
 		DBGLOG("patcher", "failed to get running kernel mach info");
 		code = Error::KernRunningInitFailure;
@@ -80,13 +80,13 @@ void KernelPatcher::deinit() {
 		}
 	}
 	kpatches.deinit();
-	
+
 	// Deallocate kinfos
 	kinfos.deinit();
-	
+
 	// Deallocate pages
 	kpages.deinit();
-	
+
 	// It is assumed that only one active instance of KernelPatcher is allowed
 	if (kernelWriteLock) {
 		IOSimpleLockFree(kernelWriteLock);
@@ -126,7 +126,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 	} else {
 		return kinfos.last();
 	}
-	
+
 	if (info) {
 		info->deinit();
 		MachInfo::deleter(info);
@@ -147,14 +147,14 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 		DBGLOG("patcher", "provided KextInfo (%s) has already been loaded at %lu index", info->id, info->loadIndex);
 		return info->loadIndex;
 	}
-	
+
 	auto idx = loadKinfo(info->id, info->paths, info->pathNum, false,
 	                     info->sys[KextInfo::FSOnly], info->sys[KextInfo::FSFallback]);
 	if (getError() == Error::NoError || getError() == Error::AlreadyDone) {
 		info->loadIndex = idx;
 		DBGLOG("patcher", "loaded kinfo %s at %lu index", info->id, idx);
 	}
-	
+
 	return idx;
 }
 #endif /* KEXTPATH_SUPPORT */
@@ -164,7 +164,7 @@ void KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t
 		SYSLOG("patcher", "invalid kinfo id %lu for running info update", id);
 		return;
 	}
-	
+
 	if (kinfos[id]->getRunningAddresses(slide, size, force) != KERN_SUCCESS) {
 		SYSLOG("patcher", "failed to retrieve running info");
 		code = Error::KernRunningInitFailure;
@@ -226,7 +226,7 @@ mach_vm_address_t KernelPatcher::solveSymbol(size_t id, const char *symbol) {
 void KernelPatcher::setupKextListening() {
 	// We have already done this
 	if (that) return;
-	
+
 	loadedKextSummaries = reinterpret_cast<OSKextLoadedKextSummaryHeader **>(solveSymbol(KernelID, "_gLoadedKextSummaries"));
 
 	if (loadedKextSummaries) {
@@ -235,20 +235,20 @@ void KernelPatcher::setupKextListening() {
 		code = Error::NoSymbolFound;
 		return;
 	}
-	
+
 	bool hookOuter = getKernelVersion() >= KernelVersion::Sierra;
-	
+
 	mach_vm_address_t s = solveSymbol(KernelID, hookOuter ?
 									  "__ZN6OSKext25updateLoadedKextSummariesEv" :
 									  "_OSKextLoadedKextSummariesUpdated");
-	
+
 	if (s) {
 		DBGLOG("patcher", "kext summaries (%d) address %llX value %llX", hookOuter, s, *reinterpret_cast<uint64_t *>(s));
 	} else {
 		code = Error::NoSymbolFound;
 		return;
 	}
-	
+
 	if (hookOuter) {
 		orgUpdateLoadedKextSummaries = reinterpret_cast<void(*)(void)>(
 			routeFunction(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated), true, true)
@@ -256,7 +256,7 @@ void KernelPatcher::setupKextListening() {
 	} else {
 		routeFunction(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated));
 	}
-	
+
 	if (getError() == Error::NoError) {
 		// Allow static functions to access the patcher body
 		that = this;
@@ -269,11 +269,11 @@ void KernelPatcher::waitOnKext(KextHandler *handler) {
 		code = Error::KextListeningFailure;
 		return;
 	}
-	
+
 	// If we need to process already loaded kexts, do it
 	if (handler->loaded)
 		waitingForAlreadyLoadedKexts = true;
-	
+
 	if (!khandlers.push_back<2>(handler)) {
 		code = Error::MemoryIssue;
 	}
@@ -299,12 +299,12 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *starting
 		code = Error::MemoryIssue;
 		return;
 	}
-	
+
 	auto kinfo = kinfos[patch->kext->loadIndex];
 	uint8_t *kextAddress;
 	size_t kextSize;
 	kinfo->getRunningPosition(kextAddress, kextSize);
-	
+
 	uint8_t *currentAddress = kextAddress;
 	if (currentAddress < startingAddress)
 		currentAddress = startingAddress;
@@ -315,30 +315,30 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *starting
 	endingAddress -= patch->size;
 
 	size_t changes {0};
-	
+
 	if (MachInfo::setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "lookup patching failed to write to kernel");
 		code = Error::MemoryProtection;
 		return;
 	}
-	
+
 	for (size_t i = 0; currentAddress < endingAddress && (i < patch->count || patch->count == 0); i++) {
 		while (currentAddress < endingAddress && memcmp(currentAddress, patch->find, patch->size) != 0)
 			currentAddress++;
-		
+
 		if (currentAddress != endingAddress) {
 			for (size_t j = 0; j < patch->size; j++)
 				currentAddress[j] = patch->replace[j];
 			changes++;
 		}
 	}
-	
+
 	if (MachInfo::setKernelWriting(false, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "lookup patching failed to disable kernel writing");
 		code = Error::MemoryProtection;
 		return;
 	}
-	
+
 	if (changes != patch->count) {
 		SYSLOG_COND(ADDPR(debugEnabled), "patcher", "lookup patching applied only %lu patches out of %lu", changes, patch->count);
 		code = Error::MemoryIssue;
@@ -362,23 +362,23 @@ void KernelPatcher::activate() {
 mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible) {
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
-	
+
 	DBGLOG("patcher", "from " PRIKADDR " to " PRIKADDR " diff " PRIKADDR " argument %X", CASTKADDR(from), CASTKADDR(from), CASTKADDR(diff), newArgument);
-	
+
 	bool absolute {false};
-	
+
 	if (diff != static_cast<mach_vm_address_t>(newArgument)) {
 		DBGLOG("patcher", "will use absolute jumping to %llX", to);
 		absolute = true;
 	}
-	
+
 	mach_vm_address_t trampoline {0};
-	
+
 	if (buildWrapper) {
 		trampoline = createTrampoline(from, absolute ? LongJump : SmallJump);
 		if (!trampoline) return EINVAL;
 	}
-	
+
 	Patch::All *opcode = nullptr, *argument = nullptr, *disp = nullptr;
 	if (absolute) {
 		opcode = Patch::create<Patch::Variant::U16>(from, 0x25FF);
@@ -388,7 +388,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		opcode = Patch::create<Patch::Variant::U8>(from, 0xE9);
 		argument = Patch::create<Patch::Variant::U32>(from+1, newArgument);
 	}
-	
+
 	if (!opcode || !argument || (absolute && !disp)) {
 		SYSLOG("patcher", "cannot create the necessary patches");
 		code = Error::MemoryIssue;
@@ -396,7 +396,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		if (disp) Patch::deleter(disp);
 		return EINVAL;
 	}
-	
+
 	if (kernelRoute && MachInfo::setKernelWriting(true, kernelWriteLock) != KERN_SUCCESS) {
 		SYSLOG("patcher", "cannot change kernel memory protection");
 		code = Error::MemoryProtection;
@@ -404,7 +404,7 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		if (disp) Patch::deleter(disp);
 		return EINVAL;
 	}
-	
+
 	opcode->patch();
 	argument->patch();
 	if (disp) disp->patch();
@@ -419,14 +419,14 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 
 			if (oidx && aidx && (!disp || didx))
 				return trampoline;
-			
+
 			SYSLOG("patcher", "failed to store patches for later removal, you are in trouble");
 			if (oidx) kpatches.erase(oidx);
 			if (aidx) kpatches.erase(aidx);
 			if (didx) kpatches.erase(didx);
 		}
 	}
-	
+
 	Patch::deleter(opcode); Patch::deleter(argument);
 	if (disp) Patch::deleter(disp);
 	return trampoline;
@@ -444,14 +444,14 @@ mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_
 			code = Error::MemoryProtection;
 			return EINVAL;
 		}
-		
+
 		return 0;
 	} else if (!kernelRoute) {
 		SYSLOG("patcher", "cannot generate blocks outside the kernelspace");
 		code = Error::MemoryProtection;
 		return EINVAL;
 	}
-	
+
 	// Otherwise generate a trampoline with opcodes
 	mach_vm_address_t trampoline = createTrampoline(from, LongJump, opcodes, opnum);
 	if (!trampoline) return EINVAL;
@@ -521,21 +521,21 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		code = Error::MemoryProtection;
 		return 0;
 	}
-	
+
 	// Relative destination offset
 	size_t off = Disassembler::quickInstructionSize(func, min);
-	
+
 	if (!off || off > PAGE_SIZE - LongJump) {
 		MachInfo::setKernelWriting(false, kernelWriteLock);
 		SYSLOG("patcher", "unsupported destination offset %lu", off);
 		code = Error::DisasmFailure;
 		return 0;
 	}
-	
+
 	uint8_t *tempDataPtr = reinterpret_cast<uint8_t *>(tempExecutableMemory) + tempExecutableMemoryOff;
-	
+
 	tempExecutableMemoryOff += off + LongJump + opnum;
-	
+
 	if (tempExecutableMemoryOff >= TempExecutableMemorySize) {
 		MachInfo::setKernelWriting(false, kernelWriteLock);
 		SYSLOG("patcher", "not enough executable memory requested %ld have %lu", tempExecutableMemoryOff+1, TempExecutableMemorySize);
@@ -544,15 +544,15 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		// Copy the opcodes if any
 		if (opnum > 0)
 			lilu_os_memcpy(tempDataPtr, opcodes, opnum);
-		
+
 		// Copy the prologue, assuming it is PIC
 		lilu_os_memcpy(tempDataPtr + opnum, reinterpret_cast<void *>(func), off);
 
 		MachInfo::setKernelWriting(false, kernelWriteLock);
-		
+
 		// Add a jump
 		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, true, false);
-		
+
 		if (getError() == Error::NoError) {
 			return reinterpret_cast<mach_vm_address_t>(tempDataPtr);
 		} else {
@@ -577,17 +577,17 @@ void KernelPatcher::onKextSummariesUpdated() {
 		//  - sKextSummariesLock is not exported or visible
 		// As a result no syncing should be necessary but there are guards for future
 		// changes and in case of any misunderstanding.
-		
+
 		if (getKernelVersion() >= KernelVersion::Sierra) {
 			if (OSIncrementAtomic(&updateSummariesEntryCount) != 0) {
 				PANIC("patcher", "onKextSummariesUpdated entered another time");
 			}
-			
+
 			that->orgUpdateLoadedKextSummaries();
 		}
 
 		DBGLOG("patcher", "invoked at kext loading/unloading");
-		
+
 		if (that->activated && that->loadedKextSummaries) {
 			auto num = (*that->loadedKextSummaries)->numSummaries;
 			if (num > 0) {
@@ -621,7 +621,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 				SYSLOG("patcher", "no kext is currently loaded, this should not happen");
 			}
 		}
-		
+
 		if (getKernelVersion() >= KernelVersion::Sierra && OSDecrementAtomic(&updateSummariesEntryCount) != 1) {
 			PANIC("patcher", "onKextSummariesUpdated left another time");
 		}
@@ -630,7 +630,7 @@ void KernelPatcher::onKextSummariesUpdated() {
 
 void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries, size_t num) {
 	DBGLOG("patcher", "processing already loaded kexts by iterating over %lu summaries", num);
-	
+
 	for (size_t i = 0; i < num; i++) {
 		auto curr = summaries[i];
 		for (size_t j = 0; j < khandlers.size(); j++) {

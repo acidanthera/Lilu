@@ -20,7 +20,7 @@ uint8_t *Crypto::genUniqueKey(uint32_t size) {
 		SYSLOG("crypto", "invalid key size %u", size);
 		return nullptr;
 	}
-	
+
 	auto buf = Buffer::create<uint8_t>(size);
 	if (buf) {
 		read_random(buf, size);
@@ -28,7 +28,7 @@ uint8_t *Crypto::genUniqueKey(uint32_t size) {
 	} else {
 		SYSLOG("crypto", "unique failed to allocate key buffer");
 	}
-	
+
 	return nullptr;
 }
 
@@ -37,33 +37,33 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		SYSLOG("crypto", "encrypt contains invalid size (%u) or null args", size);
 		return nullptr;
 	}
-	
+
 	if (!key) {
 		SYSLOG("crypto", "encrypt unable to obtain encryption key");
 		return nullptr;
 	}
-	
+
 	uint32_t realSize = sizeof(Encrypted::Data::size) + size;
 	uint32_t padSize  = realSize % BlockSize;
 	if (padSize > 0)
 		padSize = BlockSize - padSize;
 	uint32_t encSize  = realSize + padSize;
 	uint32_t fullSize = encSize + BlockSize;
-	
+
 	uint8_t *encBuf = nullptr;
-	
+
 	auto dataBuf = Buffer::create<uint8_t>(encSize);
 	if (dataBuf) {
 		auto data = reinterpret_cast<Encrypted::Data *>(dataBuf);
 		data->size = size;
 		lilu_os_memcpy(data->buf, src, size);
 		memset(data->buf + size, 0, padSize);
-		
+
 		encBuf = Buffer::create<uint8_t>(fullSize);
 		if (encBuf) {
 			auto enc = reinterpret_cast<Encrypted *>(encBuf);
 			read_random(enc->iv, BlockSize);
-			
+
 			aes_encrypt_ctx ctx;
 			auto ret = aes_encrypt_key(key, BlockSize, &ctx);
 			if (ret == aes_good) {
@@ -75,7 +75,7 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 			} else {
 				SYSLOG("crypto", "encrypt failed to init aes ctx (%d)", ret);
 			}
-			
+
 			zeroMemory(sizeof(ctx), &ctx);
 			if (ret != aes_good) {
 				zeroMemory(fullSize, encBuf);
@@ -85,7 +85,7 @@ uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		} else {
 			SYSLOG("crypto", "encrypt failed to allocate dst buffer of %u bytes", fullSize);
 		}
-		
+
 		zeroMemory(encSize, dataBuf);
 		Buffer::deleter(dataBuf);
 	} else {
@@ -100,14 +100,14 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		SYSLOG("crypto", "decrypt contains invalid size (%u) or null args", size);
 		return nullptr;
 	}
-	
+
 	if (!key) {
 		SYSLOG("crypto", "decrypt unable to obtain decryption key");
 		return nullptr;
 	}
-	
+
 	size -= offsetof(Encrypted, enc);
-	
+
 	auto decBuf = Buffer::create<uint8_t>(size);
 	if (decBuf) {
 		aes_decrypt_ctx ctx;
@@ -132,7 +132,7 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		} else {
 			SYSLOG("crypto", "decrypt failed to init aes ctx (%d)", ret);
 		}
-		
+
 		zeroMemory(sizeof(ctx), &ctx);
 		if (ret != aes_good) {
 			zeroMemory(size, decBuf);
@@ -149,7 +149,7 @@ uint8_t *Crypto::hash(const uint8_t *src, uint32_t size) {
 		SYSLOG("crypto", "hash invalid hash data (%u bytes)", size);
 		return nullptr;
 	}
-	
+
 	auto buf = Buffer::create<uint8_t>(SHA256_BLOCK_SIZE);
 	if (buf) {
 		SHA256_CTX ctx;
@@ -157,11 +157,11 @@ uint8_t *Crypto::hash(const uint8_t *src, uint32_t size) {
 		sha256_update(&ctx, src, size);
 		sha256_final(&ctx, buf);
 		zeroMemory(sizeof(ctx), &ctx);
-		
+
 		return buf;
 	} else {
 		SYSLOG("crypto", "hash failed to allocate hash buffer");
 	}
-	
+
 	return nullptr;
 }

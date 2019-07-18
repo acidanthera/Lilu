@@ -70,13 +70,13 @@ namespace Patch {
 		explicit All(P<Variant::U32> &&v) : u32(v) {}
 		explicit All(P<Variant::U64> &&v) : u64(v) {}
 		explicit All(P<Variant::U128> &&v) : u128(v) {}
-		
+
 		P<Variant::U8> u8;
 		P<Variant::U16> u16;
 		P<Variant::U32> u32;
 		P<Variant::U64> u64;
 		P<Variant::U128> u128;
-		
+
 		void patch() {
 			switch (u8.type) {
 				case Variant::U8: return u8.patch();
@@ -87,7 +87,7 @@ namespace Patch {
 				default: PANIC("patcher", "unsupported patch type %d, cannot patch", static_cast<int>(u8.type));
 			}
 		}
-		
+
 		void restore() {
 			switch (u8.type) {
 				case Variant::U8: return u8.restore();
@@ -99,17 +99,17 @@ namespace Patch {
 			}
 		}
 	};
-	
+
 	template <Variant T>
 	static All *create(mach_vm_address_t addr, VV<T> rep) {
 		return new All(P<T>(addr, rep));
 	}
-	
+
 	template <Variant T>
 	static All *create(mach_vm_address_t addr, VV<T> org, VV<T> rep) {
 		return new All(P<T>(addr, org, rep));
 	}
-	
+
 	static void deleter(All *i NONNULL) {
 		delete i;
 	}

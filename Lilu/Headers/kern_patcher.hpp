@@ -44,14 +44,14 @@ public:
 		Unsupported,
 		InvalidSymbolFound
 	};
-	
+
 	/**
 	 *  Get last error
 	 *
 	 *  @return error code
 	 */
 	EXPORT Error getError();
-	
+
 	/**
 	 *  Reset all the previous errors
 	 */
@@ -61,7 +61,7 @@ public:
 	 *  Initialise KernelPatcher, prepare for modifications
 	 */
 	void init();
-	
+
 	/**
 	 *  Deinitialise KernelPatcher, must be called regardless of the init error
 	 */
@@ -72,12 +72,12 @@ public:
 	 *  See MachInfo::setKernelWriting
 	 */
 	EXPORT static IOSimpleLock *kernelWriteLock;
-	
+
 	/**
 	 *  Kext information
 	 */
 	struct KextInfo;
-	
+
 #ifdef LILU_KEXTPATCH_SUPPORT
 	struct KextInfo {
 		static constexpr size_t Unloaded {0};
@@ -140,7 +140,7 @@ public:
 	 *  Kernel kinfo id
 	 */
 	static constexpr size_t KernelID {0};
-	
+
 	/**
 	 *  Update running information
 	 *
@@ -150,12 +150,12 @@ public:
 	 *  @param force force recalculatiob
 	 */
 	EXPORT void updateRunningInfo(size_t id, mach_vm_address_t slide=0, size_t size=0, bool force=false);
-	
+
 	/**
 	 *  Any kernel
 	 */
 	static constexpr uint32_t KernelAny {0};
-	
+
 	/**
 	 *  Check kernel compatibility
 	 *
@@ -236,7 +236,7 @@ public:
 	 *  Activates monitoring functions if necessary
 	 */
 	void activate();
-	
+
 	/**
 	 *  Load handling structure
 	 */
@@ -251,7 +251,7 @@ public:
 		static void deleter(KextHandler *i NONNULL) {
 			delete i;
 		}
-		
+
 		void *self {nullptr};
 		const char * const id {nullptr};
 		size_t index {0};
@@ -269,7 +269,7 @@ public:
 	 *  @param handler  handler to process
 	 */
 	EXPORT void waitOnKext(KextHandler *handler);
-	
+
 	/**
 	 *  Update kext handler features
 	 *
@@ -287,7 +287,7 @@ public:
 		size_t size;
 		size_t count;
 	};
-	
+
 	/**
 	 *  Apply a find/replace patch
 	 *
@@ -317,7 +317,7 @@ public:
 	 *  @return wrapper pointer or 0 on success
 	 */
 	EXPORT mach_vm_address_t routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true);
-	
+
 	/**
 	 *  Route block at assembly level
 	 *
@@ -429,22 +429,22 @@ private:
 	 *  The minimal reasonable memory requirement
 	 */
 	static constexpr size_t TempExecutableMemorySize {4096};
-	
+
 	/**
 	 *  As of 10.12 we seem to be not allowed to call vm_ functions from several places including onKextSummariesUpdated.
 	 */
 	static uint8_t tempExecutableMemory[TempExecutableMemorySize];
-	
+
 	/**
 	 *  Offset to tempExecutableMemory that is safe to use
 	 */
 	size_t tempExecutableMemoryOff {0};
-	
+
 	/**
 	 *  Patcher status
 	 */
 	bool activated {false};
-	
+
 	/**
 	 *  Created routed trampoline page
 	 *
@@ -462,17 +462,17 @@ private:
 	 *  Called at kext loading and unloading if kext listening is enabled
 	 */
 	static void onKextSummariesUpdated();
-	
+
 	/**
 	 *  A pointer to loaded kext information
 	 */
 	OSKextLoadedKextSummaryHeader **loadedKextSummaries {nullptr};
-	
+
 	/**
 	 *  A pointer to kext summaries update
 	 */
 	void (*orgUpdateLoadedKextSummaries)(void) {nullptr};
-	
+
 	/**
 	 *  Process already loaded kexts once at the start
 	 *
@@ -480,9 +480,9 @@ private:
 	 *  @param num       number of loaded kext summaries
 	 */
 	void processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries, size_t num);
-	
+
 #endif /* LILU_KEXTPATCH_SUPPORT */
-	
+
 	/**
 	 *  Kernel prelink image in case prelink is used
 	 */
@@ -492,7 +492,7 @@ private:
 	 *  Loaded kernel items
 	 */
 	evector<MachInfo *, MachInfo::deleter> kinfos;
-	
+
 	/**
 	 *  Applied patches
 	 */
@@ -503,31 +503,31 @@ private:
 	 *  Awaiting kext notificators
 	 */
 	evector<KextHandler *, KextHandler::deleter> khandlers;
-	
+
 	/**
 	 *  Awaiting already loaded kext list
 	 */
 	bool waitingForAlreadyLoadedKexts {false};
-	
+
 #endif /* LILU_KEXTPATCH_SUPPORT */
-	
+
 	/**
 	 *  Allocated pages
 	 */
 	evector<Page *, Page::deleter> kpages;
-	
+
 	/**
 	 *  Current error code
 	 */
 	Error code {Error::NoError};
 	static constexpr size_t INVALID {0};
-	
+
 	/**
 	 *  Jump instruction sizes
 	 */
 	static constexpr size_t SmallJump {1 + sizeof(int32_t)};
 	static constexpr size_t LongJump {6 + sizeof(uint64_t)};
-	
+
 	/**
 	 *  Possible kernel paths
 	 */

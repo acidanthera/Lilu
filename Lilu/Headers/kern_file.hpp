@@ -24,7 +24,7 @@ namespace FileIO {
 	 *  @return allocated buffer on success or nullptr on error
 	 */
 	EXPORT uint8_t *readFileToBuffer(const char *path, size_t &size);
-	
+
 	/**
 	 *  Read file data from a vnode
 	 *
@@ -37,7 +37,7 @@ namespace FileIO {
 	 *  @return 0 on success
 	 */
 	EXPORT int readFileData(void *buffer, off_t off, size_t sz, vnode_t vnode, vfs_context_t ctxt);
-	
+
 	/**
 	 *  Read file size from a vnode
 	 *
@@ -47,7 +47,7 @@ namespace FileIO {
 	 *  @return file size or 0
 	 */
 	EXPORT size_t readFileSize(vnode_t vnode, vfs_context_t ctxt);
-	
+
 	/**
 	 *  Writes buffer to a file at path
 	 *
@@ -60,7 +60,7 @@ namespace FileIO {
 	 *  @return 0 on success
 	 */
 	EXPORT int writeBufferToFile(const char *path, void *buffer, size_t size, int fmode=O_TRUNC | O_CREAT | FWRITE | O_NOFOLLOW, int cmode=S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-	
+
 	/**
 	 *  Write file data to a vnode
 	 *
@@ -73,7 +73,7 @@ namespace FileIO {
 	 *  @return 0 on success
 	 */
 	EXPORT int writeFileData(void *buffer, off_t off, size_t size, vnode_t vnode, vfs_context_t ctxt);
-	
+
 	/**
 	 *  Perform file i/o through a vnode
 	 *

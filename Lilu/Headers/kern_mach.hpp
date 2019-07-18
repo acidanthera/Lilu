@@ -65,7 +65,7 @@ class MachInfo {
 	 *  @return true on success
 	 */
 	bool loadUUID(void *header);
-	
+
 	/**
 	 *  Enable/disable the Write Protection bit in CR0 register
 	 *
@@ -74,7 +74,7 @@ class MachInfo {
 	 *  @return KERN_SUCCESS if succeeded
 	 */
 	static kern_return_t setWPBit(bool enable);
-	
+
 	/**
 	 *  Retrieve the first pages of a binary at disk into a buffer
 	 *  Version that uses KPI VFS functions and a ripped uio_createwithbuffer() from XNU
@@ -98,7 +98,7 @@ class MachInfo {
 	 *  @return KERN_SUCCESS on success
 	 */
 	kern_return_t readLinkedit(vnode_t vnode, vfs_context_t ctxt);
-	
+
 	/**
 	 *  Retrieve necessary mach-o header information from the mach header
 	 *
@@ -122,7 +122,7 @@ class MachInfo {
 	 *  @return pointer to const buffer on success or nullptr
 	 */
 	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
-	
+
 	MachInfo(bool asKernel, const char *id) : isKernel(asKernel), objectId(id) {
 		DBGLOG("mach", "MachInfo asKernel %d object constructed", asKernel);
 	}
@@ -154,12 +154,12 @@ public:
 	 *  Each header is assumed to fit two pages
 	 */
 	static constexpr size_t HeaderSize {PAGE_SIZE_64*2};
-	
+
 	/**
 	 *  Representation mode (kernel/kext)
 	 */
 	EXPORT const bool isKernel;
-	
+
 	/**
 	 *  Specified file identifier
 	 */
@@ -187,7 +187,7 @@ public:
 	 *  @return KERN_SUCCESS if loaded
 	 */
 	EXPORT kern_return_t init(const char * const paths[], size_t num = 1, MachInfo *prelink=nullptr, bool fsfallback=false);
-	
+
 	/**
 	 *  Release the allocated memory, must be called regardless of the init error
 	 */
@@ -203,7 +203,7 @@ public:
 	 *  @return KERN_SUCCESS on success
 	 */
 	EXPORT kern_return_t getRunningAddresses(mach_vm_address_t slide=0, size_t size=0, bool force=false);
-	
+
 	/**
 	 *  Set the mach header address
 	 *
@@ -256,7 +256,7 @@ public:
 	 *  @return true if changed the value and false if it is unchanged
 	 */
 	EXPORT static bool setInterrupts(bool enable);
-	
+
 	/**
 	 *  Enable/disable kernel memory write protection
 	 *
@@ -266,7 +266,7 @@ public:
 	 *  @return KERN_SUCCESS if succeeded
 	 */
 	EXPORT static kern_return_t setKernelWriting(bool enable, IOSimpleLock *lock);
-	
+
 	/**
 	 *  Find section bounds in a passed binary for provided cpu
 	 *

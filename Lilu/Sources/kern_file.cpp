@@ -17,7 +17,7 @@ uint8_t *FileIO::readFileToBuffer(const char *path, size_t &size) {
 	vnode_t vnode = NULLVP;
 	vfs_context_t ctxt = vfs_context_create(nullptr);
 	uint8_t *buf = nullptr;
-	
+
 	errno_t err = vnode_lookup(path, 0, &vnode, ctxt);
 	if(!err) {
 		size = readFileSize(vnode, ctxt);
@@ -42,9 +42,9 @@ uint8_t *FileIO::readFileToBuffer(const char *path, size_t &size) {
 	} else {
 		SYSLOG("file", "failed to find %s", path);
 	}
-	
+
 	vfs_context_rele(ctxt);
-	
+
 	return buf;
 }
 
@@ -64,7 +64,7 @@ size_t FileIO::readFileSize(vnode_t vnode, vfs_context_t ctxt) {
 int FileIO::writeBufferToFile(const char *path, void *buffer, size_t size, int fmode, int cmode) {
 	vnode_t vnode = NULLVP;
 	vfs_context_t ctxt = vfs_context_create(nullptr);
-	
+
 	errno_t err = vnode_open(path, fmode, cmode, VNODE_LOOKUP_NOFOLLOW, &vnode, ctxt);
 	if (!err) {
 		err = writeFileData(buffer, 0, size, vnode, ctxt);
@@ -78,9 +78,9 @@ int FileIO::writeBufferToFile(const char *path, void *buffer, size_t size, int f
 	} else {
 		SYSLOG("file", "failed to create file %s with error %d", path, err);
 	}
-	
+
 	vfs_context_rele(ctxt);
-	
+
 	return err;
 }
 
@@ -94,14 +94,14 @@ int FileIO::performFileIO(void *buffer, off_t off, size_t size, vnode_t vnode, v
 		SYSLOG("file", "uio_create returned null!");
 		return EINVAL;
 	}
-	
+
 	// imitate the kernel and read a single page from the file
 	int error = uio_addiov(uio, CAST_USER_ADDR_T(buffer), size);
 	if (error) {
 		SYSLOG("file", "uio_addiov returned error %d!", error);
 		return error;
 	}
-	
+
 	if (write)
 		error = VNOP_WRITE(vnode, uio, 0, ctxt);
 	else
@@ -110,11 +110,11 @@ int FileIO::performFileIO(void *buffer, off_t off, size_t size, vnode_t vnode, v
 		SYSLOG("file", "%s failed %d!", write ? "VNOP_WRITE" : "VNOP_READ", error);
 		return error;
 	}
-	
+
 	if (uio_resid(uio)) {
 		SYSLOG("file", "uio_resid returned non-null!");
 		return EINVAL;
 	}
-	
+
 	return 0;
 }

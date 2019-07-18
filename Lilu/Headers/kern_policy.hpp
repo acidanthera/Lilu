@@ -22,7 +22,7 @@ class Policy {
 	 *  TrustedBSD Policy handle
 	 */
 	mac_policy_handle_t policyHandle {0};
-	
+
 	/**
 	 *  TrustedBSD policy configuration
 	 */
@@ -36,7 +36,7 @@ public:
 	static void dummyPolicyInitBSD(mac_policy_conf *conf) {
 		DBGLOG("policy", "init bsd");
 	}
-	
+
 	/**
 	 *  Compile-time policy constructor
 	 *
@@ -55,14 +55,14 @@ public:
 		.mpc_field_off			= nullptr,
 		.mpc_runtime_flags		= 0
 	} { }
-	
+
 	/**
 	 *  Registers TrustedBSD policy
 	 *
 	 *  @return true on success
 	 */
 	EXPORT bool registerPolicy();
-	
+
 	/**
 	 *  Unregisters TrustedBSD policy if allowed
 	 *

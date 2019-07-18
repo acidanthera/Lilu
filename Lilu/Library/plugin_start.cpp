@@ -53,7 +53,7 @@ bool PRODUCT_NAME::start(IOService *provider) {
 		SYSLOG("init", "failed to start the parent");
 		return false;
 	}
-	
+
 	return ADDPR(startSuccess);
 }
 
@@ -75,7 +75,7 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 		error = lilu.shouldLoad(ADDPR(config).product, ADDPR(config).version, ADDPR(config).runmode, ADDPR(config).disableArg, ADDPR(config).disableArgNum,
 								ADDPR(config).debugArg, ADDPR(config).debugArgNum, ADDPR(config).betaArg, ADDPR(config).betaArgNum, ADDPR(config).minKernel,
 								ADDPR(config).maxKernel, ADDPR(debugEnabled));
-		
+
 		if (error == LiluAPI::Error::NoError) {
 			DBGLOG("init", "%s bootstrap %s", xStringify(PRODUCT_NAME), kextVersion);
 			(void)kextVersion;
@@ -84,7 +84,7 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 		} else {
 			SYSLOG("init", "parent said we should not continue %d", error);
 		}
-		
+
 		lilu.releaseAccess();
 	} else {
 		SYSLOG("init", "failed to call parent %d", error);

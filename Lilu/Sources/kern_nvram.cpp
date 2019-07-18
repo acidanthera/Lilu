@@ -22,14 +22,14 @@ bool NVStorage::init() {
 		SYSLOG_COND(ADDPR(debugEnabled), "nvram", "failed to get IODeviceTree:/options");
 		return false;
 	}
-	
+
 	if (!OSDynamicCast(IODTNVRAM, dtEntry)) {
 		SYSLOG_COND(ADDPR(debugEnabled), "nvram", "failed to get IODTNVRAM from IODeviceTree:/options");
 		dtEntry->release();
 		dtEntry = nullptr;
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -243,7 +243,7 @@ bool NVStorage::remove(const char *key, bool sensitive) {
 			sync();
 		}
 	}
-	
+
 	dtEntry->removeProperty(key);
 	return true;
 }
@@ -254,7 +254,7 @@ bool NVStorage::sync() {
 		entry->sync();
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -264,7 +264,7 @@ bool NVStorage::save(const char *filename, uint32_t max, bool sensitive) {
 		"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
 		"<plist version=\"1.0\">\n"
 	};
-	
+
 	static const char *PlistFooter {
 		"\n</plist>\n"
 	};
@@ -278,12 +278,12 @@ bool NVStorage::save(const char *filename, uint32_t max, bool sensitive) {
 		if (sensitive)
 			Crypto::zeroMemory(s->getLength(), s->text());
 		s->release();
-		
+
 		return error == 0;
 	} else {
 		SYSLOG("nvram", "failed to allocate serialization buffer of %u bytes", max);
 	}
-	
+
 	return false;
 }
 

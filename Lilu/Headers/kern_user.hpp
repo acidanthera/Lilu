@@ -25,12 +25,12 @@ public:
 	 *  @return true on success
 	 */
 	bool init(KernelPatcher &patcher, bool preferSlowMode);
-	
+
 	/**
 	 *  Deinitialise UserPatcher, must be called regardless of the init error
 	 */
 	void deinit();
-	
+
 	/**
 	 *  Obtain page protection
 	 *
@@ -59,7 +59,7 @@ public:
 		SegmentsDataEnd = SegmentDataCommon,
 		SegmentTotal
 	};
-	
+
 	/**
 	 *  Mach segment names kept in sync with FileSegment
 	 */
@@ -73,7 +73,7 @@ public:
 		"__DATA",
 		"__DATA"
 	};
-	
+
 	/**
 	 *  Mach section names kept in sync with FileSegment
 	 */
@@ -87,7 +87,7 @@ public:
 		"__cfstring",
 		"__common"
 	};
-	
+
 	/**
 	 *  Structure holding lookup-style binary patches
 	 */
@@ -101,7 +101,7 @@ public:
 		FileSegment segment;
 		uint32_t section;
 	};
-	
+
 	/**
 	 *  Structure describing the modifications for the binary
 	 */
@@ -140,7 +140,7 @@ public:
 		uint32_t section {SectionDisabled};
 		uint32_t flags {MatchExact};
 	};
-	
+
 	/**
 	 *  External callback type for on process invocation
 	 *
@@ -151,7 +151,7 @@ public:
 	 *  @param len     path length excluding null terminator
 	 */
 	using t_BinaryLoaded = void (*)(void *user, UserPatcher &patcher, vm_map_t map, const char *path, size_t len);
-	
+
 	/**
 	 *  Instructs user patcher to do further actions
 	 *
@@ -212,9 +212,9 @@ public:
 	 *  Activates monitoring functions if necessary
 	 */
 	void activate();
-	
+
 private:
-	
+
 	/**
 	 *  Kernel function prototypes
 	 */
@@ -244,7 +244,7 @@ private:
 	t_vmMapReadUser orgVmMapReadUser {nullptr};
 	t_vmMapWriteUser orgVmMapWriteUser {nullptr};
 	mach_vm_address_t orgTaskSetMainThreadQos {};
-	
+
 	/**
 	 *  Kernel function wrappers
 	 */
@@ -277,7 +277,7 @@ private:
 		vm_address_t startDATA;
 		vm_address_t endDATA;
 	};
-	
+
 	/**
 	 *  Obtains __TEXT addresses from .map files
 	 *
@@ -299,12 +299,12 @@ private:
 	 *  Set once shared cache slide is defined
 	 */
 	bool sharedCacheSlideStored {false};
-	
+
 	/**
 	 *  Set on init to decide on whether to use __RESTRICT or patch dyld shared cache
 	 */
 	bool patchDyldSharedCache {false};
-	
+
 	/**
 	 *  Kernel patcher instance
 	 */
@@ -334,32 +334,32 @@ private:
 	 *  Current minimal proc name length
 	 */
 	uint32_t currentMinProcLength {0};
-	
+
 	/**
 	 *  Provided binary modification list
 	 */
 	BinaryModInfo **binaryMod {nullptr};
-	
+
 	/**
 	 *  Amount of provided binary modifications
 	 */
 	size_t binaryModSize {0};
-	
+
 	/**
 	 *  Provided process list
 	 */
 	ProcInfo **procInfo {nullptr};
-	
+
 	/**
 	 *  Amount of provided processes
 	 */
 	size_t procInfoSize {0};
-	
+
 	/**
 	 *  Provided global callback for on proc invocation
 	 */
 	ppair<t_BinaryLoaded, void *> userCallback {};
-	
+
 	/**
 	 *  Applies dyld shared cache patches
 	 *
@@ -387,7 +387,7 @@ private:
 				delete r;
 			}
 		};
-		
+
 		const BinaryModInfo *mod {nullptr};
 		evector<PatchRef *, PatchRef::deleter> refs;
 		Page *page {nullptr};
@@ -404,7 +404,7 @@ private:
 			}
 			return p;
 		}
-		
+
 		static void deleter(LookupStorage *p NONNULL) {
 			if (p->page) {
 				Page::deleter(p->page);
@@ -420,10 +420,10 @@ private:
 		static constexpr size_t matchNum {4};
 		evector<uint64_t> c[matchNum];
 	};
-	
+
 	evector<LookupStorage *, LookupStorage::deleter> lookupStorage;
 	Lookup lookup;
-	
+
 	/**
 	 *  Restrict 64-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
 	 */
@@ -434,7 +434,7 @@ private:
 		SHARED_REGION_BASE_X86_64,
 		1, 0, 0, 0, 0, 0, 0
 	};
-	
+
 	/**
 	 *  Restrict 32-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
 	 */
@@ -445,7 +445,7 @@ private:
 		SHARED_REGION_BASE_I386,
 		1, 0, 0, 0, 0, 0, 0
 	};
-	
+
 	/**
 	 *  Temporary buffer for reading image data
 	 */
@@ -455,12 +455,12 @@ private:
 	 *  Kernel auth listener handle
 	 */
 	kauth_listener_t listener {nullptr};
-	
+
 	/**
 	 *  Patcher status
 	 */
 	bool activated {false};
-	
+
 	/**
 	 *  Validation cookie
 	 */
@@ -497,28 +497,28 @@ private:
 	 *  @param len  path length
 	 */
 	void onPath(const char *path, uint32_t len);
-	
+
 	/**
 	 *  Reads files from BinaryModInfos and prepares lookupStorage
 	 *
 	 *  @return true on success
 	 */
 	bool loadFilesForPatching();
-	
+
 	/**
 	 *  Reads dyld shared cache and obtains segment offsets
 	 *
 	 *  @return true on success
 	 */
 	bool loadDyldSharedCacheMapping();
-	
+
 	/**
 	 *  Prepares quick page lookup based on lookupStorage values
 	 *
 	 *  @return true on success
 	 */
 	bool loadLookups();
-	
+
 	/**
 	 *  Hooks memory access to get ready for patching
 	 *
@@ -534,7 +534,7 @@ private:
 	 *  @param len  path length
 	 */
 	void patchBinary(vm_map_t map, const char *path, uint32_t len);
-	
+
 	/**
 	 *  Dyld shared cache map path for 10.10+ on Haswell
 	 */
