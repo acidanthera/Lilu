@@ -550,6 +550,9 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 
 		MachInfo::setKernelWriting(false, kernelWriteLock);
 
+		// Clear previous error to not rely on the user
+		clearError();
+
 		// Add a jump
 		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, true, false);
 
