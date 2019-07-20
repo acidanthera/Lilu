@@ -522,15 +522,12 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribute__((section("__TEXT,__text")));
 
 mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from) {
-	mach_vm_address_t ret = 0;
-	if (memcmp(&LongJumpPrefix, (void *)from, sizeof(LongJumpPrefix)) == 0) {
-		lilu_os_memcpy(&ret, (void *)(from + sizeof(LongJumpPrefix) + sizeof(uint32_t)), sizeof(ret));
-	} else if (memcmp(&SmallJumpPrefix, (void *)from, sizeof(SmallJumpPrefix)) == 0) {
-		int32_t diff;
-		lilu_os_memcpy(&diff, (void *)(from + sizeof(SmallJumpPrefix)), sizeof(diff));
-		ret = from + SmallJump + diff;
-	}
-	return ret;
+	// Note, unaligned access for simplicity
+	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix)
+		return *reinterpret_cast<mach_vm_address_t *>(from + sizeof(LongJumpPrefix) + sizeof(uint32_t));
+	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix)
+		return from + SmallJump + *reinterpret_cast<int32_t *>(from + sizeof(SmallJumpPrefix));
+	return 0;
 }
 
 mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
