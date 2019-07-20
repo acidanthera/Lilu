@@ -585,7 +585,7 @@ class ThreadLocal {
 	/**
 	 *  A list of tread identifiers
 	 */
-	_Atomic(thread_t) threads[N];
+	_Atomic(thread_t) threads[N] {};
 
 	/**
 	 *  A list of value references
@@ -595,13 +595,8 @@ class ThreadLocal {
 public:
 	/**
 	 *  Initialise storage
-	 *
-	 *  @return true on success
 	 */
-	void init() {
-		for (auto &thread : threads)
-			atomic_init(&thread, nullptr);
-	}
+	void init() {}
 
 	/**
 	 *  Deinitialise storage

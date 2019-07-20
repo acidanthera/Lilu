@@ -198,7 +198,7 @@ public:
 	/**
 	 *  Initialisation status (are we done initialising?)
 	 */
-	_Atomic(bool) initialised;
+	_Atomic(bool) initialised = ATOMIC_VAR_INIT(false);
 
 	/**
 	 *  User patcher

@@ -24,7 +24,9 @@ typedef enum memory_order {
 	memory_order_seq_cst = __ATOMIC_SEQ_CST
 } memory_order;
 
+#define ATOMIC_VAR_INIT(value) (value)
 #define atomic_init __c11_atomic_init
+
 #define atomic_store_explicit __c11_atomic_store
 #define atomic_load_explicit __c11_atomic_load
 #define atomic_compare_exchange_strong_explicit __c11_atomic_compare_exchange_strong

@@ -269,8 +269,6 @@ bool Configuration::registerPolicy() {
 }
 
 extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
-	// Initialise config status
-	atomic_init(&ADDPR(config).initialised, false);
 	// We should be aware of the CPU we run on.
 	CPUInfo::loadCpuInformation();
 	// Make EFI runtime services available now, since they are standalone.
