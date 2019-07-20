@@ -446,6 +446,15 @@ private:
 	bool activated {false};
 
 	/**
+	 *  Read previous jump destination from function
+	 *
+	 *  @param from         formerly routed function
+	 *
+	 *  @return wrapper pointer on success or 0
+	 */
+	mach_vm_address_t readChain(mach_vm_address_t from);
+
+	/**
 	 *  Created routed trampoline page
 	 *
 	 *  @param func     original area
@@ -527,6 +536,8 @@ private:
 	 */
 	static constexpr size_t SmallJump {1 + sizeof(int32_t)};
 	static constexpr size_t LongJump {6 + sizeof(uint64_t)};
+	static constexpr uint8_t SmallJumpPrefix {0xE9};
+	static constexpr uint16_t LongJumpPrefix {0x25FF};
 
 	/**
 	 *  Possible kernel paths

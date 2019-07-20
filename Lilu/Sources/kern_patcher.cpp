@@ -372,21 +372,29 @@ mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_a
 		absolute = true;
 	}
 
-	mach_vm_address_t trampoline {0};
-
-	if (buildWrapper) {
+	// If we already routed this function, we simply redirect the original function
+	// to the new one, and call the previous function as "original".
+	mach_vm_address_t trampoline = readChain(from);
+	if (trampoline) {
+		// Do not perform double revert
+		revertible = false;
+		// In case we were requested to make unconditional route, still obey, but this
+		// is an unsupported configuration, as it breaks previous plugin...
+		if (!buildWrapper) trampoline = 0;
+	} else if (buildWrapper) {
 		trampoline = createTrampoline(from, absolute ? LongJump : SmallJump);
 		if (!trampoline) return EINVAL;
 	}
 
+	// In case we already a trampoline to return, do not return it.
 	Patch::All *opcode = nullptr, *argument = nullptr, *disp = nullptr;
 	if (absolute) {
-		opcode = Patch::create<Patch::Variant::U16>(from, 0x25FF);
-		argument = Patch::create<Patch::Variant::U32>(from+2, 0);
-		disp = Patch::create<Patch::Variant::U64>(from+6, to);
+		opcode = Patch::create<Patch::Variant::U16>(from, LongJumpPrefix);
+		argument = Patch::create<Patch::Variant::U32>(from + sizeof(LongJumpPrefix), 0);
+		disp = Patch::create<Patch::Variant::U64>(from + sizeof(LongJumpPrefix) + sizeof(uint32_t), to);
 	} else {
-		opcode = Patch::create<Patch::Variant::U8>(from, 0xE9);
-		argument = Patch::create<Patch::Variant::U32>(from+1, newArgument);
+		opcode = Patch::create<Patch::Variant::U8>(from, SmallJumpPrefix);
+		argument = Patch::create<Patch::Variant::U32>(from + sizeof(SmallJumpPrefix), newArgument);
 	}
 
 	if (!opcode || !argument || (absolute && !disp)) {
@@ -512,6 +520,18 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 }
 
 uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribute__((section("__TEXT,__text")));
+
+mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from) {
+	mach_vm_address_t ret = 0;
+	if (memcmp(&LongJumpPrefix, (void *)from, sizeof(LongJumpPrefix)) == 0) {
+		lilu_os_memcpy(&ret, (void *)(from + sizeof(LongJumpPrefix) + sizeof(uint32_t)), sizeof(ret));
+	} else if (memcmp(&SmallJumpPrefix, (void *)from, sizeof(SmallJumpPrefix)) == 0) {
+		int32_t diff;
+		lilu_os_memcpy(&diff, (void *)(from + sizeof(SmallJumpPrefix)), sizeof(diff));
+		ret = from + SmallJump + diff;
+	}
+	return ret;
+}
 
 mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t min, const uint8_t *opcodes, size_t opnum) {
 	// Doing it earlier to workaround stack corruption due to a possible 10.12 bug.
