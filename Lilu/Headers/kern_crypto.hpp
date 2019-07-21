@@ -66,7 +66,7 @@ namespace Crypto {
 	 *  @param src  source data
 	 *  @param size data size, encrypted size is returned on success
 	 *
-	 *  @param encrypted data in Encrypted format (must be freeded by Buffer::deleter) or nullptr
+	 *  @return encrypted data in Encrypted format (must be freed by Buffer::deleter) or nullptr
 	 */
 	EXPORT uint8_t *encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size);
 
@@ -77,7 +77,7 @@ namespace Crypto {
 	 *  @param src  source data
 	 *  @param size data size, decrypted size is returned on success
 	 *
-	 *  @param decrypted data (must be freeded by Buffer::deleter) or nullptr
+	 *  @return decrypted data (must be freed by Buffer::deleter) or nullptr
 	 */
 	EXPORT uint8_t *decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size);
 
