@@ -237,6 +237,8 @@ namespace WIOKit {
 	 *  @param reg      PCI config register
 	 *  @param space    adress space
 	 *  @param size     read size for reading custom registers
+	 *
+	 *  @return value read
 	 */
 	EXPORT uint32_t readPCIConfigValue(IORegistryEntry *service, uint32_t reg, uint32_t space = 0, uint32_t size = 0);
 
