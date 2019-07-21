@@ -17,6 +17,7 @@ Please note that improperly written immature plugins will not be listed there.
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
 [NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Workarounds Quicklook issues on 10.14 when using macmodels with IGPU on CPUs without IGPU. Can be used as an alternative to `MacPro6,1` model
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
+[RTCMemoryFixup](https://github.com/acidanthera/RTCMemoryFixup) | Offsets in CMOS (RTC) memory emulation
 [SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
 [VirtualSMC](https://github.com/acidanthera/VirtualSMC) | Advanced SMC emulation
 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) | Various patches necessary for GPUs
