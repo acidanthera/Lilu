@@ -110,11 +110,11 @@ EXPORT extern "C" kern_return_t ADDPR(kern_stop)(kmod_info_t *, void *) {
 // Note, this is done in both kern_util and plugin_start as plugins will not link
 // to Lilu weak exports from vtable.
 
-kern_return_t WEAKFUNC OSObject::Dispatch(const IORPC rpc) {
+kern_return_t WEAKFUNC PRIVATE OSObject::Dispatch(const IORPC rpc) {
 	PANIC("util", "OSObject::Dispatch plugin stub called");
 }
 
-kern_return_t WEAKFUNC OSMetaClassBase::Dispatch(const IORPC rpc) {
+kern_return_t WEAKFUNC PRIVATE OSMetaClassBase::Dispatch(const IORPC rpc) {
 	PANIC("util", "OSMetaClassBase::Dispatch plugin stub called");
 }
 

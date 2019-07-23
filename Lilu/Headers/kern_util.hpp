@@ -68,11 +68,6 @@ extern proc_t kernproc;
 #define UNREACHABLE() do { __builtin_unreachable(); } while (0)
 
 /**
- *  For private fallback symbol definition
- */
-#define WEAKFUNC __attribute__((weak))
-
-/**
  *  Conditional logging to system log prefixed with you plugin name
  *
  *  @param cond  precondition
@@ -190,16 +185,6 @@ extern proc_t kernproc;
 #endif
 
 /**
- *  Deprecate the interface
- */
-#define DEPRECATE(x) __attribute__((deprecated(x)))
-
-/**
- *  Non-null argument
- */
-#define NONNULL __attribute__((nonnull))
-
-/**
  *  Macros to bypass kernel address printing protection
  */
 #define PRIKADDR "0x%08X%08X"
@@ -241,9 +226,29 @@ extern proc_t kernproc;
 #define EXPORT __attribute__((visibility("default")))
 
 /**
+ *  Ensure the symbol is not exported
+ */
+#define PRIVATE __attribute__((visibility("hidden")))
+
+/**
+ *  For private fallback symbol definition
+ */
+#define WEAKFUNC __attribute__((weak))
+
+/**
  *  Remove padding between fields
  */
 #define PACKED __attribute__((packed))
+
+/**
+ *  Deprecate the interface
+ */
+#define DEPRECATE(x) __attribute__((deprecated(x)))
+
+/**
+ *  Non-null argument
+ */
+#define NONNULL __attribute__((nonnull))
 
 /**
  *  This function is supposed to workaround missing entries in the system log.
