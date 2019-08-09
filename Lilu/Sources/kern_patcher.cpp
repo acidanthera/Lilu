@@ -360,16 +360,36 @@ void KernelPatcher::activate() {
 }
 
 mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible) {
+	return routeFunctionInternal(from, to, buildWrapper, kernelRoute, revertible);
+}
+
+mach_vm_address_t KernelPatcher::routeFunctionLong(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible) {
+	return routeFunctionInternal(from, to, buildWrapper, kernelRoute, revertible, JumpType::Long);
+}
+
+mach_vm_address_t KernelPatcher::routeFunctionShort(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible) {
+	return routeFunctionInternal(from, to, buildWrapper, kernelRoute, revertible, JumpType::Short);
+}
+
+mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible, JumpType jumpType) {
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
 
-	DBGLOG("patcher", "from " PRIKADDR " to " PRIKADDR " diff " PRIKADDR " argument %X", CASTKADDR(from), CASTKADDR(from), CASTKADDR(diff), newArgument);
+	DBGLOG("patcher", "from " PRIKADDR " to " PRIKADDR " diff " PRIKADDR " argument %X", CASTKADDR(from), CASTKADDR(to), CASTKADDR(diff), newArgument);
 
 	bool absolute {false};
 
 	if (diff != static_cast<mach_vm_address_t>(newArgument)) {
-		DBGLOG("patcher", "will use absolute jumping to %llX", to);
+		DBGLOG("patcher", "will use absolute jumping to " PRIKADDR, CASTKADDR(to));
 		absolute = true;
+	}
+
+	if (jumpType == JumpType::Long) {
+		absolute = true;
+	} else if (jumpType == JumpType::Short && absolute) {
+		DBGLOG("patcher", "cannot do short jump from " PRIKADDR " to " PRIKADDR, CASTKADDR(from), CASTKADDR(to));
+		code = Error::MemoryIssue;
+		return EINVAL;
 	}
 
 	// If we already routed this function, we simply redirect the original function

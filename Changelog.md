@@ -5,6 +5,7 @@ Lilu Changelog
 - Compile Xcode 11 OSObject stubs into plugins to allow mixing compilers
 - Unified release archive names
 - Added multirouting support to routeFunction API enabling functions to have multiple proxies
+- Added explicit routing type to routeFunction APIs
 
 #### v1.3.7
 - Allow loading on 10.15 without `-lilubetaall`
