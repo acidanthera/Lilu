@@ -246,7 +246,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 		auto entitlement = patcher.solveSymbol(KernelPatcher::KernelID, "__ZN12IOUserClient21copyClientEntitlementEP4taskPKc");
 
 		if (entitlement) {
-			orgCopyClientEntitlement = reinterpret_cast<t_copyClientEntitlement>(patcher.routeFunction(entitlement, reinterpret_cast<mach_vm_address_t>(copyClientEntitlement), true));
+			orgCopyClientEntitlement = reinterpret_cast<t_copyClientEntitlement>(patcher.routeFunctionLong(entitlement, reinterpret_cast<mach_vm_address_t>(copyClientEntitlement), true));
 			if (patcher.getError() == KernelPatcher::Error::NoError)
 				DBGLOG("api", "hooked copy user entitlement");
 			else

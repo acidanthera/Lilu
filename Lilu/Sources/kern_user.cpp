@@ -1051,7 +1051,7 @@ bool UserPatcher::hookMemoryAccess() {
 	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range");
 
 	if (patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidateRangeWrapper = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true);
+		orgCodeSignValidateRangeWrapper = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true);
 
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
 			SYSLOG("user", "failed to hook _cs_validate_range");
@@ -1061,7 +1061,7 @@ bool UserPatcher::hookMemoryAccess() {
 	} else if (static_cast<void>(patcher->clearError()),
 			   static_cast<void>(kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page")),
 			   patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidatePageWrapper = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true);
+		orgCodeSignValidatePageWrapper = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true);
 
 		if (patcher->getError() != KernelPatcher::Error::NoError) {
 			SYSLOG("user", "failed to hook _cs_validate_page");
@@ -1137,7 +1137,7 @@ bool UserPatcher::hookMemoryAccess() {
 		kern = patcher->solveSymbol(KernelPatcher::KernelID, "_vm_shared_region_map_file");
 
 		if (patcher->getError() == KernelPatcher::Error::NoError) {
-			orgVmSharedRegionMapFile = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionMapFile), true, true);
+			orgVmSharedRegionMapFile = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionMapFile), true, true);
 
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
 				SYSLOG("user", "failed to hook _vm_shared_region_map_file");
@@ -1156,9 +1156,9 @@ bool UserPatcher::hookMemoryAccess() {
 		if (patcher->getError() == KernelPatcher::Error::NoError) {
 			// 10.14 takes an extra argument here.
 			if (getKernelVersion() >= KernelVersion::Mojave)
-				orgVmSharedRegionSlideMojave = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlideMojave), true, true);
+				orgVmSharedRegionSlideMojave = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlideMojave), true, true);
 			else
-				orgVmSharedRegionSlide = patcher->routeFunction(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true);
+				orgVmSharedRegionSlide = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true);
 
 			if (patcher->getError() != KernelPatcher::Error::NoError) {
 				SYSLOG("user", "failed to hook _vm_shared_region_slide");

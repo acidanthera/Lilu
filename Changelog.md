@@ -6,6 +6,7 @@ Lilu Changelog
 - Unified release archive names
 - Added multirouting support to routeFunction API enabling functions to have multiple proxies
 - Added explicit routing type to routeFunction APIs
+- Made Lilu use long function routes to ease third-part multirouting
 
 #### v1.3.7
 - Allow loading on 10.15 without `-lilubetaall`
