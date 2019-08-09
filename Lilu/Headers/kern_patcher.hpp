@@ -433,6 +433,36 @@ public:
 	EXPORT bool routeMultiple(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false);
 
 	/**
+	 *  Simple route multiple functions with basic error handling with long routes
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param num          requests array size
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	EXPORT bool routeMultipleLong(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false);
+
+	/**
+	 *  Simple route multiple functions with basic error handling with short routes
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param num          requests array size
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	EXPORT bool routeMultipleShort(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false);
+
+	/**
 	 *  Simple route multiple functions with basic error handling
 	 *
 	 *  @param id           kernel item identifier
@@ -447,6 +477,40 @@ public:
 	template <size_t N>
 	inline bool routeMultiple(size_t id, RouteRequest (&requests)[N], mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false) {
 		return routeMultiple(id, requests, N, start, size, kernelRoute, force);
+	}
+
+	/**
+	 *  Simple route multiple functions with basic error handling with long routes
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	template <size_t N>
+	inline bool routeMultipleLong(size_t id, RouteRequest (&requests)[N], mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false) {
+		return routeMultipleLong(id, requests, N, start, size, kernelRoute, force);
+	}
+
+	/**
+	 *  Simple route multiple functions with basic error handling with long routes
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	template <size_t N>
+	inline bool routeMultipleShort(size_t id, RouteRequest (&requests)[N], mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false) {
+		return routeMultipleShort(id, requests, N, start, size, kernelRoute, force);
 	}
 
 private:
@@ -513,6 +577,22 @@ private:
 	 *  @return wrapper pointer or 0 on success
 	 */
 	mach_vm_address_t routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true, JumpType jumpType=JumpType::Auto);
+
+	/**
+	 *  Simple route multiple functions with basic error handling with long routes
+	 *
+	 *  @param id           kernel item identifier
+	 *  @param requests     an array of requests to replace
+	 *  @param num          requests array size
+	 *  @param start        start address range
+	 *  @param size         address range size
+	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
+	 *  @param force        continue on first error
+	 *  @param jumpType     jump type to use, relative short or absolute long
+	 *
+	 *  @return false if it at least one error happened
+	 */
+	bool routeMultipleInternal(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false, JumpType jumpType=JumpType::Auto);
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**

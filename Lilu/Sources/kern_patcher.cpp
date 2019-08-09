@@ -251,10 +251,10 @@ void KernelPatcher::setupKextListening() {
 
 	if (hookOuter) {
 		orgUpdateLoadedKextSummaries = reinterpret_cast<void(*)(void)>(
-			routeFunction(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated), true, true)
+			routeFunctionLong(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated), true, true)
 		);
 	} else {
-		routeFunction(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated));
+		routeFunctionLong(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated));
 	}
 
 	if (getError() == Error::NoError) {
@@ -484,11 +484,24 @@ mach_vm_address_t KernelPatcher::routeBlock(mach_vm_address_t from, const uint8_
 	mach_vm_address_t trampoline = createTrampoline(from, LongJump, opcodes, opnum);
 	if (!trampoline) return EINVAL;
 
-	// And redirect the original function to it
-	return routeFunction(from, trampoline) == 0 ? trampoline : EINVAL;
+	// And redirect the original function to it, for blocks do not care either.
+	return routeFunctionInternal(from, trampoline) == 0 ? trampoline : EINVAL;
 }
 
 bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool kernelRoute, bool force) {
+	return routeMultipleInternal(id, requests, num, start, size, kernelRoute, force);
+}
+
+bool KernelPatcher::routeMultipleLong(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool kernelRoute, bool force) {
+	return routeMultipleInternal(id, requests, num, start, size, kernelRoute, force, JumpType::Long);
+}
+
+bool KernelPatcher::routeMultipleShort(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool kernelRoute, bool force) {
+	return routeMultipleInternal(id, requests, num, start, size, kernelRoute, force, JumpType::Short);
+}
+
+
+bool KernelPatcher::routeMultipleInternal(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool kernelRoute, bool force, JumpType jump) {
 	bool errorsFound = false;
 	for (size_t i = 0; i < num; i++) {
 		auto &request = requests[i];
@@ -512,7 +525,7 @@ bool KernelPatcher::routeMultiple(size_t id, RouteRequest *requests, size_t num,
 		auto &request = requests[i];
 		if (!request.from) continue;
 		if (request.to) eraseCoverageInstPrefix(request.from, 5, LongJump);
-		auto wrapper = routeFunction(request.from, request.to, request.org, kernelRoute, true);
+		auto wrapper = routeFunctionInternal(request.from, request.to, request.org, kernelRoute, true, jump);
 		if (request.org) {
 			if (wrapper) {
 				DBGLOG("patcher", "wrapped %s", request.symbol);
@@ -590,8 +603,8 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 		// Clear previous error to not rely on the user
 		clearError();
 
-		// Add a jump
-		routeFunction(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, true, false);
+		// Add a jump, this one type is honestly irrelevant to us, thus auto.
+		routeFunctionInternal(reinterpret_cast<mach_vm_address_t>(tempDataPtr+opnum+off), func+off, false, true, false);
 
 		if (getError() == Error::NoError) {
 			return reinterpret_cast<mach_vm_address_t>(tempDataPtr);
