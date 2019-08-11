@@ -153,7 +153,7 @@ install_prebuilt_sdk() {
     return 1
   fi
 
-  local file="${vers}.DEBUG.zip"
+  local file="Lilu-${vers}-DEBUG.zip"
 
   echo "-> Downloading prebuilt debug version ${file}..."
 
