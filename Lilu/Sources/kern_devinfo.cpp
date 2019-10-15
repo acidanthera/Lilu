@@ -233,7 +233,8 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 			code &= WIOKit::ClassCode::PCISubclassMask;
 
 			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD &&
-			                                vendor != WIOKit::VendorID::AMDZEN && vendor != WIOKit::VendorID::VMware))
+			                                vendor != WIOKit::VendorID::AMDZEN && vendor != WIOKit::VendorID::VMware &&
+			                                vendor != WIOKit::VendorID::QEMU))
 				continue;
 
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {

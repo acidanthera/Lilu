@@ -142,7 +142,8 @@ namespace WIOKit {
 			AMDZEN = 0x1022,
 			NVIDIA = 0x10DE,
 			Intel  = 0x8086,
-			VMware = 0x15AD
+			VMware = 0x15AD,
+			QEMU   = 0x1B36,
 		};
 	};
 

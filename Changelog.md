@@ -1,5 +1,7 @@
 Lilu Changelog
 ==============
+#### v1.3.9
+- Added QEMU/KVM vendor compatibility to device detection logic
 
 #### v1.3.8
 - Compile Xcode 11 OSObject stubs into plugins to allow mixing compilers
