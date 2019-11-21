@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.4.0
+- Fixed mishandling user patches process list after processKernel API call
+
 #### v1.3.9
 - Added QEMU/KVM vendor compatibility to device detection logic
 

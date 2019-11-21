@@ -347,6 +347,14 @@ void LiluAPI::processUserLoadCallbacks(UserPatcher &patcher) {
 		return;
 	}
 
+	size_t i = 0;
+	while (i < storedProcs.size()) {
+		if (storedProcs[i]->section == UserPatcher::ProcInfo::SectionDisabled)
+			storedProcs.erase(i);
+		else
+			i++;
+	}
+
 	if (!patcher.registerPatches(storedProcs.data(), storedProcs.size(), storedBinaryMods.data(), storedBinaryMods.size(),
 		[](void *user, UserPatcher &patcher, vm_map_t map, const char *path, size_t len) {
 			auto api = static_cast<LiluAPI *>(user);
