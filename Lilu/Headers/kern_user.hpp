@@ -89,10 +89,21 @@ public:
 	};
 
 	/**
+	 * Binary modification patches flags
+	 */
+	enum BinaryModPatchFlags {
+		/*
+		 * Only applies to one process, not globally.
+		 */
+		LocalOnly = 1
+	};
+
+	/**
 	 *  Structure holding lookup-style binary patches
 	 */
 	struct BinaryModPatch {
 		cpu_type_t cpu;
+		uint32_t flags;
 		const uint8_t *find;
 		const uint8_t *replace;
 		size_t size;
@@ -101,6 +112,8 @@ public:
 		FileSegment segment;
 		uint32_t section;
 	};
+
+	static_assert(sizeof(BinaryModPatch) == 56, "BinaryModPatch ABI compatibility failure");
 
 	/**
 	 *  Structure describing the modifications for the binary

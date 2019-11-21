@@ -219,6 +219,10 @@ void UserPatcher::performPagePatch(const void *data_ptr, size_t data_size) {
 						auto &rpatch = storage->mod->patches[ref->i];
 						sz = ref->pageOffs.size();
 
+						// Skip patches that are meant to apply only to select processes.
+						if (rpatch.flags & LocalOnly) {
+							continue;
+						}
 
 						DBGLOG("user", "found what we are looking for %X %X %X %X %X %X %X %X", rpatch.find[0],
 								rpatch.size > 1 ? rpatch.find[1] : 0xff,

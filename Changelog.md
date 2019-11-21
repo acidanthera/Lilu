@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.4.0
 - Fixed mishandling user patches process list after processKernel API call
 - Fixed extra I/O in user patcher even when no patches were needed
+- Added support for per-process (LocalOnly) userspace patches
 
 #### v1.3.9
 - Added QEMU/KVM vendor compatibility to device detection logic
