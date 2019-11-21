@@ -761,7 +761,7 @@ size_t UserPatcher::mapAddresses(const char *mapBuf, MapEntry *mapEntries, size_
 }
 
 bool UserPatcher::loadDyldSharedCacheMapping() {
-	DBGLOG("user", "loading files %lu", binaryModSize);
+	DBGLOG("user", "loadDyldSharedCacheMapping %lu", binaryModSize);
 
 	if (binaryModSize == 0)
 		return true;
@@ -821,10 +821,24 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 }
 
 bool UserPatcher::loadFilesForPatching() {
-	DBGLOG("user", "loading files %lu", binaryModSize);
+	DBGLOG("user", "loadFilesForPatching %lu", binaryModSize);
 
 	for (size_t i = 0; i < binaryModSize; i++) {
-		DBGLOG("user", "requesting file %s at %lu", binaryMod[i]->path, i);
+		bool hasPatches = false;
+
+		for (size_t p = 0; p < binaryMod[i]->count; p++) {
+			if (binaryMod[i]->patches[p].section != ProcInfo::SectionDisabled) {
+				hasPatches = true;
+				break;
+			}
+		}
+
+		if (hasPatches) {
+			DBGLOG("user", "requesting file %s at %lu", binaryMod[i]->path, i);
+		} else {
+			DBGLOG("user", "ignoring file %s at %lu, no mods out of %lu apply", binaryMod[i]->path, i, binaryMod[i]->count);
+			continue;
+		}
 
 		size_t fileSize;
 		auto buf = FileIO::readFileToBuffer(binaryMod[i]->path, fileSize);
