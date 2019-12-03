@@ -294,13 +294,13 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch) {
 }
 
 void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *startingAddress, size_t maxSize) {
-	if (!patch || !patch->kext || patch->kext->loadIndex == KextInfo::Unloaded) {
+	if (!patch || (patch->kext && patch->kext->loadIndex == KextInfo::Unloaded)) {
 		SYSLOG("patcher", "an invalid lookup patch provided");
 		code = Error::MemoryIssue;
 		return;
 	}
 
-	auto kinfo = kinfos[patch->kext->loadIndex];
+	auto kinfo = kinfos[patch->kext ? patch->kext->loadIndex : KernelID];
 	uint8_t *kextAddress;
 	size_t kextSize;
 	kinfo->getRunningPosition(kextAddress, kextSize);
