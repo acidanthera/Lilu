@@ -305,6 +305,10 @@ void KernelPatcher::applyLookupPatch(const LookupPatch *patch, uint8_t *starting
 	size_t kextSize;
 	kinfo->getRunningPosition(kextAddress, kextSize);
 
+	// We cannot know kernel size, assume maximum available for now.
+	if (patch->kext == nullptr)
+		kextSize = UINTPTR_MAX - reinterpret_cast<uintptr_t>(kextAddress);
+
 	uint8_t *currentAddress = kextAddress;
 	if (currentAddress < startingAddress)
 		currentAddress = startingAddress;
