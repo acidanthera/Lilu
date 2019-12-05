@@ -11,11 +11,11 @@ Please note that improperly written immature plugins will not be listed there.
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards
 [BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Enable BT4LE-Handoff-Hotspot features
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
+[DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
-[NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Workarounds Quicklook issues on 10.14 when using macmodels with IGPU on CPUs without IGPU. Can be used as an alternative to `MacPro6,1` model
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
 [RTCMemoryFixup](https://github.com/acidanthera/RTCMemoryFixup) | Offsets in CMOS (RTC) memory emulation
 [SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
@@ -32,6 +32,7 @@ Plugins which functionality was merged into other plugins:
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
