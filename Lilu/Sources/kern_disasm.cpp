@@ -89,6 +89,10 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	return total;
 }
 
+size_t Disassembler::hdeDisasm(mach_vm_address_t code, hde64s *hs) {
+	return hde64_disasm(reinterpret_cast<void*>(code), hs);
+}
+
 #ifdef LILU_ADVANCED_DISASSEMBLY
 
 size_t Disassembler::disasmBuf(mach_vm_address_t addr, size_t size, cs_insn **result) {

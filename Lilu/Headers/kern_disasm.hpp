@@ -9,6 +9,7 @@
 #define kern_disasm_hpp
 
 #include <Headers/kern_config.hpp>
+#include <Headers/hde64.h>
 #include <Headers/kern_util.hpp>
 
 #ifdef LILU_ADVANCED_DISASSEMBLY
@@ -52,6 +53,8 @@ public:
 	 */
 	EXPORT static size_t quickInstructionSize(mach_vm_address_t ptr, size_t min);
 
+	/* Note, code should point to at least 32 valid bytes. */
+	EXPORT static size_t hdeDisasm(mach_vm_address_t code, hde64s *hs);
 #ifdef LILU_ADVANCED_DISASSEMBLY
 
 	/**
