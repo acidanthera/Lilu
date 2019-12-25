@@ -94,7 +94,7 @@ extern "C" {
 #endif
 
 /* Note, code should point to at least 32 valid bytes. */
-unsigned int hde64_disasm(const void *code, hde64s *hs);
+unsigned int __attribute__((visibility("default"))) hde64_disasm(const void *code, hde64s *hs);
 
 #ifdef __cplusplus
 }

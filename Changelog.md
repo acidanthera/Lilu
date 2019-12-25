@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.4.1
 - Made applyLookupPatch support kernel patches by passsing null kext
+- Export hde64 interface
 
 #### v1.4.0
 - Fixed mishandling user patches process list after processKernel API call
