@@ -130,6 +130,7 @@ extern const OSSymbol *		gIOFirstPublishNotification;
 extern const OSSymbol *		gIOMatchedNotification;
 extern const OSSymbol *		gIOFirstMatchNotification;
 extern const OSSymbol *		gIOTerminatedNotification;
+extern const OSSymbol *		gIOWillTerminateNotification;
 
 extern const OSSymbol *		gIOGeneralInterest;
 extern const OSSymbol *		gIOBusyInterest;
