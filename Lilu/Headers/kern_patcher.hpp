@@ -649,11 +649,6 @@ private:
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 	/**
-	 *  Allocated pages
-	 */
-	evector<Page *, Page::deleter> kpages;
-
-	/**
 	 *  Current error code
 	 */
 	Error code {Error::NoError};

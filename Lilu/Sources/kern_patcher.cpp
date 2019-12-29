@@ -84,9 +84,6 @@ void KernelPatcher::deinit() {
 	// Deallocate kinfos
 	kinfos.deinit();
 
-	// Deallocate pages
-	kpages.deinit();
-
 	// It is assumed that only one active instance of KernelPatcher is allowed
 	if (kernelWriteLock) {
 		IOSimpleLockFree(kernelWriteLock);
