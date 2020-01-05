@@ -97,7 +97,7 @@ public:
 	/**
 	 *  Aka GFX0 devices (kept in sync with audioExternal)
 	 */
-	evector<ExternalVideo> videoExternal;
+	evector<ExternalVideo&> videoExternal;
 
 private:
 	/**
