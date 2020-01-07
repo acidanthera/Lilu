@@ -52,11 +52,13 @@
 
 #include <IOKit/pwr_mgt/IOPMpowerState.h>
 #include <IOKit/IOServicePM.h>
+#include <IOKit/IOReportTypes.h>
 
 extern "C" {
 #include <kern/thread_call.h>
 }
 
+#include <Availability.h>
 #include "LegacyLibkernMacros.h"
 
 #ifndef UINT64_MAX
@@ -378,14 +380,57 @@ public:
 
     virtual IOService * copyClientWithCategory( const OSSymbol * category );
 
+public:
+
+#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+
+/*! @function       configureReport
+    @abstract       configure IOReporting channels
+    @availability   SPI on OS X v10.9 / iOS 7 and later
+
+    @param  channels    - channels to configure
+    @param  action      - enable/disable/size, etc
+    @param  result      - action-specific returned value
+    @param  destination - action-specific default destination
+*/
+    virtual IOReturn configureReport(IOReportChannelList   *channels,
+                                 IOReportConfigureAction action,
+                                 void                  *result,
+                                 void                  *destination);
+
+/*! @function       updateReport
+    @abstract       request current data for the specified channels
+    @availability   SPI on OS X 10.9 / iOS 7 and later
+
+    @param channels     - channels to be updated
+    @param action       - type/style of update
+    @param result       - returned details about what was updated
+    @param destination  - destination for this update (action-specific)
+*/
+    virtual IOReturn updateReport(IOReportChannelList      *channels,
+                              IOReportUpdateAction      action,
+                              void                     *result,
+                              void                     *destination);
+
+#endif
+
 private:
 #if __LP64__
+
+#if defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+    OSMetaClassDeclareReservedUsed(IOService, 0);
+    OSMetaClassDeclareReservedUsed(IOService, 1);
+#else
     OSMetaClassDeclareReservedUnused(IOService, 0);
     OSMetaClassDeclareReservedUnused(IOService, 1);
+#endif
+
     OSMetaClassDeclareReservedUnused(IOService, 2);
     OSMetaClassDeclareReservedUnused(IOService, 3);
     OSMetaClassDeclareReservedUnused(IOService, 4);
     OSMetaClassDeclareReservedUnused(IOService, 5);
+    OSMetaClassDeclareReservedUnused(IOService, 6);
+    OSMetaClassDeclareReservedUnused(IOService, 7);
 #else
     OSMetaClassDeclareReservedUsed(IOService, 0);
     OSMetaClassDeclareReservedUsed(IOService, 1);
@@ -393,10 +438,17 @@ private:
     OSMetaClassDeclareReservedUsed(IOService, 3);
     OSMetaClassDeclareReservedUsed(IOService, 4);
     OSMetaClassDeclareReservedUsed(IOService, 5);
-#endif
 
+#ifdef defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1090
+    OSMetaClassDeclareReservedUsed(IOService, 6);
+    OSMetaClassDeclareReservedUsed(IOService, 7);
+#else
     OSMetaClassDeclareReservedUnused(IOService, 6);
     OSMetaClassDeclareReservedUnused(IOService, 7);
+#endif
+
+#endif
+
     OSMetaClassDeclareReservedUnused(IOService, 8);
     OSMetaClassDeclareReservedUnused(IOService, 9);
     OSMetaClassDeclareReservedUnused(IOService, 10);
