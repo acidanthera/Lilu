@@ -73,10 +73,10 @@ extern proc_t kernproc;
  *  @param cond  precondition
  *  @param str   printf-like string
  */
-#define SYSLOG_COND(cond, module, str, ...)                                                                \
-	do {                                                                                                   \
-	    if (cond)                                                                                          \
-	        lilu_os_log( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
+#define SYSLOG_COND(cond, module, str, ...)                                                                			  \
+	do {                                                                                                   			  \
+	    if (cond)                                                                                          			  \
+	        lilu_os_log( "%s%10s: @ " str "\n", xStringify(PRODUCT_NAME), safeString(module), ## __VA_ARGS__);		  \
 	} while (0)
 
 /**
@@ -94,12 +94,12 @@ extern proc_t kernproc;
  *  @param module log module
  *  @param str    printf-like string
  */
-#define SYSTRACE_COND(cond, module, str, ...)                                                                        \
-	do {                                                                                                             \
-	    if (cond) {                                                                                                  \
-	        SYSLOG(module, str, ## __VA_ARGS__);                                                                     \
-		    OSReportWithBacktrace( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
-	    }                                                                                                            \
+#define SYSTRACE_COND(cond, module, str, ...)                                                                        			 \
+	do {                                                                                                             			 \
+	    if (cond) {                                                                                                  			 \
+	        SYSLOG(module, str, ## __VA_ARGS__);                                                                     			 \
+		    OSReportWithBacktrace( "%s%10s: @ " str "\n", xStringify(PRODUCT_NAME), safeString(module), ## __VA_ARGS__);			 \
+	    }                                                                                                            			 \
 	} while (0)
 
 /**
@@ -117,12 +117,12 @@ extern proc_t kernproc;
  *  @param module log module
  *  @param str    printf-like string
  */
-#define PANIC_COND(cond, module, str, ...)                                                             \
-	do {                                                                                               \
-	    if (cond) {                                                                                    \
-	        (panic)( "%s%10s" str "\n", xStringify(PRODUCT_NAME) ": ", module " @ ", ## __VA_ARGS__);  \
-	        UNREACHABLE();                                                                             \
-	    }                                                                                              \
+#define PANIC_COND(cond, module, str, ...)                                                             		\
+	do {                                                                                               		\
+	    if (cond) {                                                                                    		\
+	        (panic)( "%s%10s: @ " str "\n", xStringify(PRODUCT_NAME), safeString(module), ## __VA_ARGS__);  \
+	        UNREACHABLE();                                                                             		\
+	    }                                                                                              		\
 	} while (0)
 
 /**

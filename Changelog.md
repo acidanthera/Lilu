@@ -4,6 +4,7 @@ Lilu Changelog
 - Made applyLookupPatch support kernel patches by passsing null kext
 - Export hde64 interface
 - Added evector deleter without copying for improved performance
+- Allow C strings as module prefix argument to the logging functions
 
 #### v1.4.0
 - Fixed mishandling user patches process list after processKernel API call
