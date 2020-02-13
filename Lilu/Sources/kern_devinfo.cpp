@@ -249,10 +249,15 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 					DBGLOG("dev", "found HDEF device %s", safeString(name));
 					audioBuiltinAnalog = obj;
 				}
-			} else if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::IMEI || (name &&
-				(!strcmp(name, "IMEI") || !strcmp(name, "HECI") || !strcmp(name, "MEI"))))) {
+			} else if (vendor == WIOKit::VendorID::Intel &&
+				name && (!strcmp(name, "IMEI") || !strcmp(name, "HECI") || !strcmp(name, "MEI"))) {
 				// Fortunately IMEI is always made by Intel
 				DBGLOG("dev", "found IMEI device %s", safeString(name));
+				managementEngine = obj;
+			} else if (vendor == WIOKit::VendorID::Intel && managementEngine == nullptr && code == WIOKit::ClassCode::IMEI) {
+				// There can be many devices with IMEI class code.
+				// REF: https://github.com/acidanthera/bugtracker/issues/716
+				DBGLOG("dev", "found IMEI device candidate %s", safeString(name));
 				managementEngine = obj;
 			} else if (code == WIOKit::ClassCode::PCIBridge) {
 				DBGLOG("dev", "found pci bridge %s", safeString(name));
