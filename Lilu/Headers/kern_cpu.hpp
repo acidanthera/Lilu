@@ -88,7 +88,8 @@ namespace CPUInfo {
 		CPU_MODEL_COFFEELAKE_ULX =  0x9E,
 		CPU_MODEL_COFFEELAKE_DT  =  0x9E,
 		CPU_MODEL_CANNONLAKE     =  0x66,
-		CPU_MODEL_ICELAKE        =  0x7E
+		CPU_MODEL_ICELAKE        =  0x7E,
+		CPU_MODEL_COMETLAKE      =  0xA6
 	};
 
 	/**
@@ -118,6 +119,7 @@ namespace CPUInfo {
 		CoffeeLake,
 		CannonLake,
 		IceLake,
+		CometLake,
 		MaxGeneration
 	};
 

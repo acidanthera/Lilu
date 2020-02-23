@@ -118,6 +118,9 @@ void CPUInfo::loadCpuInformation() {
 			case CPU_MODEL_ICELAKE:
 				currentGeneration = CpuGeneration::IceLake;
 				break;
+			case CPU_MODEL_COMETLAKE:
+				currentGeneration = CpuGeneration::CometLake;
+				break;
 			default:
 				currentGeneration = CpuGeneration::Unknown;
 				break;
