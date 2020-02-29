@@ -286,6 +286,13 @@ public:
 	 *  Request to free file buffer resources (not including linkedit symtable)
 	 */
 	void freeFileBufferResources();
+
+	/**
+	 *  Get fat offset of the initialised image
+	 */
+	off_t getFatOffset() {
+		return fat_offset;
+	}
 };
 
 #endif /* kern_mach_hpp */

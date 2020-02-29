@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.4.2
 - Fixed IMEI device detection on some platforms
 - Added CometLake CPU model support (thx @stormbirds)
+- Added getFatOffset MachO API
 
 #### v1.4.1
 - Made applyLookupPatch support kernel patches by passsing null kext
