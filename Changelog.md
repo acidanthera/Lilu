@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.4.3
+- Improved modern CPUID detection
+
 #### v1.4.2
 - Fixed IMEI device detection on some platforms
 - Added CometLake CPU model support (thx @stormbirds)
