@@ -12,6 +12,7 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_efi.hpp>
+#include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_cpu.hpp>
 #include <Headers/kern_file.hpp>
 #include <Headers/kern_time.hpp>
@@ -269,12 +270,12 @@ bool Configuration::registerPolicy() {
 }
 
 extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
-	// We should be aware of the CPU we run on.
-	CPUInfo::loadCpuInformation();
-	// Make EFI runtime services available now, since they are standalone.
-	EfiRuntimeServices::activate();
-
 	if (ADDPR(config).getBootArguments()) {
+		// Init basic device information.
+		BaseDeviceInfo::init();
+		// Make EFI runtime services available now, since they are standalone.
+		EfiRuntimeServices::activate();
+		// Init Lilu API.
 		lilu.init();
 
 		ADDPR(config).registerPolicy();

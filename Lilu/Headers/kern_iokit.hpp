@@ -258,7 +258,7 @@ namespace WIOKit {
 	 *
 	 *  @return valid computer type or ComputerAny
 	 */
-	EXPORT int getComputerModel();
+	EXPORT int getComputerModel() DEPRECATE("Use BaseDeviceInfo");
 
 	/**
 	 *  Retrieve computer model and/or board-id properties
@@ -270,7 +270,7 @@ namespace WIOKit {
 	 *
 	 *  @return true if relevant properties already are available, otherwise buffers are unchanged
 	 */
-	EXPORT bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz);
+	EXPORT bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz) DEPRECATE("Use BaseDeviceInfo");
 
 	/**
 	 *  Retrieve an ioreg entry by path/prefix

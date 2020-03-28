@@ -7,6 +7,7 @@
 
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_compat.hpp>
+#include <Headers/kern_devinfo.hpp>
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
@@ -122,45 +123,15 @@ namespace WIOKit {
 	}
 
 	int getComputerModel() {
-		char model[64];
-		if (getComputerInfo(model, sizeof(model), nullptr, 0) && model[0] != '\0') {
-			if (strstr(model, "Book", strlen("Book")))
-				return ComputerModel::ComputerLaptop;
-			else
-				return ComputerModel::ComputerDesktop;
-		}
-		return ComputerModel::ComputerAny;
+		return BaseDeviceInfo::get().modelType;
 	}
 
 	bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz) {
-		auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
-		if (entry) {
-			if (model && modelsz > 0) {
-				auto data = OSDynamicCast(OSData, entry->getProperty("model"));
-				if (data && data->getLength() > 0) {
-					lilu_os_strlcpy(model, static_cast<const char *>(data->getBytesNoCopy()), modelsz);
-				} else {
-					DBGLOG("iokit", "failed to get valid model property");
-					model[0] = '\0';
-				}
-			}
-
-			if (board && boardsz > 0) {
-				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
-				if (data && data->getLength() > 0) {
-					lilu_os_strlcpy(board, static_cast<const char *>(data->getBytesNoCopy()), boardsz);
-				} else {
-					DBGLOG("iokit", "failed to get valid board-id property");
-					board[0] = '\0';
-				}
-			}
-
-			entry->release();
-			return true;
-		}
-
-		DBGLOG("iokit", "failed to get DT entry");
-		return false;
+		if (model && modelsz > 0)
+			lilu_os_strlcpy(model, BaseDeviceInfo::get().modelIdentifier, modelsz);
+		if (board && boardsz > 0)
+			lilu_os_strlcpy(board, BaseDeviceInfo::get().boardIdentifier, boardsz);
+		return true;
 	}
 
 	IORegistryEntry *findEntryByPrefix(const char *path, const char *prefix, const IORegistryPlane *plane, bool (*proc)(void *, IORegistryEntry *), bool brute, void *user) {

@@ -2,6 +2,8 @@ Lilu Changelog
 ==============
 #### v1.4.3
 - Improved modern CPUID detection
+- Added BaseDeviceInfo API with improved performance
+- Deprecated CPUInfo::getGeneration, WIOKit::getComputerModel(), WIOKit::getComputerInfo()
 
 #### v1.4.2
 - Fixed IMEI device detection on some platforms

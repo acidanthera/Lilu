@@ -303,7 +303,7 @@ namespace CPUInfo {
 	/**
 	 *  Reads CPU information and other data.
 	 */
-	void loadCpuInformation();
+	void init();
 
 	/**
 	 *  Installed CPU information mapping
@@ -382,7 +382,7 @@ namespace CPUInfo {
 	 *
 	 *  @return detected Intel CPU generation
 	 */
-	EXPORT CpuGeneration getGeneration(uint32_t *ofamily=nullptr, uint32_t *omodel=nullptr, uint32_t *ostepping=nullptr);
+	EXPORT CpuGeneration getGeneration(uint32_t *ofamily=nullptr, uint32_t *omodel=nullptr, uint32_t *ostepping=nullptr)  DEPRECATE("Use BaseDeviceInfo");;
 
 	/**
 	 *  Obtain CPU topology.

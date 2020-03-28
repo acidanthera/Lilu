@@ -9,6 +9,8 @@
 #define kern_devinfo_h
 
 #include <Headers/kern_config.hpp>
+#include <Headers/kern_cpu.hpp>
+#include <Headers/kern_iokit.hpp>
 #include <Headers/kern_util.hpp>
 #include <Library/LegacyIOService.h>
 
@@ -26,11 +28,6 @@ class DeviceInfo {
 	 *  Updates reportedFramebufferId
 	 */
 	void updateFramebufferId();
-
-	/**
-	 *  Updates firmwareVendor
-	 */
-	void updateFirmwareVendor();
 
 	/**
 	 *  Obtains devices from PCI root
@@ -268,6 +265,106 @@ public:
 	 *  @param d  device list
 	 */
 	EXPORT static void deleter(DeviceInfo *d NONNULL);
+};
+
+/**
+ *  Simple device information available at early stage.
+ */
+class BaseDeviceInfo {
+	/**
+	 *  Updates firmwareVendor
+	 */
+	void updateFirmwareVendor();
+
+	/**
+	 *  Updates bootloaderVendor
+	 */
+	void updateBootloaderVendor();
+
+	/**
+	 *  Updates model information
+	 */
+	void updateModelInfo();
+public:
+	/**
+	 *  Board identifier board-id
+	 */
+	char boardIdentifier[32] {};
+
+	/**
+	 *  Model identifier
+	 */
+	char modelIdentifier[32] {};
+
+	/**
+	 * Computer model type.
+	 */
+	int modelType {WIOKit::ComputerModel::ComputerAny};
+
+	/**
+	 *  Firmware vendor manufacturer
+	 */
+	DeviceInfo::FirmwareVendor firmwareVendor {DeviceInfo::FirmwareVendor::Unknown};
+
+	/**
+	 *  Known variants of bootloader vendors
+	 *  Please note, that it may not be possible to always detect the right vendor
+	 */
+	enum class BootloaderVendor {
+		Unknown,
+		Acidanthera,
+		Clover
+	};
+
+	/**
+	 *  Bootloader vendor
+	 */
+	BootloaderVendor bootloaderVendor {BootloaderVendor::Unknown};
+
+	/**
+	 *  CPU vendor
+	 */
+	CPUInfo::CpuVendor cpuVendor {CPUInfo::CpuVendor::Unknown};
+
+	/**
+	 *  CPU generation
+	 */
+	CPUInfo::CpuGeneration cpuGeneration {CPUInfo::CpuGeneration::Unknown};
+
+	/**
+	 *  CPU family
+	 */
+	uint32_t cpuFamily {};
+
+	/**
+	 *  CPU model
+	 */
+	uint32_t cpuModel {};
+
+	/**
+	 *  CPU stepping
+	 */
+	uint32_t cpuStepping {};
+
+	/**
+	 *  CPU max level
+	 */
+	uint32_t cpuMaxLevel {};
+
+	/**
+	 *  CPU max level (ext)
+	 */
+	uint32_t cpuMaxLevelExt {0x80000000};
+
+	/**
+	 *  Obtain base device info.
+	 */
+	EXPORT static const BaseDeviceInfo &get();
+
+	/**
+	 *  Initialize global base device info.
+	 */
+	static void init();
 };
 
 #endif /* kern_devinfo_h */
