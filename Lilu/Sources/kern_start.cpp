@@ -271,10 +271,10 @@ bool Configuration::registerPolicy() {
 
 extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 	if (ADDPR(config).getBootArguments()) {
-		// Init basic device information.
-		BaseDeviceInfo::init();
 		// Make EFI runtime services available now, since they are standalone.
 		EfiRuntimeServices::activate();
+		// Init basic device information.
+		BaseDeviceInfo::init();
 		// Init Lilu API.
 		lilu.init();
 

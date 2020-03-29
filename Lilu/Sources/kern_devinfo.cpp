@@ -375,33 +375,7 @@ void BaseDeviceInfo::updateFirmwareVendor() {
 }
 
 void BaseDeviceInfo::updateBootloaderVendor() {
-	auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
-	if (entry) {
-		auto manufacturer = OSDynamicCast(OSData, entry->getProperty("manufacturer"));
-		if (manufacturer && manufacturer->getLength() > 0) {
-			DBGLOG("dev", "found manufacturer %s", manufacturer->getBytesNoCopy());
-			if (strcmp(static_cast<const char *>(manufacturer->getBytesNoCopy()), "Acidanthera") == 0) {
-				bootloaderVendor = BootloaderVendor::Acidanthera;
-				DBGLOG("dev", "found Acidanthera bootloader");
-			} else if (firmwareVendor != DeviceInfo::FirmwareVendor::Unknown &&
-					   firmwareVendor != DeviceInfo::FirmwareVendor::Apple &&
-					   strstr(static_cast<const char *>(manufacturer->getBytesNoCopy()), "Apple")) {
-				SYSLOG("dev", "WARN: found Apple manufacturer on non-Apple machine");
-			}
-		} else {
-			SYSLOG("dev", "failed to get manufacturer");
-		}
-
-		entry->release();
-	} else {
-		SYSLOG("dev", "failed to get DT root");
-	}
-
-	if (bootloaderVendor != BootloaderVendor::Unknown) {
-		return;
-	}
-
-	entry = IORegistryEntry::fromPath("/efi/platform", gIODTPlane);
+	auto entry = IORegistryEntry::fromPath("/efi/platform", gIODTPlane);
 	if (entry) {
 		if (entry->getProperty("BEMB")) {
 			bootloaderVendor = BootloaderVendor::Clover;
@@ -409,6 +383,10 @@ void BaseDeviceInfo::updateBootloaderVendor() {
 		} else if (entry->getProperty("REV")) {
 			bootloaderVendor = BootloaderVendor::Acidanthera;
 			DBGLOG("dev", "assuming Acidanthera bootloader");
+			// Note, OpenCore is mostly stealth. One can detect it via:
+			// - Acidanthera manufacturer (only if we decided to update SMBIOS, available much later).
+			// - opencore-version variable (only if we decided to expose it NVRAM)
+			// - "REV" key before it is deleted by VirtualSMC (only if we decided to update DataHub)
 		}
 
 		entry->release();
