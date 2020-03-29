@@ -388,9 +388,13 @@ void BaseDeviceInfo::updateBootloaderVendor() {
 					   strstr(static_cast<const char *>(manufacturer->getBytesNoCopy()), "Apple")) {
 				SYSLOG("dev", "WARN: found Apple manufacturer on non-Apple machine");
 			}
+		} else {
+			SYSLOG("dev", "failed to get manufacturer");
 		}
 
 		entry->release();
+	} else {
+		SYSLOG("dev", "failed to get DT root");
 	}
 
 	if (bootloaderVendor != BootloaderVendor::Unknown) {
@@ -408,6 +412,8 @@ void BaseDeviceInfo::updateBootloaderVendor() {
 		}
 
 		entry->release();
+	} else {
+		SYSLOG("dev", "failed to get /efi/platform");
 	}
 }
 
@@ -436,6 +442,8 @@ void BaseDeviceInfo::updateModelInfo() {
 		}
 
 		entry->release();
+	} else {
+		SYSLOG("dev", "failed to get DT root");
 	}
 }
 
@@ -444,11 +452,11 @@ const BaseDeviceInfo &BaseDeviceInfo::get() {
 }
 
 void BaseDeviceInfo::init() {
+	// Initialize the CPU part.
+	CPUInfo::init();
+
 	globalBaseDeviceInfo.updateFirmwareVendor();
 	globalBaseDeviceInfo.updateBootloaderVendor();
 	globalBaseDeviceInfo.updateModelInfo();
-
-	// Initialize the CPU part as well.
-	CPUInfo::init();
 }
 
