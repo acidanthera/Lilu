@@ -390,8 +390,8 @@ void BaseDeviceInfo::updateModelInfo() {
 		}
 
 		auto data = OSDynamicCast(OSData, entry->getProperty("Model"));
-		size_t dataSize = data->getLength();
-		if (data && dataSize > 0) {
+		size_t dataSize = data ? data->getLength() : 0;
+		if (dataSize > 0) {
 			auto bytes = static_cast<const char16_t *>(data->getBytesNoCopy());
 			size_t i = 0;
 			while (bytes[i] != '\0' && i < sizeof(modelIdentifier) - 1 && i < dataSize) {
