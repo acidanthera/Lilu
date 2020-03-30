@@ -277,24 +277,19 @@ class BaseDeviceInfo {
 	void updateFirmwareVendor();
 
 	/**
-	 *  Updates bootloaderVendor
-	 */
-	void updateBootloaderVendor();
-
-	/**
 	 *  Updates model information
 	 */
 	void updateModelInfo();
 public:
 	/**
-	 *  Board identifier board-id
+	 *  Board identifier board-id (VMware has "440BX Desktop Reference Platform", eek)
 	 */
-	char boardIdentifier[32] {};
+	char boardIdentifier[48] {};
 
 	/**
 	 *  Model identifier
 	 */
-	char modelIdentifier[32] {};
+	char modelIdentifier[48] {};
 
 	/**
 	 * Computer model type.

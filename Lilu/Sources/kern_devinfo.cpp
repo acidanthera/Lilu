@@ -374,7 +374,7 @@ void BaseDeviceInfo::updateFirmwareVendor() {
 	}
 }
 
-void BaseDeviceInfo::updateBootloaderVendor() {
+void BaseDeviceInfo::updateModelInfo() {
 	auto entry = IORegistryEntry::fromPath("/efi/platform", gIODTPlane);
 	if (entry) {
 		if (entry->getProperty("BEMB")) {
@@ -389,40 +389,86 @@ void BaseDeviceInfo::updateBootloaderVendor() {
 			// - "REV" key before it is deleted by VirtualSMC (only if we decided to update DataHub)
 		}
 
-		entry->release();
-	} else {
-		SYSLOG("dev", "failed to get /efi/platform");
-	}
-}
-
-void BaseDeviceInfo::updateModelInfo() {
-	auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
-	if (entry) {
-		auto data = OSDynamicCast(OSData, entry->getProperty("model"));
-		if (data && data->getLength() > 0) {
-			lilu_os_strlcpy(modelIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(modelIdentifier));
-
-			if (strstr(modelIdentifier, "Book", strlen("Book")))
-				modelType = WIOKit::ComputerModel::ComputerLaptop;
-			else
-				modelType = WIOKit::ComputerModel::ComputerDesktop;
-		} else {
-			DBGLOG("dev", "failed to get valid model property");
-			modelIdentifier[0] = '\0';
+		auto data = OSDynamicCast(OSData, entry->getProperty("Model"));
+		size_t dataSize = data->getLength();
+		if (data && dataSize > 0) {
+			auto bytes = static_cast<const char16_t *>(data->getBytesNoCopy());
+			size_t i = 0;
+			while (bytes[i] != '\0' && i < sizeof(modelIdentifier) - 1 && i < dataSize) {
+				modelIdentifier[i] = static_cast<char>(bytes[i]);
+				i++;
+			}
 		}
+
+		if (modelIdentifier[0] != '\0')
+			DBGLOG("dev", "got %s model from /efi/platform", modelIdentifier);
+		else
+			DBGLOG("dev", "failed to get valid model from /efi/platform");
 
 		data = OSDynamicCast(OSData, entry->getProperty("board-id"));
-		if (data && data->getLength() > 0) {
+		if (data && data->getLength() > 0)
 			lilu_os_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
-		} else {
-			DBGLOG("dev", "failed to get valid board-id property");
-			boardIdentifier[0] = '\0';
-		}
+
+		if (boardIdentifier[0] != '\0')
+			DBGLOG("dev", "got %s board-id from /efi/platform", boardIdentifier);
+		else
+			DBGLOG("dev", "failed to get valid board-id from /efi/platform");
 
 		entry->release();
 	} else {
-		SYSLOG("dev", "failed to get DT root");
+		SYSLOG("dev", "failed to get DT /efi/platform");
 	}
+
+	// Try the legacy approach for old MacEFI and VMware.
+	while (modelIdentifier[0] == '\0' || boardIdentifier[0] == '\0') {
+		auto entry = IORegistryEntry::fromPath("/", gIODTPlane);
+		if (entry) {
+			bool modelReady = false;
+
+			if (boardIdentifier[0] == '\0') {
+				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
+				if (data && data->getLength() > 0)
+					lilu_os_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
+
+				if (boardIdentifier[0] != '\0') {
+					DBGLOG("dev", "got %s board-id from /", boardIdentifier);
+					// Otherwise we will get ACPI model.
+					modelReady = true;
+				} else {
+					DBGLOG("dev", "failed to get valid board-id from /");
+				}
+			} else {
+				modelReady = true;
+			}
+
+			if (modelReady && modelIdentifier[0] == '\0') {
+				auto data = OSDynamicCast(OSData, entry->getProperty("model"));
+				if (data && data->getLength() > 0)
+					lilu_os_strlcpy(modelIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(modelIdentifier));
+
+				if (modelIdentifier[0] != '\0')
+					DBGLOG("dev", "got %s model from /", modelIdentifier);
+				else
+					DBGLOG("dev", "failed to get valid model from /");
+			}
+
+
+
+			entry->release();
+		} else {
+			SYSLOG("dev", "failed to get DT root");
+		}
+
+		if (modelIdentifier[0] == '\0' || boardIdentifier[0] == '\0') {
+			SYSLOG("dev", "failed to obtain model information, retrying...");
+			IOSleep(1);
+		}
+	}
+
+	if (strstr(modelIdentifier, "Book", strlen("Book")))
+		modelType = WIOKit::ComputerModel::ComputerLaptop;
+	else
+		modelType = WIOKit::ComputerModel::ComputerDesktop;
 }
 
 const BaseDeviceInfo &BaseDeviceInfo::get() {
@@ -434,7 +480,6 @@ void BaseDeviceInfo::init() {
 	CPUInfo::init();
 
 	globalBaseDeviceInfo.updateFirmwareVendor();
-	globalBaseDeviceInfo.updateBootloaderVendor();
 	globalBaseDeviceInfo.updateModelInfo();
 }
 
