@@ -2,7 +2,7 @@
 //  kern_devinfo.hpp
 //  Lilu
 //
-//  Copyright © 2018 vit9696. All rights reserved.
+//  Copyright © 2018-2020 vit9696. All rights reserved.
 //
 
 #ifndef kern_devinfo_h
