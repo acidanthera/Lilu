@@ -198,6 +198,9 @@ private:
 	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId1 {0x3E920003};
 	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId2 {0x3E910003};
 	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId3 {0x3E980003};
+	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId4 {0x9BC80003};
+	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId5 {0x9BC50003};
+	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId6 {0x9BC40003};
 
 public:
 	/**
