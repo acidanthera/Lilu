@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.4.4
 - Added new CFL connector-less framebuffers: 0x9BC80003, 0x9BC50003, 0x9BC40003
+- Fixed KDK support disrespecting file suffixes
 
 #### v1.4.3
 - Improved modern CPUID detection

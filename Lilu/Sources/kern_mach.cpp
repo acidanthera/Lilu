@@ -127,7 +127,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	bool found = false;
 	// Starting with 10.10 macOS supports kcsuffix that may be appended to processes, kernels, and kexts
 	char suffix[32] {};
-	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix));
+	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix)) ? 2 : 0;
 
 	for (size_t i = 0; i < num && !found; i++) {
 		auto pathlen = static_cast<uint32_t>(strlen(paths[i]));
@@ -139,9 +139,10 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 		for (size_t j = 0; j <= suffixnum; j++) {
 			auto path = paths[i];
 			char tmppath[PATH_MAX];
-			// Prefer the suffixed version
+			// Prefer the suffixed version if available and fallback to unsuffixed otherwise.
 			if (j != suffixnum) {
-				snprintf(tmppath, sizeof(tmppath), "%s.%s", path, suffix);
+				// Kexts(?) may use _ for suffixes e.g. IOPCIFamily_development.
+				snprintf(tmppath, sizeof(tmppath), "%s%c%s", path, j == 0 ? '.' : '_', suffix);
 				path = tmppath;
 			}
 
