@@ -8,6 +8,7 @@ Please note that improperly written immature plugins will not be listed there.
 |:-----|:------------------|
 [AirportBrcmFixup](https://github.com/acidanthera/AirportBrcmFixup) | Various patches for Broadcom Airport Wi-Fi cards
 [AppleALC](https://github.com/acidanthera/AppleALC) | Native macOS HD audio for not officially supported codecs
+[AMFIExemption](https://github.com/osy86/AMFIExemption) | Adds allowed entitlements to non-Apple signed apps when SIP is enabled
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards
 [BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Enable BT4LE-Handoff-Hotspot features
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
