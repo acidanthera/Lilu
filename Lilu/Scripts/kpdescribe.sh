@@ -159,7 +159,7 @@ while (( $# != 0 )); do
 				continue
 			fi
 			kver=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$kext" 2>&1)
-			if [[ "$kver" =~ "$v" ]]; then
+			if [[ "$kver" =~ "$v" ]] || [ "$(echo "$v" | grep "$kver")" != "" ]; then
 				path="$(dirname "$kext")/MacOS/$(/usr/libexec/PlistBuddy -c 'Print CFBundleExecutable' "$kext" 2>&1)"
 				if [ -f "$path" ]; then
 					kfile[i]="$path"
