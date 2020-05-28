@@ -60,6 +60,8 @@ void DeviceInfo::updateFramebufferId() {
 					reportedFramebufferId = ConnectorLessKabyLakePlatformId2;
 				else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
 					reportedFramebufferId = ConnectorLessCoffeeLakePlatformId2;
+				else if (gen == CPUInfo::CpuGeneration::CometLake)
+					reportedFramebufferId = ConnectorLessCoffeeLakePlatformId4;
 				else
 					reportedFramebufferId = DefaultVesaPlatformId;
 			} else {
@@ -78,7 +80,7 @@ void DeviceInfo::updateFramebufferId() {
 						reportedFramebufferId = 0x19160000;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
 						reportedFramebufferId = 0x591B0000;
-					else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
+					else if (gen == CPUInfo::CpuGeneration::CoffeeLake || gen == CPUInfo::CpuGeneration::CometLake)
 						reportedFramebufferId = 0x3EA50009;
 					else if (gen == CPUInfo::CpuGeneration::CannonLake)
 						reportedFramebufferId = 0x5A590000;
@@ -99,7 +101,7 @@ void DeviceInfo::updateFramebufferId() {
 						reportedFramebufferId = DefaultAppleSkylakePlatformId;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
 						reportedFramebufferId = DefaultAppleKabyLakePlatformId;
-					else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
+					else if (gen == CPUInfo::CpuGeneration::CoffeeLake || gen == CPUInfo::CpuGeneration::CometLake)
 						reportedFramebufferId = 0x3E9B0007;
 					else if (gen == CPUInfo::CpuGeneration::CannonLake)
 						reportedFramebufferId = DefaultAppleCannonLakePlatformId;

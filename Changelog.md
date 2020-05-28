@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.4.5
 - Fixed newer CPU generation detection
+- Added failsafe versions of CML framebuffers
 
 #### v1.4.4
 - Added new CFL connector-less framebuffers: 0x9BC80003, 0x9BC50003, 0x9BC40003
