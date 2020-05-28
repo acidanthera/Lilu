@@ -116,11 +116,11 @@ void CPUInfo::init() {
 				break;
 			case CPU_MODEL_ICELAKE_Y:
 			case CPU_MODEL_ICELAKE_U:
+			case CPU_MODEL_ICELAKE_SP:
 				bdi.cpuGeneration = CpuGeneration::IceLake;
 				break;
 			case CPU_MODEL_COMETLAKE_Y:
 			case CPU_MODEL_COMETLAKE_U:
-			case CPU_MODEL_COMETLAKE_S:
 				bdi.cpuGeneration = CpuGeneration::CometLake;
 				break;
 			default:
