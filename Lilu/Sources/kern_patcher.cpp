@@ -224,7 +224,7 @@ void KernelPatcher::setupKextListening() {
 	// We have already done this
 	if (that) return;
 
-	loadedKextSummaries = reinterpret_cast<OSKextLoadedKextSummaryHeader **>(solveSymbol(KernelID, "_gLoadedKextSummaries"));
+	loadedKextSummaries = reinterpret_cast<OSKextLoadedKextSummaryHeaderAny **>(solveSymbol(KernelID, "_gLoadedKextSummaries"));
 
 	if (loadedKextSummaries) {
 		DBGLOG("patcher", "_gLoadedKextSummaries address %p", loadedKextSummaries);
@@ -643,14 +643,15 @@ void KernelPatcher::onKextSummariesUpdated() {
 		DBGLOG("patcher", "invoked at kext loading/unloading");
 
 		if (that->activated && that->loadedKextSummaries) {
-			auto num = (*that->loadedKextSummaries)->numSummaries;
+			auto num = (*that->loadedKextSummaries)->base.numSummaries;
 			if (num > 0) {
 				if (that->waitingForAlreadyLoadedKexts) {
-					that->processAlreadyLoadedKexts((*that->loadedKextSummaries)->summaries, num);
+					that->processAlreadyLoadedKexts((*that->loadedKextSummaries), num);
 					that->waitingForAlreadyLoadedKexts = false;
 				}
 				if (that->khandlers.size() > 0) {
-					OSKextLoadedKextSummary &last = (*that->loadedKextSummaries)->summaries[num-1];
+					OSKextLoadedKextSummaryBase &last = getKernelVersion() >= KernelVersion::BigSur
+						? (*that->loadedKextSummaries)->bigSur.summaries[num-1].base : (*that->loadedKextSummaries)->legacy.summaries[num-1].base;
 					DBGLOG("patcher", "last kext is " PRIKADDR " and its name is %.*s", CASTKADDR(last.address), KMOD_MAX_NAME, last.name);
 					// We may add khandlers items inside the handler
 					for (size_t i = 0; i < that->khandlers.size(); i++) {
@@ -682,11 +683,12 @@ void KernelPatcher::onKextSummariesUpdated() {
 	}
 }
 
-void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummary *summaries, size_t num) {
+void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummaryHeaderAny *header, size_t num) {
 	DBGLOG("patcher", "processing already loaded kexts by iterating over %lu summaries", num);
 
 	for (size_t i = 0; i < num; i++) {
-		auto curr = summaries[i];
+		OSKextLoadedKextSummaryBase &curr = getKernelVersion() >= KernelVersion::BigSur
+			? header->bigSur.summaries[i].base : header->legacy.summaries[i].base;
 		for (size_t j = 0; j < khandlers.size(); j++) {
 			auto handler = khandlers[j];
 			if (handler->loaded && !strncmp(handler->id, curr.name, KMOD_MAX_NAME)) {

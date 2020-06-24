@@ -120,7 +120,7 @@ namespace Patch {
 /**
  *  Taken from libkern/libkern/OSKextLibPrivate.h
  */
-struct OSKextLoadedKextSummary {
+struct OSKextLoadedKextSummaryBase {
 	char        name[KMOD_MAX_NAME];
 	uuid_t      uuid;
 	uint64_t    address;
@@ -131,12 +131,37 @@ struct OSKextLoadedKextSummary {
 	uint64_t    reference_list;
 };
 
-struct OSKextLoadedKextSummaryHeader {
+struct OSKextLoadedKextSummaryLegacy {
+	OSKextLoadedKextSummaryBase base;
+};
+
+struct OSKextLoadedKextSummaryBigSur {
+	OSKextLoadedKextSummaryBase base;
+	uint64_t                    text_address;
+	uint64_t                    text_size;
+};
+
+struct OSKextLoadedKextSummaryHeaderBase {
 	uint32_t version;
 	uint32_t entry_size;
 	uint32_t numSummaries;
 	uint32_t reserved; /* explicit alignment for gdb  */
-	OSKextLoadedKextSummary summaries[0];
+};
+
+struct OSKextLoadedKextSummaryHeaderLegacy {
+	OSKextLoadedKextSummaryHeaderBase base;
+	OSKextLoadedKextSummaryLegacy     summaries[];
+};
+
+struct OSKextLoadedKextSummaryHeaderBigSur {
+	OSKextLoadedKextSummaryHeaderBase base;
+	OSKextLoadedKextSummaryBigSur     summaries[];
+};
+
+union OSKextLoadedKextSummaryHeaderAny {
+	OSKextLoadedKextSummaryHeaderBase    base;
+	OSKextLoadedKextSummaryHeaderLegacy  legacy;
+	OSKextLoadedKextSummaryHeaderBigSur  bigSur;
 };
 
 #endif /* LILU_KEXTPATCH_SUPPORT */

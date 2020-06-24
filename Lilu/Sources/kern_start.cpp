@@ -170,7 +170,7 @@ bool Configuration::getBootArguments() {
 
 	betaForAll = checkKernelArgument(bootargBetaAll);
 	debugForAll = checkKernelArgument(bootargDebugAll);
-	isUserDisabled = checkKernelArgument(bootargUserOff);
+	isUserDisabled = checkKernelArgument(bootargUserOff) || getKernelVersion() >= KernelVersion::BigSur;
 
 	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
