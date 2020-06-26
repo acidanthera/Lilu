@@ -15,7 +15,8 @@ Please note that improperly written immature plugins will not be listed there.
 [CpuTscSync](https://github.com/lvs1974/CpuTscSync) | Сombining functionality of VoodooTSCSync and disabling xcpm_urgency if TSC is not in sync
 [DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
-[HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
+[DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
+[Innie](https://forums.macrumors.com/threads/innie-a-fix-for-pci-drives-seen-as-external.2136229/post-26433989) | Changes PCI drives seen as internal instead of external
 [MacProMemoryNotificationDisabler](https://github.com/IOIIIO/MacProMemoryNotificationDisabler) | Disabling the "more than maximum amount of memory" popup on MacPro7,1
 [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
