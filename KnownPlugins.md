@@ -16,6 +16,7 @@ Please note that improperly written immature plugins will not be listed there.
 [DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
+[Innie](https://github.com/cdf/Innie) | Making PCIe drives appear as internal
 [MacProMemoryNotificationDisabler](https://github.com/IOIIIO/MacProMemoryNotificationDisabler) | Disabling the "more than maximum amount of memory" popup on MacPro7,1
 [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
