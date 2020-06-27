@@ -240,7 +240,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 						DBGLOG_COND(v.audio, "dev", "marking audio device as HDAU at %s", safeString(v.audio->getName()));
 						if (!videoExternal.push_back(v))
 							SYSLOG("dev", "failed to push video gpu");
-					} else if (v.audio && !audioBuiltinAnalog) {
+					} else if (v.audio && !audioBuiltinAnalog && v.audio->getProperty("external-audio") == nullptr) {
 						// On modern AMD platforms or VMware built-in audio devices sits on a PCI bridge just any other device.
 						// On AMD it has a distinct Ryzen device-id for the time being, yet on VMware it is just Intel.
 						// To distinguish the devices we use audio card presence as a marker.

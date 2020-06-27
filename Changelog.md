@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.4.6
 - Added preliminary definitions for 11.0 support
 - Temporarily disabled user patcher for 11.0
+- Added `external-audio` property to ignore PCI audio cards
 
 #### v1.4.5
 - Fixed newer CPU generation detection
