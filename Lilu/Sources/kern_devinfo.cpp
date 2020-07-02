@@ -227,9 +227,13 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 								v.video = pciobj;
 								v.vendor = pcivendor;
 							} else if (pcicode == WIOKit::ClassCode::HDADevice || pcicode == WIOKit::ClassCode::HDAMmDevice) {
-								DBGLOG("dev", "found audio device %s at %s by %04X",
-									   safeString(pciobj->getName()), safeString(name), pcivendor);
-								v.audio = pciobj;
+								if(pcivendor == WIOKit::VendorID::AMDZEN || pcivendor == WIOKit::VendorID::ATIAMD) {
+									DBGLOG("dev", "found audio device %s at %s by %04X",
+										   safeString(pciobj->getName()), safeString(name), pcivendor);
+									v.audio = pciobj;
+								} else {
+									DBGLOG("dev", "skipping false audio device %s at %s by %04X",safeString(pciobj->getName()), safeString(name), pcivendor);
+								}
 							}
 						}
 					}
