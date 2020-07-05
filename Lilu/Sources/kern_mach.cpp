@@ -792,27 +792,28 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide, size_t si
 
 	DBGLOG("mach", "got nouveau mach-o for %s at " PRIKADDR, objectId, CASTKADDR(inner));
 
+	mach_vm_address_t last_addr = 0;
+
 	auto addr = reinterpret_cast<uint8_t *>(inner) + sizeof(mach_header_64);
 	for (uint32_t i = 0; i < inner->ncmds; i++) {
 		load_command *loadCmd = reinterpret_cast<load_command *>(addr);
 
 		if (loadCmd->cmd == LC_SEGMENT_64) {
 			auto segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
-			if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+			if (!linkedit_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				linkedit_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
 				linkedit_fileoff = segCmd->fileoff;
 				linkedit_size = segCmd->vmsize;
 				linkedit_buf_ro = true;
 			}
-		} else if (loadCmd->cmd == LC_SYMTAB) {
+			if (segCmd->vmaddr + segCmd->vmsize > last_addr)
+				last_addr = segCmd->vmaddr + segCmd->vmsize;
+		} else if (!symboltable_fileoff && loadCmd->cmd == LC_SYMTAB) {
 			auto symtab_cmd = reinterpret_cast<symtab_command *>(loadCmd);
 			symboltable_fileoff = symtab_cmd->symoff;
 			symboltable_nr_symbols = symtab_cmd->nsyms;
 			stringtable_fileoff = symtab_cmd->stroff;
 		}
-
-		if (linkedit_buf && symboltable_fileoff)
-			break;
 
 		addr += loadCmd->cmdsize;
 	}
@@ -822,8 +823,15 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide, size_t si
 		return KERN_FAILURE;
 	}
 
+	if (last_addr < reinterpret_cast<mach_vm_address_t>(inner)) {
+		SYSLOG("mach", "invalid last address " PRIKADDR " with header " PRIKADDR, CASTKADDR(last_addr), CASTKADDR(inner));
+		return KERN_FAILURE;
+	}
+
 	kaslr_slide_set = true;
 	prelink_slid = true;
+	running_mh = inner;
+	memory_size = last_addr - reinterpret_cast<mach_vm_address_t>(inner);
 	return KERN_SUCCESS;
 }
 
