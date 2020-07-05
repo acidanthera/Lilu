@@ -805,9 +805,12 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide, size_t si
 				linkedit_fileoff = segCmd->fileoff;
 				linkedit_size = segCmd->vmsize;
 				linkedit_buf_ro = true;
-			}
-			if (segCmd->vmaddr + segCmd->vmsize > last_addr)
+			} else if (segCmd->vmaddr + segCmd->vmsize > last_addr) {
+				// We exclude __LINKEDIT here as it is much farther from the rest of the segments,
+				// and we will unlikely need to patch it anyway. Doing this makes it much safer
+				// to apply patches, as they will not hit unmapped areas.
 				last_addr = segCmd->vmaddr + segCmd->vmsize;
+			}
 		} else if (!symboltable_fileoff && loadCmd->cmd == LC_SYMTAB) {
 			auto symtab_cmd = reinterpret_cast<symtab_command *>(loadCmd);
 			symboltable_fileoff = symtab_cmd->symoff;
