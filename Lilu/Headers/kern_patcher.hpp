@@ -147,8 +147,10 @@ public:
 	 *  @param slide loaded slide
 	 *  @param size  loaded memory size
 	 *  @param force force recalculatiob
+	 *
+	 *  @return new size
 	 */
-	EXPORT void updateRunningInfo(size_t id, mach_vm_address_t slide=0, size_t size=0, bool force=false);
+	EXPORT size_t updateRunningInfo(size_t id, mach_vm_address_t slide=0, size_t size=0, bool force=false);
 
 	/**
 	 *  Any kernel

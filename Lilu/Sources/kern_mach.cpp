@@ -754,7 +754,7 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 	return nullptr;
 }
 
-kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide, size_t size) {
+kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
@@ -851,14 +851,13 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 
 	if (kaslr_slide_set) return KERN_SUCCESS;
 
-	if (size > 0)
-		memory_size = size;
+	if (size > 0) memory_size = size;
 
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
 	if (kernel_collection && !linkedit_buf)
-		return kcGetRunningAddresses(slide, size);
+		return kcGetRunningAddresses(slide);
 
 	if (base != 0) {
 		// get the vm address of __TEXT segment

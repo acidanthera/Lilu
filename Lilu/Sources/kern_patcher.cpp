@@ -156,16 +156,22 @@ size_t KernelPatcher::loadKinfo(KernelPatcher::KextInfo *info) {
 }
 #endif /* KEXTPATH_SUPPORT */
 
-void KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t size, bool force) {
+size_t KernelPatcher::updateRunningInfo(size_t id, mach_vm_address_t slide, size_t size, bool force) {
 	if (id >= kinfos.size()) {
 		SYSLOG("patcher", "invalid kinfo id %lu for running info update", id);
-		return;
+		return size;
 	}
 
 	if (kinfos[id]->getRunningAddresses(slide, size, force) != KERN_SUCCESS) {
 		SYSLOG("patcher", "failed to retrieve running info");
 		code = Error::KernRunningInitFailure;
 	}
+
+	// In 11.0 khandler's size only contains __TEXT. We need to update this.
+	uint8_t *hdr = nullptr;
+	size_t nsize = 0;
+	kinfos[id]->getRunningPosition(hdr, nsize);
+	return nsize > size ? nsize: size;
 }
 
 bool KernelPatcher::compatibleKernel(uint32_t min, uint32_t max) {

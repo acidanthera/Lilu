@@ -206,11 +206,10 @@ public:
 	 *  Retrieve the mach header and __TEXT addresses for KC mode
 	 *
 	 *  @param slide load slide if calculating for kexts
-	 *  @param size  memory size
 	 *
 	 *  @return KERN_SUCCESS on success
 	 */
-	kern_return_t kcGetRunningAddresses(mach_vm_address_t slide, size_t size);
+	kern_return_t kcGetRunningAddresses(mach_vm_address_t slide);
 
 	/**
 	 *  Retrieve the mach header and __TEXT addresses

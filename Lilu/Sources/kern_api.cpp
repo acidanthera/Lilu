@@ -333,7 +333,7 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 
 void LiluAPI::processKextLoadCallbacks(KernelPatcher &patcher, size_t id, mach_vm_address_t slide, size_t size, bool reloadable) {
 	// Update running info
-	patcher.updateRunningInfo(id, slide, size, reloadable);
+	size = patcher.updateRunningInfo(id, slide, size, reloadable);
 
 	// Process the callbacks
 	for (size_t i = 0; i < kextLoadedCallbacks.size(); i++) {
