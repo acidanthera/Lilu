@@ -328,8 +328,9 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 				// get the pointer to the symbol entry and extract its symbol string
 				auto symbolStr = reinterpret_cast<char *>(strlist + nlist->n_un.n_strx);
 				// find if symbol matches
-				if (reinterpret_cast<uint8_t *>(symbolStr + symlen) <= endaddr && !strncmp(symbol, symbolStr, symlen)) {
-					DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx)", symbol, nlist->n_value + kaslr_slide, nlist->n_value);
+				if (reinterpret_cast<uint8_t *>(symbolStr + symlen) <= endaddr && (nlist->n_type & N_STAB) == 0 && !strncmp(symbol, symbolStr, symlen)) {
+					DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx), type %x, sect %x, desc %x", symbol, nlist->n_value + kaslr_slide,
+						   nlist->n_value, nlist->n_type, nlist->n_sect, nlist->n_desc);
 					// the symbol values are without kernel ASLR so we need to add it
 					return nlist->n_value + kaslr_slide;
 				}
@@ -800,6 +801,8 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide, size_t si
 
 		if (loadCmd->cmd == LC_SEGMENT_64) {
 			auto segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+			DBGLOG("mach", "%s has segment is %s from " PRIKADDR " to " PRIKADDR, objectId, segCmd->segname,
+				   CASTKADDR(segCmd->vmaddr), CASTKADDR(segCmd->vmaddr + segCmd->vmsize));
 			if (!linkedit_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				linkedit_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
 				linkedit_fileoff = segCmd->fileoff;

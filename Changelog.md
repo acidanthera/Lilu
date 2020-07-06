@@ -5,6 +5,7 @@ Lilu Changelog
 - Temporarily disabled user patcher for 11.0
 - Added `external-audio` property to ignore PCI audio cards
 - Added in-memory symbol solving for 11.0
+- Fixed accidentally solving stabs instead of normal symbols
 
 #### v1.4.5
 - Fixed newer CPU generation detection
