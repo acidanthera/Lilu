@@ -37,14 +37,6 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 	allow_decompress = ADDPR(config).allowDecompress;
 
-	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
-	// When calling kauth_cred_get() for the current_thread.
-	//TODO: Try to find a better solution...
-	if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
-		SYSLOG("mach", "current context has no credential, it's too early");
-		return error;
-	}
-
 	// Attempt to load directly from the filesystem
 	(void)fsfallback;
 
@@ -52,6 +44,15 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	error = initFromMemory();
 	if (kernel_collection && strstr(paths[0], ".kext") != NULL)
 		return error;
+
+	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
+	// When calling kauth_cred_get() for the current_thread.
+	//TODO: Try to find a better solution...
+	if (!kernproc || !current_thread() || !vfs_context_current() || !vfs_context_ucred(vfs_context_current())) {
+		SYSLOG("mach", "current context has no credential, it's too early %d %d %d %d",
+			   !kernproc, !current_thread(), !vfs_context_current(), !vfs_context_ucred(vfs_context_current()));
+		return error;
+	}
 
 	//TODO: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
 	// We are fine to detect prelinked usage (#27), but prelinked may not contain certain kexts and even more

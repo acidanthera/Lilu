@@ -98,10 +98,17 @@ private:
 	static int policyCheckRemount(kauth_cred_t, mount *, label *);
 
 	/**
+	 *  May be used at TrustedBSD policy initialisation
+	 *
+	 *  @param conf policy configuration
+	 */
+	static void policyInitBSD(mac_policy_conf *conf);
+
+	/**
 	 *  TrustedBSD policy options
 	 */
 	mac_policy_ops policyOps {
-		.mpo_policy_initbsd					= Policy::dummyPolicyInitBSD
+		.mpo_policy_initbsd = policyInitBSD
 	};
 
 	/**

@@ -29,15 +29,6 @@ class Policy {
 	mac_policy_conf policyConf;
 public:
 	/**
-	 *  May be used at TrustedBSD policy initialisation
-	 *
-	 *  @param conf policy configuration
-	 */
-	static void dummyPolicyInitBSD(mac_policy_conf *conf) {
-		DBGLOG("policy", "init bsd");
-	}
-
-	/**
 	 *  Compile-time policy constructor
 	 *
 	 *  @param name  policy name literal

@@ -96,6 +96,12 @@ int Configuration::policyCredCheckLabelUpdateExecve(kauth_cred_t, vnode_t, ...) 
 	return 0;
 }
 
+void Configuration::policyInitBSD(mac_policy_conf *conf) {
+	DBGLOG("config", "init bsd policy on %u in %d", getKernelVersion(), ADDPR(config).installOrRecovery);
+	if (getKernelVersion() >= KernelVersion::BigSur)
+		ADDPR(config).policyInit("init bsd");
+}
+
 #ifdef DEBUG
 
 void Configuration::initCustomDebugSupport() {
