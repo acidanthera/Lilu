@@ -11,6 +11,7 @@
 #include <IOKit/IODeviceTreeSupport.h>
 
 BaseDeviceInfo globalBaseDeviceInfo;
+DeviceInfo *globalDeviceInfo;
 
 void DeviceInfo::updateLayoutId() {
 	reportedLayoutId = DefaultReportedLayoutId;
@@ -164,7 +165,25 @@ bool DeviceInfo::isConnectorLessPlatformId(uint32_t id) {
 	id == ConnectorLessCoffeeLakePlatformId6;
 }
 
+void DeviceInfo::awaitPublishing(IORegistryEntry *obj) {
+	size_t counter = 0;
+	while (counter < 256) {
+		if (obj->getProperty("IOPCIConfigured")) {
+			DBGLOG("dev", "pci bridge %s is configured %lu", safeString(obj->getName()), counter);
+			break;
+		}
+		SYSLOG("dev", "pci bridge %s is not configured %lu, polling", safeString(obj->getName()), counter);
+		++counter;
+		IOSleep(20);
+	}
+
+	if (counter == 256)
+		SYSLOG("dev", "found unconfigured pci bridge %s", safeString(obj->getName()));
+}
+
 void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
+	awaitPublishing(pciRoot);
+
 	auto iterator = pciRoot->getChildIterator(gIODTPlane);
 	if (iterator) {
 		IORegistryEntry *obj = nullptr;
@@ -207,7 +226,8 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				managementEngine = obj;
 			} else if (code == WIOKit::ClassCode::PCIBridge) {
 				DBGLOG("dev", "found pci bridge %s", safeString(name));
-				auto pciiterator = IORegistryIterator::iterateOver(obj, gIOServicePlane, kIORegistryIterateRecursively);
+				awaitPublishing(obj);
+				auto pciiterator = IORegistryIterator::iterateOver(obj, gIODTPlane, kIORegistryIterateRecursively);
 				if (pciiterator) {
 					ExternalVideo v {};
 					IORegistryEntry *pciobj = nullptr;
@@ -257,7 +277,21 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 	}
 }
 
+DeviceInfo *DeviceInfo::create_cached() {
+	if (globalDeviceInfo != nullptr)
+		PANIC("dev", "called static globalDeviceInfo building twice");
+
+	globalDeviceInfo = DeviceInfo::create();
+	if (globalDeviceInfo == nullptr)
+		PANIC("dev", "failed to build globalDeviceInfo");
+
+	return globalDeviceInfo;
+}
+
 DeviceInfo *DeviceInfo::create() {
+	if (globalDeviceInfo != nullptr)
+		return globalDeviceInfo;
+
 	auto list = new DeviceInfo;
 	if (!list) {
 		SYSLOG("dev", "failed to allocate device list");
@@ -319,8 +353,10 @@ DeviceInfo *DeviceInfo::create() {
 }
 
 void DeviceInfo::deleter(DeviceInfo *d) {
-	d->videoExternal.deinit();
-	delete d;
+	if (d != globalDeviceInfo) {
+		d->videoExternal.deinit();
+		delete d;
+	}
 }
 
 void BaseDeviceInfo::updateFirmwareVendor() {

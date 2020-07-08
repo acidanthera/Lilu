@@ -36,6 +36,13 @@ class DeviceInfo {
 	 */
 	void grabDevicesFromPciRoot(IORegistryEntry *pciRoot);
 
+	/**
+	 *  Await for PCI device publishing in IODeviceTree plane
+	 *
+	 *  @param obj  wait for (PCI) object publishing
+	 */
+	void awaitPublishing(IORegistryEntry *obj);
+
 public:
 	/**
 	 *  Obtains autodetected legacy framebuffer if applicable
@@ -254,6 +261,13 @@ public:
 	 *  Requested external GPU switchoff
 	 */
 	bool requestedExternalSwitchOff {false};
+
+	/**
+	 *  Allocate and initialise cached device list.
+	 *
+	 *  @return device list or nullptr
+	 */
+	EXPORT static DeviceInfo *create_cached();
 
 	/**
 	 *  Allocate and initialise the device list.
