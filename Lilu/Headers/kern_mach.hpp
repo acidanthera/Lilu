@@ -37,6 +37,7 @@ class MachInfo {
 	uint32_t symboltable_nr_symbols {0};
 	uint32_t stringtable_fileoff {0};        // file offset to string table
 	mach_header_64 *running_mh {nullptr};    // pointer to mach-o header of running kernel item
+	mach_vm_address_t address_slots {0};     // pointer after mach-o header to store pointers
 	off_t fat_offset {0};                    // additional fat offset
 	size_t memory_size {HeaderSize};         // memory size
 	bool kaslr_slide_set {false};            // kaslr can be null, used for disambiguation
@@ -210,6 +211,14 @@ public:
 	 *  @return KERN_SUCCESS on success
 	 */
 	kern_return_t kcGetRunningAddresses(mach_vm_address_t slide);
+
+	/**
+	 *  Get address slot if present
+	 *
+	 *  @return address slot on success
+	 *  @return NULL on success
+	 */
+	mach_vm_address_t getAddressSlot();
 
 	/**
 	 *  Retrieve the mach header and __TEXT addresses

@@ -839,7 +839,23 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	prelink_slid = true;
 	running_mh = inner;
 	memory_size = last_addr - reinterpret_cast<mach_vm_address_t>(inner);
+	if (slide != 0) {
+		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
+		DBGLOG("mach", "activating slots for %s in " PRIKADDR, objectId, CASTUUID(address_slots));
+	}
 	return KERN_SUCCESS;
+}
+
+mach_vm_address_t MachInfo::getAddressSlot() {
+	// FIXME: For now let's assume it does not overflow and corrupt the __text section
+	// following Mach-O header. In the future we could add more checks to be extra
+	// careful.
+	if (address_slots) {
+		auto slot = address_slots;
+		address_slots += sizeof(mach_vm_address_t);
+		return slot;
+	}
+	return 0;
 }
 
 kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size, bool force) {

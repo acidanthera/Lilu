@@ -378,7 +378,7 @@ mach_vm_address_t KernelPatcher::routeFunctionShort(mach_vm_address_t from, mach
 	return routeFunctionInternal(from, to, buildWrapper, kernelRoute, revertible, JumpType::Short);
 }
 
-mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible, JumpType jumpType) {
+mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible, JumpType jumpType, MachInfo *info) {
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
 
@@ -402,6 +402,7 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 	// If we already routed this function, we simply redirect the original function
 	// to the new one, and call the previous function as "original".
 	mach_vm_address_t trampoline = readChain(from);
+	mach_vm_address_t addressSlot = 0;
 	if (trampoline) {
 		// Do not perform double revert
 		revertible = false;
@@ -409,13 +410,26 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		// is an unsupported configuration, as it breaks previous plugin...
 		if (!buildWrapper) trampoline = 0;
 	} else if (buildWrapper) {
-		trampoline = createTrampoline(from, absolute ? LongJump : SmallJump);
+		if (info && absolute && jumpType == JumpType::Auto) {
+			addressSlot = info->getAddressSlot();
+			DBGLOG("patcher", "using slotted jumping via " PRIKADDR, CASTKADDR(addressSlot));
+		}
+		trampoline = createTrampoline(from, absolute ? (addressSlot ? MediumJump : LongJump) : SmallJump);
 		if (!trampoline) return EINVAL;
 	}
 
 	// In case we already a trampoline to return, do not return it.
 	Patch::All *opcode = nullptr, *argument = nullptr, *disp = nullptr;
-	if (absolute) {
+	// The reason to use slots is to reduce the patch size even for absolute patches.
+	// In this case we store 6 bytes of indirect jmp with the target address itself being
+	// put in the beginning of the image, right after the Mach-O commands.
+	// This solves the problem of having short prologues followed by non-movable
+	// commands like mov rax, <vtable_address> commonly found in 11.0 (e.g. ATIController::start).
+	if (addressSlot) {
+		opcode = Patch::create<Patch::Variant::U16>(from, LongJumpPrefix);
+		argument = Patch::create<Patch::Variant::U32>(from + sizeof(LongJumpPrefix), static_cast<uint32_t>(addressSlot - (from + MediumJump)));
+		disp = Patch::create<Patch::Variant::U64>(addressSlot, to);
+	} else if (absolute) {
 		opcode = Patch::create<Patch::Variant::U16>(from, LongJumpPrefix);
 		argument = Patch::create<Patch::Variant::U32>(from + sizeof(LongJumpPrefix), 0);
 		disp = Patch::create<Patch::Variant::U64>(from + sizeof(LongJumpPrefix) + sizeof(uint32_t), to);
@@ -532,7 +546,7 @@ bool KernelPatcher::routeMultipleInternal(size_t id, RouteRequest *requests, siz
 		auto &request = requests[i];
 		if (!request.from) continue;
 		if (request.to) eraseCoverageInstPrefix(request.from, 5, LongJump);
-		auto wrapper = routeFunctionInternal(request.from, request.to, request.org, kernelRoute, true, jump);
+		auto wrapper = routeFunctionInternal(request.from, request.to, request.org, kernelRoute, true, jump, kinfos[id]);
 		if (request.org) {
 			if (wrapper) {
 				DBGLOG("patcher", "wrapped %s", request.symbol);
@@ -563,8 +577,10 @@ uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribut
 
 mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from) {
 	// Note, unaligned access for simplicity
-	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix)
-		return *reinterpret_cast<mach_vm_address_t *>(from + sizeof(LongJumpPrefix) + sizeof(uint32_t));
+	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix) {
+		auto disp = *reinterpret_cast<int32_t *>(from + sizeof(LongJumpPrefix));
+		return *reinterpret_cast<mach_vm_address_t *>(from + sizeof(MediumJump) + disp);
+	}
 	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix)
 		return from + SmallJump + *reinterpret_cast<int32_t *>(from + sizeof(SmallJumpPrefix));
 	return 0;

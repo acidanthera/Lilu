@@ -521,7 +521,8 @@ private:
 	enum class JumpType {
 		Auto,
 		Long,
-		Short
+		Short,
+		Medium
 	};
 
 	/**
@@ -574,10 +575,11 @@ private:
 	 *  @param kernelRoute  kernel change requiring memory protection changes and patch reverting at unload
 	 *  @param revertible   patches could be reverted
 	 *  @param jumpType     jump type to use, relative short or absolute long
+	 *  @param info         info to access address slots to use for shorter routing
 	 *
 	 *  @return wrapper pointer or 0 on success
 	 */
-	mach_vm_address_t routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true, JumpType jumpType=JumpType::Auto);
+	mach_vm_address_t routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true, JumpType jumpType=JumpType::Auto, MachInfo *info=nullptr);
 
 	/**
 	 *  Simple route multiple functions with basic error handling with long routes
@@ -660,6 +662,7 @@ private:
 	 */
 	static constexpr size_t SmallJump {1 + sizeof(int32_t)};
 	static constexpr size_t LongJump {6 + sizeof(uint64_t)};
+	static constexpr size_t MediumJump {6};
 	static constexpr uint8_t SmallJumpPrefix {0xE9};
 	static constexpr uint16_t LongJumpPrefix {0x25FF};
 

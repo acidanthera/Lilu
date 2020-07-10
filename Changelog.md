@@ -8,6 +8,7 @@ Lilu Changelog
 - Fixed accidentally solving stabs instead of normal symbols
 - Added device publishing API to monitor device startup
 - Added DeviceInfo caching for improved performance
+- Added implicit slotted (medium) patches in KC mode to reduce patch size
 
 #### v1.4.5
 - Fixed newer CPU generation detection
