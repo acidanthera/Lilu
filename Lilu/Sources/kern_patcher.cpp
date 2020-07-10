@@ -470,9 +470,11 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 				return trampoline;
 
 			SYSLOG("patcher", "failed to store patches for later removal, you are in trouble");
+#ifndef __clang_analyzer__
 			if (oidx) kpatches.erase(oidx);
 			if (aidx) kpatches.erase(aidx);
 			if (didx) kpatches.erase(didx);
+#endif
 		}
 	}
 
