@@ -841,7 +841,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	memory_size = last_addr - reinterpret_cast<mach_vm_address_t>(inner);
 	if (slide != 0) {
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
-		DBGLOG("mach", "activating slots for %s in " PRIKADDR, objectId, CASTUUID(address_slots));
+		DBGLOG("mach", "activating slots for %s in " PRIKADDR, objectId, CASTKADDR(address_slots));
 	}
 	return KERN_SUCCESS;
 }
