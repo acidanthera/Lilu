@@ -55,7 +55,7 @@ void PRODUCT_NAME::stop(IOService *provider) {
 
 Configuration ADDPR(config);
 
-bool Configuration::performInit() {
+bool Configuration::performEarlyInit() {
 	kernelPatcher.init();
 
 	if (kernelPatcher.getError() != KernelPatcher::Error::NoError) {
@@ -65,6 +65,31 @@ bool Configuration::performInit() {
 		return false;
 	}
 
+	KernelPatcher::RouteRequest request {"_PE_initialize_console", initConsole, orgInitConsole};
+	if (!kernelPatcher.routeMultiple(KernelPatcher::KernelID, &request, 1, 0, 0, true, false)) {
+		SYSLOG("config", "failed to initialise through console routing");
+		kernelPatcher.deinit();
+		kernelPatcher.clearError();
+		return false;
+	}
+
+	return true;
+}
+
+int Configuration::initConsole(PE_Video *info, int op) {
+	DBGLOG("config", "PE_initialize_console %d", op);
+	if (op == kPEBaseAddressChange && !atomic_load_explicit(&ADDPR(config).initialised, memory_order_relaxed)) {
+		IOLockLock(ADDPR(config).policyLock);
+		if (!atomic_load_explicit(&ADDPR(config).initialised, memory_order_relaxed)) {
+			DBGLOG("config", "PE_initialize_console %d performing init", op);
+			ADDPR(config).performCommonInit();
+		}
+		IOLockUnlock(ADDPR(config).policyLock);
+	}
+	return FunctionCast(initConsole, ADDPR(config).orgInitConsole)(info, op);
+}
+
+bool Configuration::performCommonInit() {
 	lilu.processPatcherLoadCallbacks(kernelPatcher);
 
 	bool ok = userPatcher.init(kernelPatcher, preferSlowMode);
@@ -84,6 +109,19 @@ bool Configuration::performInit() {
 	lilu.activate(kernelPatcher, userPatcher);
 
 	return true;
+}
+
+bool Configuration::performInit() {
+	kernelPatcher.init();
+
+	if (kernelPatcher.getError() != KernelPatcher::Error::NoError) {
+		DBGLOG("config", "failed to initialise kernel patcher");
+		kernelPatcher.deinit();
+		kernelPatcher.clearError();
+		return false;
+	}
+
+	return performCommonInit();
 }
 
 int Configuration::policyCheckRemount(kauth_cred_t, mount *, label *) {
@@ -262,6 +300,15 @@ bool Configuration::registerPolicy() {
 	if (policyLock == nullptr) {
 		SYSLOG("config", "failed to alloc policy lock");
 		return false;
+	}
+
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		if (performEarlyInit()) {
+			startSuccess = true;
+			return true;
+		} else {
+			SYSLOG("config", "failed to perform early init");
+		}
 	}
 
 	if (!policy.registerPolicy()) {
