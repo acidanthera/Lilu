@@ -245,6 +245,11 @@ public:
 	}
 
 	/**
+	 *  Complete plugin registration and perform regulatory actions
+	 */
+	void finaliseRequests();
+
+	/**
 	 *  Processes all the registered patcher load callbacks
 	 *
 	 *  @param patcher kernel patcher instance

@@ -231,14 +231,16 @@ LiluAPI::Error LiluAPI::onEntitlementRequest(t_entitlementRequested callback, vo
 	return Error::NoError;
 }
 
-void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
+void LiluAPI::finaliseRequests() {
 	// Block any new requests
 	IOLockLock(access);
 	apiRequestsOver = true;
 	IOLockUnlock(access);
 
 	DeviceInfo::create_cached();
+}
 
+void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	// Process the callbacks
 	for (size_t i = 0; i < patcherLoadedCallbacks.size(); i++) {
 		auto p = patcherLoadedCallbacks[i];

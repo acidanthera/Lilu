@@ -82,7 +82,18 @@ int Configuration::initConsole(PE_Video *info, int op) {
 		IOLockLock(ADDPR(config).policyLock);
 		if (!atomic_load_explicit(&ADDPR(config).initialised, memory_order_relaxed)) {
 			DBGLOG("config", "PE_initialize_console %d performing init", op);
-			ADDPR(config).performCommonInit();
+
+			// Complete plugin registration and mark ourselves as loaded ahead of time to avoid race conditions.
+			lilu.finaliseRequests();
+			atomic_store_explicit(&ADDPR(config).initialised, true, memory_order_relaxed);
+
+			// Fire plugin init in the thread to avoid colliding with PCI configuration.
+			auto thread = thread_call_allocate([](thread_call_param_t, thread_call_param_t thread) {
+				ADDPR(config).performCommonInit();
+				thread_call_free(static_cast<thread_call_t>(thread));
+			}, nullptr);
+			if (thread)
+				thread_call_enter1(thread, thread);
 		}
 		IOLockUnlock(ADDPR(config).policyLock);
 	}
@@ -120,6 +131,8 @@ bool Configuration::performInit() {
 		kernelPatcher.clearError();
 		return false;
 	}
+
+	lilu.finaliseRequests();
 
 	return performCommonInit();
 }
