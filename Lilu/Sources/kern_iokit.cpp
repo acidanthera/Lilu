@@ -35,24 +35,25 @@ namespace WIOKit {
 		return nullptr;
 	}
 
-	void awaitPublishing(IORegistryEntry *obj) {
+	bool awaitPublishing(IORegistryEntry *obj) {
 		size_t counter = 0;
 		while (counter < 256) {
 			if (obj->inPlane(gIOServicePlane)) {
 				DBGLOG("dev", "pci device %s is in service plane %lu", safeString(obj->getName()), counter);
-				break;
+				return true;
 			}
 			DBGLOG("dev", "pci device %s is not in service plane %lu, polling", safeString(obj->getName()), counter);
 			++counter;
 			IOSleep(20);
 		}
 
-		if (counter == 256)
-			SYSLOG("dev", "found dead pci device %s", safeString(obj->getName()));
+		SYSLOG("dev", "found dead pci device %s", safeString(obj->getName()));
+		return false;
 	}
 
 	uint32_t readPCIConfigValue(IORegistryEntry *service, uint32_t reg, uint32_t space, uint32_t size) {
-		awaitPublishing(service);
+		if (!awaitPublishing(service))
+			return 0xffffffff;
 
 		auto read32 = reinterpret_cast<t_PCIConfigRead32 **>(service)[0][PCIConfigOffset::ConfigRead32];
 		auto read16 = reinterpret_cast<t_PCIConfigRead16 **>(service)[0][PCIConfigOffset::ConfigRead16];

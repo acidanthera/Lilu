@@ -78,7 +78,7 @@ bool Configuration::performEarlyInit() {
 
 int Configuration::initConsole(PE_Video *info, int op) {
 	DBGLOG("config", "PE_initialize_console %d", op);
-	if (op == kPEBaseAddressChange && !atomic_load_explicit(&ADDPR(config).initialised, memory_order_relaxed)) {
+	if (op == kPEEnableScreen && !atomic_load_explicit(&ADDPR(config).initialised, memory_order_relaxed)) {
 		IOLockLock(ADDPR(config).policyLock);
 		if (!atomic_load_explicit(&ADDPR(config).initialised, memory_order_relaxed)) {
 			DBGLOG("config", "PE_initialize_console %d performing init", op);

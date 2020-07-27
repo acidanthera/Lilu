@@ -235,8 +235,10 @@ namespace WIOKit {
 	 *  Await for device publishing in IOService plane
 	 *
 	 *  @param obj  wait for (PCI) object publishing
+	 *
+	 *  @retval true on success
 	 */
-	EXPORT void awaitPublishing(IORegistryEntry *obj);
+	EXPORT bool awaitPublishing(IORegistryEntry *obj);
 
 	/**
 	 *  Read PCI Config register
