@@ -378,7 +378,7 @@ mach_vm_address_t KernelPatcher::routeFunctionShort(mach_vm_address_t from, mach
 	return routeFunctionInternal(from, to, buildWrapper, kernelRoute, revertible, JumpType::Short);
 }
 
-mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible, JumpType jumpType, MachInfo *info) {
+mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible, JumpType jumpType, MachInfo *info, mach_vm_address_t *org) {
 	mach_vm_address_t diff = (to - (from + SmallJump));
 	int32_t newArgument = static_cast<int32_t>(diff);
 
@@ -418,6 +418,9 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		if (!trampoline) return EINVAL;
 	}
 
+	// Write original function before making route to avoid null pointer dereference.
+	if (org) *org = trampoline;
+
 	// In case we already a trampoline to return, do not return it.
 	Patch::All *opcode = nullptr, *argument = nullptr, *disp = nullptr;
 	// The reason to use slots is to reduce the patch size even for absolute patches.
@@ -425,17 +428,31 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 	// put in the beginning of the image, right after the Mach-O commands.
 	// This solves the problem of having short prologues followed by non-movable
 	// commands like mov rax, <vtable_address> commonly found in 11.0 (e.g. ATIController::start).
+
 	if (addressSlot) {
-		opcode = Patch::create<Patch::Variant::U16>(from, LongJumpPrefix);
-		argument = Patch::create<Patch::Variant::U32>(from + sizeof(LongJumpPrefix), static_cast<uint32_t>(addressSlot - (from + MediumJump)));
+		patch.m.opcode = LongJumpPrefix;
+		patch.m.argument = static_cast<uint32_t>(addressSlot - (from + MediumJump));
+		patch.sourceIt<decltype(patch.m)>(from);
+
+		opcode = Patch::create<Patch::Variant::U16>(from + offsetof(FunctionPatch, m.opcode), patch.m.opcode);
+		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, m.argument), patch.m.argument);
 		disp = Patch::create<Patch::Variant::U64>(addressSlot, to);
 	} else if (absolute) {
-		opcode = Patch::create<Patch::Variant::U16>(from, LongJumpPrefix);
-		argument = Patch::create<Patch::Variant::U32>(from + sizeof(LongJumpPrefix), 0);
-		disp = Patch::create<Patch::Variant::U64>(from + sizeof(LongJumpPrefix) + sizeof(uint32_t), to);
+		patch.l.opcode = LongJumpPrefix;
+		patch.l.argument = 0;
+		patch.l.disp = to;
+		patch.sourceIt<decltype(patch.l)>(from);
+
+		opcode = Patch::create<Patch::Variant::U16>(from + offsetof(FunctionPatch, l.opcode), patch.l.opcode);
+		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, l.argument), patch.l.argument);
+		disp = Patch::create<Patch::Variant::U64>(from + offsetof(FunctionPatch, l.disp), patch.l.disp);
 	} else {
-		opcode = Patch::create<Patch::Variant::U8>(from, SmallJumpPrefix);
-		argument = Patch::create<Patch::Variant::U32>(from + sizeof(SmallJumpPrefix), newArgument);
+		patch.s.opcode = SmallJumpPrefix;
+		patch.s.argument = newArgument;
+		patch.sourceIt<decltype(patch.s)>(from);
+
+		opcode = Patch::create<Patch::Variant::U8>(from + offsetof(FunctionPatch, s.opcode), patch.s.opcode);
+		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, s.argument), patch.s.argument);
 	}
 
 	if (!opcode || !argument || (absolute && !disp)) {
@@ -454,9 +471,27 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		return EINVAL;
 	}
 
-	opcode->patch();
-	argument->patch();
-	if (disp) disp->patch();
+	if (addressSlot)
+		disp->patch();
+
+	// Try to perform atomic swapping to avoid corrupting instructions.
+	// Functions will be 16-byte aligned most of the time.
+	if (addressSlot || !absolute) {
+		if ((from & (sizeof(uint64_t)-1)) == 0) {
+			auto p = reinterpret_cast<_Atomic(uint64_t) *>(from);
+			atomic_store(p, patch.value64);
+		} else {
+			opcode->patch();
+			argument->patch();
+		}
+	} else if ((from & (sizeof(unsigned __int128)-1)) == 0) {
+		auto p = reinterpret_cast<_Atomic(unsigned __int128) *>(from);
+		atomic_store(p, patch.value128);
+	} else {
+		disp->patch();
+		opcode->patch();
+		argument->patch();
+	}
 
 	if (kernelRoute) {
 		MachInfo::setKernelWriting(false, kernelWriteLock);
@@ -548,11 +583,10 @@ bool KernelPatcher::routeMultipleInternal(size_t id, RouteRequest *requests, siz
 		auto &request = requests[i];
 		if (!request.from) continue;
 		if (request.to) eraseCoverageInstPrefix(request.from, 5, LongJump);
-		auto wrapper = routeFunctionInternal(request.from, request.to, request.org, kernelRoute, true, jump, kinfos[id]);
+		auto wrapper = routeFunctionInternal(request.from, request.to, request.org, kernelRoute, true, jump, kinfos[id], request.org);
 		if (request.org) {
 			if (wrapper) {
 				DBGLOG("patcher", "wrapped %s", request.symbol);
-				*request.org = wrapper;
 			} else {
 				SYSLOG("patcher", "failed to wrap %s, err %d", request.symbol, getError());
 				clearError();

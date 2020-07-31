@@ -576,10 +576,11 @@ private:
 	 *  @param revertible   patches could be reverted
 	 *  @param jumpType     jump type to use, relative short or absolute long
 	 *  @param info         info to access address slots to use for shorter routing
+	 *  @param org          write pointer to this variable
 	 *
 	 *  @return wrapper pointer or 0 on success
 	 */
-	mach_vm_address_t routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true, JumpType jumpType=JumpType::Auto, MachInfo *info=nullptr);
+	mach_vm_address_t routeFunctionInternal(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true, JumpType jumpType=JumpType::Auto, MachInfo *info=nullptr, mach_vm_address_t *org=nullptr);
 
 	/**
 	 *  Simple route multiple functions with basic error handling with long routes
@@ -665,6 +666,39 @@ private:
 	static constexpr size_t MediumJump {6};
 	static constexpr uint8_t SmallJumpPrefix {0xE9};
 	static constexpr uint16_t LongJumpPrefix {0x25FF};
+
+	/**
+	 * Atomic trampoline generator, wraps jumper into 64-bit or 128-bit storage
+	 */
+	union FunctionPatch {
+		struct PACKED LongPatch {
+			uint16_t opcode;
+			uint32_t argument;
+			uint64_t disp;
+			uint8_t  org[2];
+		} l;
+		static_assert(sizeof(l) == sizeof(unsigned __int128), "Invalid long patch rounding");
+		struct PACKED MediumPatch {
+			uint16_t opcode;
+			uint32_t argument;
+			uint8_t  org[2];
+		} m;
+		static_assert(sizeof(m) == sizeof(uint64_t), "Invalid medium patch rounding");
+		struct PACKED SmallPatch {
+			uint8_t opcode;
+			uint32_t argument;
+			uint8_t org[3];
+		} s;
+		static_assert(sizeof(s) == sizeof(uint64_t), "Invalid small patch rounding");
+		template <typename T>
+		inline void sourceIt(mach_vm_address_t source) {
+			// Note, this one violates strict aliasing, but we play with the memory anyway.
+			for (size_t i = 0; i < sizeof(T::org); ++i)
+				reinterpret_cast<volatile T *>(this)->org[i] = *reinterpret_cast<uint8_t *>(source + offsetof(T, org) + i);
+		}
+		uint64_t value64;
+		unsigned __int128 value128;
+	} patch;
 
 	/**
 	 *  Possible kernel paths
