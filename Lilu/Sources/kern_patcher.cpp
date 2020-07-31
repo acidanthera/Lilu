@@ -364,6 +364,17 @@ void KernelPatcher::freeFileBufferResources() {
 
 void KernelPatcher::activate() {
 	activated = true;
+
+#ifdef LILU_KEXTPATCH_SUPPORT
+	if (getKernelVersion() >= KernelVersion::BigSur && waitingForAlreadyLoadedKexts) {
+		auto header = *loadedKextSummaries;
+		auto num = header->base.numSummaries;
+		if (num > 0) {
+			processAlreadyLoadedKexts(header, num);
+			waitingForAlreadyLoadedKexts = false;
+		}
+	}
+#endif
 }
 
 mach_vm_address_t KernelPatcher::routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper, bool kernelRoute, bool revertible) {
