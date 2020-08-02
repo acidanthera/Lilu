@@ -543,7 +543,7 @@ private:
 	/**
 	 *  Patcher status
 	 */
-	bool activated {false};
+	_Atomic(bool) activated = false;
 
 	/**
 	 *  Read previous jump destination from function

@@ -101,7 +101,8 @@ kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t 
 
 int UserPatcher::execListener(kauth_cred_t, void *idata, kauth_action_t action, uintptr_t, uintptr_t arg1, uintptr_t, uintptr_t) {
 	// Make sure this is ours
-	if (that->activated && idata == &that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
+	if (atomic_load_explicit(&that->activated, memory_order_relaxed) &&
+		idata == &that->cookie && action == KAUTH_FILEOP_EXEC && arg1) {
 		const char *path = reinterpret_cast<const char *>(arg1);
 		that->onPath(path, static_cast<uint32_t>(strlen(path)));
 	}
@@ -1195,5 +1196,5 @@ bool UserPatcher::hookMemoryAccess() {
 }
 
 void UserPatcher::activate() {
-	activated = true;
+	atomic_store_explicit(&activated, true, memory_order_relaxed);
 }

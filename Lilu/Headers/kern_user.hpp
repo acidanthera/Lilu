@@ -472,7 +472,7 @@ private:
 	/**
 	 *  Patcher status
 	 */
-	bool activated {false};
+	_Atomic(bool) activated = false;
 
 	/**
 	 *  Validation cookie
