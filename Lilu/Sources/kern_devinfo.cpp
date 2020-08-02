@@ -277,7 +277,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 	}
 }
 
-DeviceInfo *DeviceInfo::create_cached() {
+DeviceInfo *DeviceInfo::createCached() {
 	if (globalDeviceInfo != nullptr)
 		PANIC("dev", "called static globalDeviceInfo building twice");
 

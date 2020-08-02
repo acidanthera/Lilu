@@ -236,8 +236,6 @@ void LiluAPI::finaliseRequests() {
 	IOLockLock(access);
 	apiRequestsOver = true;
 	IOLockUnlock(access);
-
-	DeviceInfo::create_cached();
 }
 
 void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {

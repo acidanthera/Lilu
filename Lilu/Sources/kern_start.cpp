@@ -101,6 +101,8 @@ int Configuration::initConsole(PE_Video *info, int op) {
 }
 
 bool Configuration::performCommonInit() {
+	DeviceInfo::createCached();
+
 	lilu.processPatcherLoadCallbacks(kernelPatcher);
 
 	bool ok = userPatcher.init(kernelPatcher, preferSlowMode);

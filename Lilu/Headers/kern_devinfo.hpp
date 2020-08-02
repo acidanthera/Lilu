@@ -267,7 +267,7 @@ public:
 	 *
 	 *  @return device list or nullptr
 	 */
-	EXPORT static DeviceInfo *create_cached();
+	static DeviceInfo *createCached();
 
 	/**
 	 *  Allocate and initialise the device list.
