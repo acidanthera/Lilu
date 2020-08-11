@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.4.7
+- Added more platform headers for plugin compilation
+
 #### v1.4.6
 - Added preliminary definitions for 11.0 support
 - Temporarily disabled user patcher for 11.0
