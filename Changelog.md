@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.4.7
 - Added more platform headers for plugin compilation
+- Fixed symbol chainloading regression in 1.4.6
 
 #### v1.4.6
 - Added preliminary definitions for 11.0 support
