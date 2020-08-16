@@ -626,7 +626,7 @@ mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from) {
 	// Note, unaligned access for simplicity
 	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix) {
 		auto disp = *reinterpret_cast<int32_t *>(from + sizeof(LongJumpPrefix));
-		return *reinterpret_cast<mach_vm_address_t *>(from + sizeof(MediumJump) + disp);
+		return *reinterpret_cast<mach_vm_address_t *>(from + MediumJump + disp);
 	}
 	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix)
 		return from + SmallJump + *reinterpret_cast<int32_t *>(from + sizeof(SmallJumpPrefix));
