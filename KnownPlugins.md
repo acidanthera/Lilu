@@ -23,6 +23,7 @@ Please note that improperly written immature plugins will not be listed there.
 [NVMeFix](https://github.com/acidanthera/NVMeFix) | Improved power management for generic NVMe SSDs
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
 [RTCMemoryFixup](https://github.com/acidanthera/RTCMemoryFixup) | Offsets in CMOS (RTC) memory emulation
+[SidecarEnabler](https://github.com/hieplpvip/SidecarEnabler) | Enable Sidecar for all Macs and iPads
 [SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
 [ThunderboltReset](https://github.com/osy86/ThunderboltReset) | Disable the ICM in the Alpine Ridge
 [VirtualSMC](https://github.com/acidanthera/VirtualSMC) | Advanced SMC emulation
