@@ -44,6 +44,13 @@ public:
 	IOService *probe(IOService *provider, SInt32 *score) override;
 	bool start(IOService *provider) override;
 	void stop(IOService *provider) override;
+	IOWorkLoop *getWorkLoop() const override {
+		return workLoop;
+	}
+	void setWorkLoop(IOWorkLoop *_workLoop) { workLoop = _workLoop; }
+	
+public:
+	IOWorkLoop *workLoop {nullptr};
 };
 
 extern PRODUCT_NAME *ADDPR(selfInstance);

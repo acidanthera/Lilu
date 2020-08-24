@@ -9,6 +9,8 @@
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_util.hpp>
 
+#include <IOKit/IOWorkLoop.h>
+
 #ifndef LILU_CUSTOM_KMOD_INIT
 bool ADDPR(startSuccess) = false;
 #else
