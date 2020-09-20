@@ -189,7 +189,6 @@
 		CE74B24E1F75CFEB00F90A08 /* sha256.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sha256.c; sourceTree = "<group>"; };
 		CE74B24F1F75CFEB00F90A08 /* sha256.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sha256.h; sourceTree = "<group>"; };
 		CE77590E211D8B200063EAE6 /* kern_time.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_time.hpp; sourceTree = "<group>"; };
-		CE80D65A21CC0B2C0051A8CB /* kern_atomic.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_atomic.hpp; sourceTree = "<group>"; };
 		CE8D9EE2251790DD008C44E8 /* libkmod.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libkmod.a; path = MacKernelSDK/Library/x86_64/libkmod.a; sourceTree = "<group>"; };
 		CE8D9EE72517A4D4008C44E8 /* kern_qsort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = kern_qsort.cpp; path = Lilu/Sources/kern_qsort.cpp; sourceTree = "<group>"; };
 		CEA03B5920ED6D0200BA842F /* kern_devinfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_devinfo.hpp; sourceTree = "<group>"; };
@@ -337,7 +336,6 @@
 			isa = PBXGroup;
 			children = (
 				CE2E7BE91E2C7583009AC62A /* kern_api.hpp */,
-				CE80D65A21CC0B2C0051A8CB /* kern_atomic.hpp */,
 				CE2E7B871E2C6A73009AC62A /* kern_compression.hpp */,
 				CE74B24C1F72D64000F90A08 /* kern_compat.hpp */,
 				CE405ECA1E49EAC800AA0B3D /* kern_config.hpp */,

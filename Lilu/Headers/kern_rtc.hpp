@@ -10,11 +10,7 @@
 
 #include <Headers/kern_util.hpp>
 #include <IOKit/IOService.h>
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winconsistent-missing-override"
 #include <IOKit/acpi/IOACPIPlatformDevice.h>
-#pragma clang diagnostic pop
 
 class RTCStorage {
 	/**

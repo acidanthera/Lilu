@@ -12,8 +12,8 @@
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_policy.hpp>
 #include <Headers/kern_util.hpp>
-#include <Headers/kern_atomic.hpp>
 #include <kern/thread_call.h>
+#include <stdatomic.h>
 
 class Configuration {
 	/**

@@ -122,11 +122,7 @@ bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 
 	pending.init();
 
-	//FIXME: Rework this, as it may be removed in macOS 10.16.
-	#pragma clang diagnostic push
-	#pragma clang diagnostic ignored "-Wdeprecated"
 	listener = kauth_listen_scope(KAUTH_SCOPE_FILEOP, execListener, &cookie);
-	#pragma clang diagnostic pop
 
 	if (!listener) {
 		SYSLOG("user", "failed to register a listener");
@@ -165,11 +161,7 @@ void UserPatcher::deinit() {
 		return;
 
 	if (listener) {
-		//FIXME: Rework this, as it may be removed in macOS 10.16.
-		#pragma clang diagnostic push
-		#pragma clang diagnostic ignored "-Wdeprecated"
 		kauth_unlisten_scope(listener);
-		#pragma clang diagnostic pop
 		listener = nullptr;
 	}
 

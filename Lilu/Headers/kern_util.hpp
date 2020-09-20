@@ -10,7 +10,6 @@
 
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_compat.hpp>
-#include <Headers/kern_atomic.hpp>
 
 #include <libkern/libkern.h>
 #include <libkern/OSDebug.h>
@@ -18,6 +17,7 @@
 #include <mach/vm_prot.h>
 #include <sys/proc.h>
 #include <IOKit/IOLib.h>
+#include <stdatomic.h>
 
 #define xStringify(a) Stringify(a)
 #define Stringify(a) #a
