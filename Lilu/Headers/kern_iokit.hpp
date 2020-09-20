@@ -11,7 +11,6 @@
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_patcher.hpp>
-#include <Library/LegacyLibkernMacros.h>
 
 #include <libkern/c++/OSSerialize.h>
 #include <IOKit/IORegistryEntry.h>

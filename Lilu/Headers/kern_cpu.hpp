@@ -12,7 +12,7 @@
 #include <Headers/kern_iokit.hpp>
 #include <Headers/kern_util.hpp>
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 /**
  *  XNU CPU-related exports missing from headers

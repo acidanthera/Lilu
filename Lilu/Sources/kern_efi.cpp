@@ -6,7 +6,7 @@
 //
 
 #include <Headers/kern_util.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <pexpert/i386/efi.h>
 #include <IOKit/IODeviceTreeSupport.h>
 

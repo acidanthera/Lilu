@@ -13,7 +13,7 @@
 
 #include <mach/mach_types.h>
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 static KernelPatcher *that {nullptr};

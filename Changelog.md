@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.4.8
+- Added MacKernelSDK with Xcode 12 compatibility
+
 #### v1.4.7
 - Added more platform headers for plugin compilation
 - Fixed symbol chainloading regression in 1.4.6

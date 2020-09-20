@@ -11,7 +11,7 @@
 #include <i386/proc_reg.h>
 
 extern "C" {
-#include <Library/osfmk/i386/pmCPU.h>
+#include <i386/pmCPU.h>
 }
 
 /**

@@ -10,7 +10,7 @@
 
 #include <Headers/kern_util.hpp>
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <sys/types.h>
 
 struct PluginConfiguration {

@@ -9,7 +9,7 @@
 #define kern_rtc_h
 
 #include <Headers/kern_util.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Winconsistent-missing-override"

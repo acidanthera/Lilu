@@ -5,7 +5,7 @@
 //  Copyright © 2017 vit9696. All rights reserved.
 //
 
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <IOKit/IONVRAM.h>
 
 #include <Headers/kern_config.hpp>

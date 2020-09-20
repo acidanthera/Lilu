@@ -8,7 +8,7 @@
 #include "sha256.h"
 
 #include <Headers/kern_crypto.hpp>
-#include <Library/libkern/crypto/aes.h>
+#include <libkern/crypto/aes.h>
 #include <sys/random.h>
 
 static_assert(Crypto::BlockSize == AES_BLOCK_SIZE, "Invalid block size!");

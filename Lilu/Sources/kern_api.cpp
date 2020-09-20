@@ -5,6 +5,8 @@
 //  Copyright © 2016-2017 vit9696. All rights reserved.
 //
 
+#include <libkern/c++/OSObject.h>
+
 #include <Headers/kern_config.hpp>
 #include <PrivateHeaders/kern_config.hpp>
 #include <Headers/kern_api.hpp>

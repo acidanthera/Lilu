@@ -9,7 +9,7 @@
 #define kern_nvram_hpp
 
 #include <Headers/kern_util.hpp>
-#include <Library/LegacyIOService.h>
+#include <IOKit/IOService.h>
 #include <libkern/c++/OSSymbol.h>
 #include <libkern/libkern.h>
 #include <stdint.h>
