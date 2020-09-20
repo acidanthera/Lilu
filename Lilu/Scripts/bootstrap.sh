@@ -230,6 +230,12 @@ install_compiled_sdk() {
     return 1
   fi
 
+  "${GIT}" clone "https://github.com/acidanthera/MacKernelSDK" -b "master" --depth=1 || ret=$?
+  if [ $ret -ne 0 ]; then
+    echo "ERROR: Failed to clone MacKernelSDK with code ${ret}!"
+    return 1
+  fi
+
   "${XCODEBUILD}" -configuration Debug || ret=$?
   if [ $ret -ne 0 ]; then
     echo "ERROR: Failed to compile the latest version with code ${ret}!"
