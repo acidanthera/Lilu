@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.4.8
 - Added MacKernelSDK with Xcode 12 compatibility
 - Removed `kern_atomic.hpp` due to MacKernelSDK implementation
+- Acidanthera MacKernelSDK is now required for all plugins
 
 #### v1.4.7
 - Added more platform headers for plugin compilation
