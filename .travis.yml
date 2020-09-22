@@ -8,13 +8,13 @@ matrix:
   include:
   - os: osx
     name: "Build"
-    osx_image: xcode10.2
+    osx_image: xcode11.6
     compiler: clang
 
     script:
       - git clone https://github.com/acidanthera/MacKernelSDK
-      - xcodebuild -configuration Debug
-      - xcodebuild -configuration Release
+      - xcodebuild -jobs 1 -configuration Debug
+      - xcodebuild -jobs 1 -configuration Release
 
     deploy:
       provider: releases
