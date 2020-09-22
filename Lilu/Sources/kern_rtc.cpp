@@ -12,10 +12,15 @@
 bool RTCStorage::init(bool wait) {
 	auto matching = IOService::serviceMatching("AppleRTC");
 	if (matching) {
-		if (wait)
+		if (wait) {
 			rtcSrv = IOService::waitForMatchingService(matching);
-		else
-			rtcSrv = IOService::copyMatchingService(matching);
+		} else {
+			auto rtcIterator = IOService::getMatchingServices(matching);
+			if (rtcIterator) {
+				rtcSrv = OSDynamicCast(IOService, rtcIterator->getNextObject());
+				rtcIterator->release();
+			}
+		}
 		matching->release();
 	} else {
 		SYSLOG("rtc", "failed to allocate rtc service matching");
