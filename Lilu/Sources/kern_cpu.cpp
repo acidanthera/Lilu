@@ -141,6 +141,11 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 
 bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 	// Obtain power management callbacks
+	if (getKernelVersion() < KernelVersion::Lion) {
+		SYSLOG("cpu", "cannot use pmKextRegister before 10.7");
+		return false;
+	}
+
 	pmCallBacks_t callbacks {};
 	pmKextRegister(PM_DISPATCH_VERSION, nullptr, &callbacks);
 
