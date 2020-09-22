@@ -88,6 +88,16 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 		lilu.releaseAccess();
 	} else {
 		SYSLOG("init", "failed to call parent %d", error);
+
+		for (size_t i = 0; i < ADDPR(config).debugArgNum; i++) {
+			if (checkKernelArgument(ADDPR(config).debugArg[i])) {
+				ADDPR(debugEnabled) = true;
+				break;
+			}
+		}
+
+		if (checkKernelArgument("-liludbgall"))
+			ADDPR(debugEnabled) = true;
 	}
 
 	// Report success but actually do not start and let I/O Kit unload us.

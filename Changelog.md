@@ -5,6 +5,7 @@ Lilu Changelog
 - Removed `kern_atomic.hpp` due to MacKernelSDK implementation
 - Acidanthera MacKernelSDK is now required for all plugins
 - Fixed Lilu loading on macOS 10.6 (not all APIs will be functional)
+- Fixed plugin debug log not working with Lilu disabled
 
 #### v1.4.7
 - Added more platform headers for plugin compilation
