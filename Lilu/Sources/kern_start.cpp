@@ -23,17 +23,6 @@
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
-static const char kextVersion[] {
-#ifdef DEBUG
-	'D', 'B', 'G', '-',
-#else
-	'R', 'E', 'L', '-',
-#endif
-	xStringify(MODULE_VERSION)[0], xStringify(MODULE_VERSION)[2], xStringify(MODULE_VERSION)[4], '-',
-	getBuildYear<0>(), getBuildYear<1>(), getBuildYear<2>(), getBuildYear<3>(), '-',
-	getBuildMonth<0>(), getBuildMonth<1>(), '-', getBuildDay<0>(), getBuildDay<1>(), '\0'
-};
-
 IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
 	setProperty("VersionInfo", kextVersion);
 	auto service = IOService::probe(provider, score);
