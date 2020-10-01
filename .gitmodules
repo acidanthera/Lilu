@@ -1,4 +1,0 @@
-[submodule "MacKernelSDK"]
-	path = MacKernelSDK
-	url = https://github.com/acidanthera/MacKernelSDK
-	branch = master
