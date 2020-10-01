@@ -12,7 +12,7 @@ matrix:
     compiler: clang
 
     script:
-      - git clone https://github.com/acidanthera/MacKernelSDK
+      - git submodule init && git submodule update
       - xcodebuild -jobs 1 -configuration Debug
       - xcodebuild -jobs 1 -configuration Release
 
@@ -32,7 +32,7 @@ matrix:
     compiler: clang
 
     script:
-      - git clone https://github.com/acidanthera/MacKernelSDK
+      - git submodule init && git submodule update
       - xcodebuild analyze -quiet -scheme Lilu -configuration Debug CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
       - xcodebuild analyze -quiet -scheme Lilu -configuration Release CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
 
@@ -42,7 +42,7 @@ matrix:
     compiler: clang
 
     before_install:
-      - git clone https://github.com/acidanthera/MacKernelSDK
+      - git submodule init && git submodule update
       - curl -Ls https://entrust.com/root-certificates/entrust_l1k.cer -o ~/entrust_l1k.crt || exit 1
       - curl -LS https://curl.haxx.se/ca/cacert.pem -o ~/cacert.pem || exit 1
       - cat ~/entrust_l1k.crt >> ~/cacert.pem || exit 1
