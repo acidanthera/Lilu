@@ -8,31 +8,17 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_util.hpp>
+#include <Headers/kern_version.hpp>
 
 #ifndef LILU_CUSTOM_KMOD_INIT
 bool ADDPR(startSuccess) = false;
 #else
 // Workaround custom kmod code and enable by default
 bool ADDPR(startSuccess) = true;
-#endif
+#endif /* LILU_CUSTOM_KMOD_INIT */
 
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;
-
-#if !defined(LILU_CUSTOM_KMOD_INIT) || !defined(LILU_CUSTOM_IOKIT_INIT)
-
-static const char kextVersion[] {
-#ifdef DEBUG
-	'D', 'B', 'G', '-',
-#else
-	'R', 'E', 'L', '-',
-#endif
-	xStringify(MODULE_VERSION)[0], xStringify(MODULE_VERSION)[2], xStringify(MODULE_VERSION)[4], '-',
-	getBuildYear<0>(), getBuildYear<1>(), getBuildYear<2>(), getBuildYear<3>(), '-',
-	getBuildMonth<0>(), getBuildMonth<1>(), '-', getBuildDay<0>(), getBuildDay<1>(), '\0'
-};
-
-#endif
 
 #ifndef LILU_CUSTOM_IOKIT_INIT
 
