@@ -45,6 +45,7 @@
 		1C3E7B281C84B65400A6448A /* X86Disassembler.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C3E7B131C84B65400A6448A /* X86Disassembler.c */; };
 		1C3E7B291C84B65400A6448A /* X86BaseInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C3E7B141C84B65400A6448A /* X86BaseInfo.h */; };
 		1C3E7B2A1C84B65400A6448A /* X86ATTInstPrinter.c in Sources */ = {isa = PBXBuildFile; fileRef = 1C3E7B151C84B65400A6448A /* X86ATTInstPrinter.c */; };
+		6F86FA742526419900D37571 /* kern_version.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6F86FA732526419900D37571 /* kern_version.hpp */; };
 		CE1096261F22876B00B623FC /* umm_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = CE10961E1F22876B00B623FC /* umm_malloc.c */; };
 		CE1096271F22876B00B623FC /* umm_malloc.h in Headers */ = {isa = PBXBuildFile; fileRef = CE10961F1F22876B00B623FC /* umm_malloc.h */; };
 		CE2687F5213BC02900E17BDD /* kern_ubsan.c in Sources */ = {isa = PBXBuildFile; fileRef = CE2687F4213BC02900E17BDD /* kern_ubsan.c */; };
@@ -140,6 +141,7 @@
 		1C3E7B151C84B65400A6448A /* X86ATTInstPrinter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = X86ATTInstPrinter.c; path = capstone/arch/X86/X86ATTInstPrinter.c; sourceTree = "<group>"; };
 		1C748C271C21952C0024EED2 /* Lilu.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Lilu.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C748C2E1C21952C0024EED2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Lilu/Info.plist; sourceTree = "<group>"; };
+		6F86FA732526419900D37571 /* kern_version.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_version.hpp; sourceTree = "<group>"; };
 		CE10961E1F22876B00B623FC /* umm_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = umm_malloc.c; sourceTree = "<group>"; };
 		CE10961F1F22876B00B623FC /* umm_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = umm_malloc.h; sourceTree = "<group>"; };
 		CE22EA372037A4BB002A88A5 /* kern_cpu.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cpu.hpp; sourceTree = "<group>"; };
@@ -354,6 +356,7 @@
 				CE335AE32097442500C60A5F /* kern_rtc.hpp */,
 				CE2E7B901E2C6A73009AC62A /* kern_user.hpp */,
 				CE2E7B921E2C6A73009AC62A /* kern_util.hpp */,
+				6F86FA732526419900D37571 /* kern_version.hpp */,
 				CE405ED41E4A005400AA0B3D /* plugin_start.hpp */,
 			);
 			name = Headers;
@@ -491,6 +494,7 @@
 				1C3E7AE91C84B61700A6448A /* utils.h in Headers */,
 				1C3E7AFB1C84B63000A6448A /* mips.h in Headers */,
 				1C3E7ADE1C84B61700A6448A /* MCDisassembler.h in Headers */,
+				6F86FA742526419900D37571 /* kern_version.hpp in Headers */,
 				1C3E7AFE1C84B63000A6448A /* arm.h in Headers */,
 				1C3E7ADF1C84B61700A6448A /* MCFixedLenDisassembler.h in Headers */,
 				CE1096271F22876B00B623FC /* umm_malloc.h in Headers */,

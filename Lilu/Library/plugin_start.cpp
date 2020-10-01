@@ -8,13 +8,14 @@
 #include <Headers/plugin_start.hpp>
 #include <Headers/kern_api.hpp>
 #include <Headers/kern_util.hpp>
+#include <Headers/kern_version.hpp>
 
 #ifndef LILU_CUSTOM_KMOD_INIT
 bool ADDPR(startSuccess) = false;
 #else
 // Workaround custom kmod code and enable by default
 bool ADDPR(startSuccess) = true;
-#endif
+#endif /* LILU_CUSTOM_KMOD_INIT */
 
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;

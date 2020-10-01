@@ -16,6 +16,7 @@
 #include <Headers/kern_cpu.hpp>
 #include <Headers/kern_file.hpp>
 #include <Headers/kern_time.hpp>
+#include <Headers/kern_version.hpp>
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IORegistryEntry.h>
