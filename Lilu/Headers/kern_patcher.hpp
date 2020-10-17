@@ -470,6 +470,16 @@ public:
 		template <typename T>
 		RouteRequest(const char *s, T t, mach_vm_address_t &o) :
 			symbol(s), to(reinterpret_cast<mach_vm_address_t>(t)), org(&o) { }
+		
+		/**
+		 *  Construct RouteRequest for wrapping a function
+		 *  @param s  symbol to lookup
+		 *  @param t  destination address
+		 *  @param o  trampoline storage to the original symbol
+		 */
+		template <typename T, typename O>
+		RouteRequest(const char *s, T t, O &o) :
+			RouteRequest(s, t, reinterpret_cast<mach_vm_address_t&>(o)) { }
 
 		/**
 		 *  Construct RouteRequest for routing a function
