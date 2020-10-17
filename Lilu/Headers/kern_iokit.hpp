@@ -197,7 +197,8 @@ namespace WIOKit {
 		kIOPCIConfigInterruptLine           = 0x3C,
 		kIOPCIConfigInterruptPin            = 0x3D,
 		kIOPCIConfigMinimumGrant            = 0x3E,
-		kIOPCIConfigMaximumLatency          = 0x3F
+		kIOPCIConfigMaximumLatency          = 0x3F,
+		kIOPCIConfigGraphicsControl         = 0x50
 	};
 
 	/**
