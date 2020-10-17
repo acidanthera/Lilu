@@ -1,5 +1,10 @@
 Lilu Changelog
 ==============
+#### v1.4.9
+- Added the PCI GMCH Graphics Control register definition. (by 0xFireWolf)
+- Added a new API to solve multiple symbols in one shot conveniently. (by 0xFireWolf)
+- Added a new `RouteRequest` constructor to work with function pointers without additional type castings. (by 0xFireWolf)
+
 #### v1.4.8
 - Added MacKernelSDK with Xcode 12 compatibility
 - Removed `kern_atomic.hpp` due to MacKernelSDK implementation
