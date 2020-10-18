@@ -256,16 +256,19 @@ public:
 	 *  @param start     start address range
 	 *  @param size      address range size
 	 *  @param crash     kernel panic on invalid non-zero address
+	 *  @param force     continue on first error
 	 *
 	 *  @return false if at least one symbol cannot be solved.
 	 */
-	inline bool solveMultiple(size_t id, SolveRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool crash=false) {
+	inline bool solveMultiple(size_t id, SolveRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool crash=false, bool force=false) {
 		for (size_t index = 0; index < num; index++) {
 			auto result = solveSymbol(id, requests[index].symbol, start, size, crash);
-			if (result)
+			if (result) {
 				*requests[index].address = result;
-			else
-				return false;
+			} else {
+				clearError();
+				if (!force) return false;
+			}
 		}
 		return true;
 	}
@@ -278,12 +281,13 @@ public:
 	 *  @param start     start address range
 	 *  @param size      address range size
 	 *  @param crash     kernel panic on invalid non-zero address
+	 *  @param force     continue on first error
 	 *
 	 *  @return false if at least one symbol cannot be solved.
 	 */
 	template <size_t N>
-	inline bool solveMultiple(size_t id, SolveRequest (&requests)[N], mach_vm_address_t start, size_t size, bool crash=false) {
-		return solveMultiple(id, requests, N, start, size, crash);
+	inline bool solveMultiple(size_t id, SolveRequest (&requests)[N], mach_vm_address_t start, size_t size, bool crash=false, bool force=false) {
+		return solveMultiple(id, requests, N, start, size, crash, force);
 	}
 
 	/**
