@@ -36,6 +36,7 @@ Plugins which functionality was merged into other plugins:
 [AppleBacklightFixup](https://github.com/hieplpvip/AppleBacklightFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [EnableLidWake](https://github.com/syscl/EnableLidWake) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
+[BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Superseded by [OpenCore](https://github.com/acidanthera/OpenCorePkg)  `ExtendBTFeatureFlags` quirk
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Superseded by [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler)
@@ -43,4 +44,3 @@ Plugins which functionality was merged into other plugins:
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [Shiki](https://github.com/acidanthera/Shiki) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
-[BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Superseded by [OpenCore](https://github.com/acidanthera/OpenCorePkg) quirk named `ExtendBTFeatureFlags`
