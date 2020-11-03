@@ -45,7 +45,7 @@ for tool in "${TOOLS[@]}"; do
 done
 
 # Coverity compatibility tools
-COV_TOOLS_URL="https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts"
+COV_TOOLS_URL="https://raw.githubusercontent.com/acidanthera/ocbuild/master/coverity/"
 COV_TOOLS=(
   "cov-cc"
   "cov-cxx"
