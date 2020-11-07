@@ -199,7 +199,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 
 			if (!gotVendor || !gotClass || (vendor != WIOKit::VendorID::Intel && vendor != WIOKit::VendorID::ATIAMD &&
 			                                vendor != WIOKit::VendorID::AMDZEN && vendor != WIOKit::VendorID::VMware &&
-			                                vendor != WIOKit::VendorID::QEMU))
+			                                vendor != WIOKit::VendorID::QEMU && vendor != WIOKit::VendorID::NVIDIA))
 				continue;
 
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {

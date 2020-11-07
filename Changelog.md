@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.5.0
+- Fixed Apple HDEF detection made by NVIDIA
+
 #### v1.4.9
 - Added the PCI GMCH Graphics Control register definition. (by 0xFireWolf)
 - Added a new API to solve multiple symbols in one shot conveniently. (by 0xFireWolf)
