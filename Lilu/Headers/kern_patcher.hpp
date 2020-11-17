@@ -727,6 +727,11 @@ private:
 	 */
 	bool waitingForAlreadyLoadedKexts {false};
 
+	/**
+	 *  Number of processed kext summaries
+	 */
+	uint32_t numSummaries {0};
+
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 	/**

@@ -713,32 +713,38 @@ void KernelPatcher::onKextSummariesUpdated() {
 
 		if (atomic_load_explicit(&that->activated, memory_order_relaxed) &&
 			that->loadedKextSummaries) {
-			auto num = (*that->loadedKextSummaries)->base.numSummaries;
-			if (num > 0) {
+			auto prevNumSummaries = that->numSummaries;
+			that->numSummaries = (*that->loadedKextSummaries)->base.numSummaries;
+			if (that->numSummaries > 0) {
 				if (that->waitingForAlreadyLoadedKexts) {
-					that->processAlreadyLoadedKexts((*that->loadedKextSummaries), num);
+					that->processAlreadyLoadedKexts((*that->loadedKextSummaries), that->numSummaries);
 					that->waitingForAlreadyLoadedKexts = false;
 				}
 				if (that->khandlers.size() > 0) {
-					OSKextLoadedKextSummaryBase &last = getKernelVersion() >= KernelVersion::BigSur
-						? (*that->loadedKextSummaries)->bigSur.summaries[num-1].base : (*that->loadedKextSummaries)->legacy.summaries[num-1].base;
-					DBGLOG("patcher", "last kext is " PRIKADDR " and its name is %.*s", CASTKADDR(last.address), KMOD_MAX_NAME, last.name);
-					// We may add khandlers items inside the handler
-					for (size_t i = 0; i < that->khandlers.size(); i++) {
-						auto handler = that->khandlers[i];
-						if (!strncmp(handler->id, last.name, KMOD_MAX_NAME)) {
-							DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(last.address));
-							if (!that->kinfos[handler->index]->isCurrentBinary(last.address)) {
-								SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", last.name, CASTKADDR(last.address));
-								continue;
+					// Should never happen, but just in case.
+					if (prevNumSummaries >= that->numSummaries)
+						prevNumSummaries = that->numSummaries-1;
+					for (uint32_t num = prevNumSummaries; num < that->numSummaries; ++num) {
+						OSKextLoadedKextSummaryBase &last = getKernelVersion() >= KernelVersion::BigSur
+							? (*that->loadedKextSummaries)->bigSur.summaries[num].base : (*that->loadedKextSummaries)->legacy.summaries[num].base;
+						DBGLOG("patcher", "last kext is " PRIKADDR " and its name is %.*s", CASTKADDR(last.address), KMOD_MAX_NAME, last.name);
+						// We may add khandlers items inside the handler
+						for (size_t i = 0; i < that->khandlers.size(); i++) {
+							auto handler = that->khandlers[i];
+							if (!strncmp(handler->id, last.name, KMOD_MAX_NAME)) {
+								DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(last.address));
+								if (!that->kinfos[handler->index]->isCurrentBinary(last.address)) {
+									SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", last.name, CASTKADDR(last.address));
+									continue;
+								}
+								handler->address = last.address;
+								handler->size = last.size;
+								handler->handler(handler);
+								// Remove the item
+								if (!that->khandlers[i]->reloadable)
+									that->khandlers.erase(i);
+								break;
 							}
-							handler->address = last.address;
-							handler->size = last.size;
-							handler->handler(handler);
-							// Remove the item
-							if (!that->khandlers[i]->reloadable)
-								that->khandlers.erase(i);
-							break;
 						}
 					}
 				}

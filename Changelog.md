@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.5.0
 - Fixed Apple HDEF detection made by NVIDIA
+- Fixed race-condition in select kext detection during patching (thx to lvs1974)
 
 #### v1.4.9
 - Added the PCI GMCH Graphics Control register definition. (by 0xFireWolf)
