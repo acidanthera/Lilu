@@ -714,16 +714,13 @@ void KernelPatcher::onKextSummariesUpdated() {
 		if (atomic_load_explicit(&that->activated, memory_order_relaxed) &&
 			that->loadedKextSummaries) {
 			auto prevNumSummaries = that->numSummaries;
-			that->numSummaries = (*that->loadedKextSummaries)->base.numSummaries;
+			that->numSummaries = atomic_load_explicit(&(*that->loadedKextSummaries)->base.numSummaries, memory_order_relaxed);
 			if (that->numSummaries > 0) {
 				if (that->waitingForAlreadyLoadedKexts) {
 					that->processAlreadyLoadedKexts((*that->loadedKextSummaries), that->numSummaries);
 					that->waitingForAlreadyLoadedKexts = false;
 				}
 				if (that->khandlers.size() > 0) {
-					// Should never happen, but just in case.
-					if (prevNumSummaries >= that->numSummaries)
-						prevNumSummaries = that->numSummaries-1;
 					for (uint32_t num = prevNumSummaries; num < that->numSummaries; ++num) {
 						OSKextLoadedKextSummaryBase &last = getKernelVersion() >= KernelVersion::BigSur
 							? (*that->loadedKextSummaries)->bigSur.summaries[num].base : (*that->loadedKextSummaries)->legacy.summaries[num].base;

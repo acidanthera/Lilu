@@ -144,7 +144,7 @@ struct OSKextLoadedKextSummaryBigSur {
 struct OSKextLoadedKextSummaryHeaderBase {
 	uint32_t version;
 	uint32_t entry_size;
-	uint32_t numSummaries;
+	_Atomic(uint32_t) numSummaries; /* marking as atomic just in case to avoid compiler optimisations */
 	uint32_t reserved; /* explicit alignment for gdb  */
 };
 
