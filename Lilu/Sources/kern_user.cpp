@@ -15,19 +15,10 @@
 #include <mach/vm_map.h>
 #include <mach-o/fat.h>
 #include <kern/task.h>
+#include <kern/cs_blobs.h>
 #include <sys/vm.h>
 
 static UserPatcher *that {nullptr};
-
-// kern/cs_blobs.h is not available in older Xcode SDK, provide the declarations ourselves.
-#ifndef CS_ENFORCEMENT
-#define CS_INVALID_ALLOWED          0x00000020  /* (macOS Only) Page invalidation allowed by task port policy */
-#define CS_HARD                     0x00000100  /* don't load invalid pages */
-#define CS_KILL                     0x00000200  /* kill process if it becomes invalid */
-#define CS_ENFORCEMENT              0x00001000  /* require enforcement */
-#define CS_KILLED                   0x01000000  /* was killed by kernel for invalidity */
-#define CS_DEBUGGED                 0x10000000  /* process is currently or has previously been debugged and allowed to run with invalid pages */
-#endif
 
 struct procref {
 	LIST_ENTRY(proc) p_list; /* List of all processes. */
