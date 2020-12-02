@@ -17,14 +17,14 @@ jobs:
     env:
       JOB_TYPE: BUILD
     steps:
-      - name: CI Bootstrap
-        run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
           repository: acidanthera/MacKernelSDK
           path: MacKernelSDK
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
 
       - run: xcodebuild -jobs 1 -configuration Debug
       - run: xcodebuild -jobs 1 -configuration Release
@@ -49,14 +49,14 @@ jobs:
     env:
       JOB_TYPE: ANALYZE
     steps:
-      - name: CI Bootstrap
-        run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
           repository: acidanthera/MacKernelSDK
           path: MacKernelSDK
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
 
       - run: xcodebuild analyze -quiet -scheme Lilu -configuration Debug CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
       - run: xcodebuild analyze -quiet -scheme Lilu -configuration Release CLANG_ANALYZER_OUTPUT=plist-html CLANG_ANALYZER_OUTPUT_DIR="$(pwd)/clang-analyze" && [ "$(find clang-analyze -name "*.html")" = "" ]
@@ -66,16 +66,16 @@ jobs:
     runs-on: macos-latest
     env:
       JOB_TYPE: COVERITY
-    if: github.event_name != 'pull_request'
+    if: github.repository_owner == 'acidanthera' && github.event_name != 'pull_request'
     steps:
-      - name: CI Bootstrap
-        run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
         with:
           repository: acidanthera/MacKernelSDK
           path: MacKernelSDK
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
 
       - name: Run Coverity
         run: |
