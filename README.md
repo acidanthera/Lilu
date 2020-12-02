@@ -1,7 +1,7 @@
 Lilu
 ====
 
-[![Build Status](https://travis-ci.com/acidanthera/Lilu.svg?branch=master)](https://travis-ci.com/acidanthera/Lilu) [![Scan Status](https://scan.coverity.com/projects/16137/badge.svg?flat=1)](https://scan.coverity.com/projects/16137)
+[![Build Status](https://github.com/acidanthera/Lilu/workflows/CI/badge.svg?branch=master)](https://github.com/acidanthera/Lilu/actions) [![Scan Status](https://scan.coverity.com/projects/16137/badge.svg?flat=1)](https://scan.coverity.com/projects/16137)
 
 An open source kernel extension bringing a platform for arbitrary kext, library, and program patching throughout the system for macOS.
 
