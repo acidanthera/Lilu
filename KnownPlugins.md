@@ -16,11 +16,11 @@ Please note that improperly written immature plugins will not be listed there.
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [Innie](https://github.com/cdf/Innie) | Making PCIe drives appear as internal
-[MacProMemoryNotificationDisabler](https://github.com/IOIIIO/MacProMemoryNotificationDisabler) | Disabling the "more than maximum amount of memory" popup on MacPro7,1
 [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
 [NVMeFix](https://github.com/acidanthera/NVMeFix) | Improved power management for generic NVMe SSDs
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
+[RestrictEvents](https://github.com/acidanthera/RestrictEvents) | Blocking unwanted processes causing compatibility issues on different hardware
 [RTCMemoryFixup](https://github.com/acidanthera/RTCMemoryFixup) | Offsets in CMOS (RTC) memory emulation
 [SidecarEnabler](https://github.com/hieplpvip/SidecarEnabler) | Enable Sidecar for all Macs and iPads
 [SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
@@ -38,6 +38,7 @@ Plugins which functionality was merged into other plugins:
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
 [BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Superseded by [OpenCore](https://github.com/acidanthera/OpenCorePkg)  `ExtendBTFeatureFlags` quirk
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[MacProMemoryNotificationDisabler](https://github.com/IOIIIO/MacProMemoryNotificationDisabler) | Superseded by [RestrictEvents](https://github.com/acidanthera/RestrictEvents)
 [NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Superseded by [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler)
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
