@@ -67,7 +67,7 @@ inline constexpr char getBuildDay() {
 	return __DATE__[4+i];
 }
 
-#if !defined(LILU_CUSTOM_KMOD_INIT) || !defined(LILU_CUSTOM_IOKIT_INIT)
+#if !defined(LILU_CUSTOM_KMOD_INIT) || !defined(LILU_CUSTOM_IOKIT_INIT) || defined(LILU_USE_KEXT_VERSION)
 
 static const char kextVersion[] {
 #ifdef DEBUG
