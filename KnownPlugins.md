@@ -10,6 +10,7 @@ Please note that improperly written immature plugins will not be listed there.
 [AppleALC](https://github.com/acidanthera/AppleALC) | Native macOS HD audio for not officially supported codecs
 [AMFIExemption](https://github.com/osy86/AMFIExemption) | Adds allowed entitlements to non-Apple signed apps when SIP is enabled
 [ATH9KFixup](https://github.com/chunnann/ATH9KFixup) | Various patches for unsupported Atheros Wi-Fi cards
+[BrightnessKeys](https://github.com/acidanthera/BrightnessKeys) | Automatic handling of brightness keys based on ACPI Specification
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
 [CpuTscSync](https://github.com/lvs1974/CpuTscSync) | Сombining functionality of VoodooTSCSync and disabling xcpm_urgency if TSC is not in sync
 [DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
