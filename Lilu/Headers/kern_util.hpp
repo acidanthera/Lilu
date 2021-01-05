@@ -251,6 +251,12 @@ extern proc_t kernproc;
 #define NONNULL __attribute__((nonnull))
 
 /**
+ *  Compiler hints regarding branching
+ */
+#define LIKELY(x) __builtin_expect(!!(x), 1)
+#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+
+/**
  *  This function is supposed to workaround missing entries in the system log.
  *  By providing its own buffer for logging data.
  *
