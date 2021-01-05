@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.5.1
+- Added `lilu_os_memmem` and `lilu_os_memchr` APIs
+
 #### v1.5.0
 - Fixed Apple HDEF detection made by NVIDIA
 - Fixed race-condition in select kext detection during patching (thx to lvs1974)
