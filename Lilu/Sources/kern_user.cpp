@@ -756,9 +756,7 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
-	uint32_t ebx = 0;
-	if (CPUInfo::getCpuid(7, 0, nullptr, &ebx) && (ebx & CPUInfo::bit_AVX2) &&
-		getKernelVersion() >= KernelVersion::Yosemite) {
+	if (CPUInfo::isHaswellEligible() && getKernelVersion() >= KernelVersion::Yosemite) {
 		buffer = FileIO::readFileToBuffer(SharedCacheMapHaswell, bufferSize);
 	}
 
@@ -1180,4 +1178,11 @@ bool UserPatcher::hookMemoryAccess() {
 
 void UserPatcher::activate() {
 	atomic_store_explicit(&activated, true, memory_order_relaxed);
+}
+
+const char *UserPatcher::getSharedCachePath() {
+	bool isHaswell = CPUInfo::isHaswellEligible();
+	if (getKernelVersion() >= KernelVersion::BigSur)
+		return isHaswell ? bigSurSharedCacheHaswell : bigSurSharedCacheLegacy;
+	return isHaswell ? sharedCacheHaswell : sharedCacheLegacy;
 }

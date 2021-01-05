@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.5.1
 - Added `lilu_os_memmem` and `lilu_os_memchr` APIs
+- Added `getSharedCachePath` API to obtain current cache path
 
 #### v1.5.0
 - Fixed Apple HDEF detection made by NVIDIA

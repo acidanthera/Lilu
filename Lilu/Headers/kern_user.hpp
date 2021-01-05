@@ -226,6 +226,13 @@ public:
 	 */
 	void activate();
 
+	/**
+	 *  Get active dyld shared cache path.
+	 *
+	 *  @return shared cache path constant
+	 */
+	EXPORT static const char *getSharedCachePath();
+
 private:
 
 	/**
@@ -549,14 +556,34 @@ private:
 	void patchBinary(vm_map_t map, const char *path, uint32_t len);
 
 	/**
-	 *  Dyld shared cache map path for 10.10+ on Haswell
+	 *  DYLD shared cache map path for 10.10+ on Haswell
 	 */
 	static constexpr const char *SharedCacheMapHaswell {"/private/var/db/dyld/dyld_shared_cache_x86_64h.map"};
 
 	/**
-	 *  Dyld shared cache map path for all other systems and older CPUs
+	 *  DYLD shared cache map path for all other systems and older CPUs
 	 */
 	static constexpr const char *SharedCacheMapLegacy {"/private/var/db/dyld/dyld_shared_cache_x86_64.map"};
+
+	/**
+	 *  DYLD shared cache path on Haswell+ before Big Sur
+	 */
+	static constexpr const char *sharedCacheHaswell {"/private/var/db/dyld/dyld_shared_cache_x86_64h"};
+
+	/**
+	 *  DYLD shared cache path on older systems before Big Sur
+	 */
+	static constexpr const char *sharedCacheLegacy {"/private/var/db/dyld/dyld_shared_cache_x86_64"};
+
+	/**
+	 *  DYLD shared cache path on Haswell+ on Big Sur
+	 */
+	static constexpr const char *bigSurSharedCacheHaswell {"/System/Library/dyld/dyld_shared_cache_x86_64h"};
+
+	/**
+	 *  DYLD shared cache path on older systems on Big Sur
+	 */
+	static constexpr const char *bigSurSharedCacheLegacy {"/System/Library/dyld/dyld_shared_cache_x86_64"};
 
 };
 

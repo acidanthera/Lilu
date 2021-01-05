@@ -407,6 +407,11 @@ namespace CPUInfo {
 	 *  @return true if supported
 	 */
 	EXPORT bool getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b=nullptr, uint32_t *c=nullptr, uint32_t *d=nullptr);
+
+	/**
+	 *  Is haswell eligible hardware
+	 */
+	EXPORT bool isHaswellEligible();
 }
 
 #endif /* kern_cpu_h */

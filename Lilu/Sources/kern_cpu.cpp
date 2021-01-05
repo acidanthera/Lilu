@@ -221,3 +221,8 @@ bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, ui
 
 	return supported;
 }
+
+bool CPUInfo::isHaswellEligible() {
+	uint32_t ebx = 0;
+	return CPUInfo::getCpuid(7, 0, nullptr, &ebx) && (ebx & CPUInfo::bit_AVX2) != 0;
+}
