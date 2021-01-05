@@ -591,6 +591,29 @@ public:
 		return routeMultipleShort(id, requests, N, start, size, kernelRoute, force);
 	}
 
+	/**
+	 *  Simple find and replace in kernel memory.
+	 */
+	static inline bool findAndReplace(void *data, size_t dataSize, const void *find, size_t findSize, const void *replace, size_t replaceSize) {
+		void *res;
+		if (UNLIKELY((res = lilu_os_memmem(data, dataSize, find, findSize)) != nullptr)) {
+			if (UNLIKELY(MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) != KERN_SUCCESS)) {
+				SYSLOG("patcher", "failed to obtain write permissions for f/r");
+				return false;
+			}
+
+			lilu_os_memcpy(res, replace, replaceSize);
+
+			if (UNLIKELY(MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock) != KERN_SUCCESS)) {
+				SYSLOG("patcher", "failed to restore write permissions for f/r");
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 private:
 	/**
 	 *  Jump type for routing
