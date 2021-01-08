@@ -574,6 +574,16 @@ private:
 	 *  DYLD shared cache path on older systems before Big Sur
 	 */
 	static constexpr const char *sharedCacheLegacy {"/private/var/db/dyld/dyld_shared_cache_x86_64"};
+	
+	/**
+	 *  DYLD shared cache map path on Haswell+ on Big Sur
+	 */
+	static constexpr const char *bigSurSharedCacheMapHaswell {"/System/Library/dyld/dyld_shared_cache_x86_64h.map"};
+	
+	/**
+	 *  DYLD shared cache map path on older systems on Big Sur
+	 */
+	static constexpr const char *bigSurSharedCacheMapLegacy {"/System/Library/dyld/dyld_shared_cache_x86_64.map"};
 
 	/**
 	 *  DYLD shared cache path on Haswell+ on Big Sur

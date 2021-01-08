@@ -756,7 +756,11 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
-	if (CPUInfo::isHaswellEligible() && getKernelVersion() >= KernelVersion::Yosemite) {
+	bool isHaswell = CPUInfo::isHaswellEligible();
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		buffer = FileIO::readFileToBuffer(isHaswell ? bigSurSharedCacheMapHaswell : bigSurSharedCacheMapLegacy, bufferSize);
+	}
+	else if (isHaswell && getKernelVersion() >= KernelVersion::Yosemite) {
 		buffer = FileIO::readFileToBuffer(SharedCacheMapHaswell, bufferSize);
 	}
 
