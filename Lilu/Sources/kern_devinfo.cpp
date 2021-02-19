@@ -256,7 +256,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 
 					pciiterator->release();
 
-					if (v.video) {
+					if (((v.audio && strcmp(v.audio->getName(), "AZAL") != 0) || !v.audio) && v.video) { // check for some AMDZEN cases
 						DBGLOG_COND(v.audio, "dev", "marking audio device as HDAU at %s", safeString(v.audio->getName()));
 						if (!videoExternal.push_back(v))
 							SYSLOG("dev", "failed to push video gpu");
