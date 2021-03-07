@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.5.2
+- Fixed AZAL recognition as GPU audio on certain AMD platforms (thx to wkpark)
+
 #### v1.5.1
 - Added `lilu_os_memmem` and `lilu_os_memchr` APIs
 - Added `getSharedCachePath` API to obtain current cache path
