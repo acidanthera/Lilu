@@ -362,6 +362,58 @@ void DeviceInfo::deleter(DeviceInfo *d) {
 	}
 }
 
+void DeviceInfo::processSwitchOff() {
+	size_t extNum = videoExternal.size();
+	DBGLOG("dev", "processing %lu external GPUs to disable - %s", extNum, requestedExternalSwitchOff ? "all" : "selective");
+
+	size_t i = 0;
+	while (i < videoExternal.size()) {
+		auto &v = videoExternal[i];
+
+		// Check whether we want to explicitly disable this GPU.
+		if (!requestedExternalSwitchOff) {
+			// If there is no requesto to disable, skip.
+			if (!v.video->getProperty(RequestedGpuSwitchOffName)) {
+				i++;
+				continue;
+			}
+			uint32_t minKernel = 0;
+			WIOKit::getOSDataValue(v.video, RequestedGpuSwitchOffMinKernelName, minKernel);
+			uint32_t maxKernel = getKernelVersion();
+			WIOKit::getOSDataValue(v.video, RequestedGpuSwitchOffMaxKernelName, maxKernel);
+			DBGLOG("dev", "disable %s GPU request from %u to %u on %u kernel", safeString(v.video->getName()), minKernel, maxKernel, getKernelVersion());
+			if (minKernel > getKernelVersion() || maxKernel < getKernelVersion()) {
+				i++;
+				continue;
+			}
+		}
+
+		WIOKit::awaitPublishing(v.video);
+
+		auto gpu = OSDynamicCast(IOService, v.video);
+		auto hda = OSDynamicCast(IOService, v.audio);
+		auto pci = OSDynamicCast(IOService, v.video->getParentEntry(gIOServicePlane));
+		if (gpu && pci) {
+			if (gpu->requestTerminate(pci, 0) && gpu->terminate())
+				gpu->stop(pci);
+			else
+				SYSLOG("dev", "failed to terminate external gpu %ld", i);
+			if (hda && hda->requestTerminate(pci, 0) && hda->terminate())
+				hda->stop(pci);
+			else if (hda)
+				SYSLOG("dev", "failed to terminate external hdau %ld", i);
+
+			videoExternal.erase(i);
+		} else {
+			SYSLOG("dev", "incompatible external gpu %ld discovered", i);
+			i++;
+		}
+	}
+
+	if (videoExternal.size() == 0)
+		videoExternal.deinit();
+}
+
 void BaseDeviceInfo::updateFirmwareVendor() {
 	auto entry = IORegistryEntry::fromPath("/efi", gIODTPlane);
 	if (entry) {
