@@ -363,8 +363,7 @@ void DeviceInfo::deleter(DeviceInfo *d) {
 }
 
 void DeviceInfo::processSwitchOff() {
-	size_t extNum = videoExternal.size();
-	DBGLOG("dev", "processing %lu external GPUs to disable - %s", extNum, requestedExternalSwitchOff ? "all" : "selective");
+	DBGLOG("dev", "processing %lu external GPUs to disable - %s", videoExternal.size(), requestedExternalSwitchOff ? "all" : "selective");
 
 	size_t i = 0;
 	while (i < videoExternal.size()) {
