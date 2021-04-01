@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.5.2
 - Fixed AZAL recognition as GPU audio on certain AMD platforms (thx to wkpark)
 - Added external GPU disabling API with device and kernel selection via properties
+- Added identifiers for Rocket Lake and Tiger Lake CPUs
 
 #### v1.5.1
 - Added `lilu_os_memmem` and `lilu_os_memchr` APIs
