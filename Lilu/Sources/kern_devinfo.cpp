@@ -304,6 +304,7 @@ DeviceInfo *DeviceInfo::create() {
 	DBGLOG("dev", "creating device info");
 
 	list->requestedExternalSwitchOff = checkKernelArgument(RequestedExternalSwitchOffArg);
+	list->requestedInternalSwitchOff = checkKernelArgument(RequestedInternalSwitchOffArg);
 
 	auto rootSect = IORegistryEntry::fromPath("/", gIODTPlane);
 	if (rootSect) {
@@ -411,6 +412,36 @@ void DeviceInfo::processSwitchOff() {
 
 	if (videoExternal.size() == 0)
 		videoExternal.deinit();
+
+	if (videoBuiltin != nullptr) {
+		// Check whether we want to explicitly disable this GPU.
+		if (!requestedInternalSwitchOff) {
+			// If there is no requesto to disable, skip.
+			if (!videoBuiltin->getProperty(RequestedGpuSwitchOffName))
+				return;
+			uint32_t minKernel = 0;
+			WIOKit::getOSDataValue(videoBuiltin, RequestedGpuSwitchOffMinKernelName, minKernel);
+			uint32_t maxKernel = getKernelVersion();
+			WIOKit::getOSDataValue(videoBuiltin, RequestedGpuSwitchOffMaxKernelName, maxKernel);
+			DBGLOG("dev", "disable %s GPU request from %u to %u on %u kernel", safeString(videoBuiltin->getName()), minKernel, maxKernel, getKernelVersion());
+			if (minKernel > getKernelVersion() || maxKernel < getKernelVersion())
+				return;
+		}
+
+		WIOKit::awaitPublishing(videoBuiltin);
+		auto gpu = OSDynamicCast(IOService, videoBuiltin);
+		auto pci = OSDynamicCast(IOService, videoBuiltin->getParentEntry(gIOServicePlane));
+
+		if (gpu && pci) {
+			if (gpu->requestTerminate(pci, 0) && gpu->terminate())
+				gpu->stop(pci);
+			else
+				SYSLOG("dev", "failed to terminate internal gpu");
+			videoBuiltin = nullptr;
+		} else {
+			SYSLOG("dev", "incompatible internal gpu discovered");
+		}
+	}
 }
 
 void BaseDeviceInfo::updateFirmwareVendor() {

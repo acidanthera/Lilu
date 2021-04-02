@@ -155,6 +155,12 @@ private:
 	static constexpr const char *RequestedExternalSwitchOffArg {"-wegnoegpu"};
 
 	/**
+	 *  The boot-arg to force-disable any internal GPU if found.
+	 *  For user configuration only! Use requestedExternalSwitchOff!
+	 */
+	static constexpr const char *RequestedInternalSwitchOffArg {"-wegnoigpu"};
+
+	/**
 	 *  The property to set your platform id for Intel drivers (Ivy and newer).
 	 *  For user configuration only! Use reportedFramebufferName!
 	 */
@@ -173,7 +179,7 @@ private:
 	static constexpr const char *RequestedExternalSwitchOffName {"disable-external-gpu"};
 
 	/**
-	 *  The GPU property to force-disable any this external GPU.
+	 *  The GPU property to force-disable any external or internal GPU.
 	 *  For user configuration only! Use processSwitchOff()!
 	 */
 	static constexpr const char *RequestedGpuSwitchOffName {"disable-gpu"};
@@ -280,6 +286,11 @@ public:
 	 *  Requested external GPU switchoff
 	 */
 	bool requestedExternalSwitchOff {false};
+
+	/**
+	 *  Requested internal GPU switchoff
+	 */
+	bool requestedInternalSwitchOff {false};
 
 	/**
 	 *  Allocate and initialise cached device list.
