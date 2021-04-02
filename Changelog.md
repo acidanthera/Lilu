@@ -5,6 +5,7 @@ Lilu Changelog
 - Added external GPU disabling API with device and kernel selection via properties
 - Added identifiers for Rocket Lake and Tiger Lake CPUs
 - Added API to disable builtin GPU (IGPU)
+- Reduced hardware presence bruteforce to a more sensible value
 
 #### v1.5.1
 - Added `lilu_os_memmem` and `lilu_os_memchr` APIs

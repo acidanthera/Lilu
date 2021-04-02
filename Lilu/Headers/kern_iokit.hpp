@@ -22,7 +22,7 @@ namespace WIOKit {
 	 *  This feels mad and insane, since it may prevent the system from booting.
 	 *  Although this had never happened, we will use a far bigger fail-safe stop value.
 	 */
-	static constexpr size_t bruteMax {0x10000000};
+	static constexpr size_t bruteMax {40000000};
 
 	/**
 	 *  Read typed OSData
