@@ -15,6 +15,7 @@ Please note that improperly written immature plugins will not be listed there.
 [CpuTscSync](https://github.com/lvs1974/CpuTscSync) | Сombining functionality of VoodooTSCSync and disabling xcpm_urgency if TSC is not in sync
 [DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
+[ECEnabler](https://github.com/1Revenger1/ECEnabler) | Allows reading Embedded Controller fields over 1 byte long, vastly reducing the amount of ACPI modification needed (if any) for working battery status
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [Innie](https://github.com/cdf/Innie) | Making PCIe drives appear as internal
 [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler) | Enables Night Shift on all the models
