@@ -42,7 +42,7 @@ private:
 	/**
 	 * Minimal required kernel version
 	 */
-	static constexpr KernelVersion minKernel {KernelVersion::MountainLion};
+	static constexpr KernelVersion minKernel {KernelVersion::Lion};
 
 	/**
 	 * Maxmimum supported kernel version
