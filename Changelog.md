@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.5.3
+- Fixed kernel patcher support on 10.7
+
 #### v1.5.2
 - Fixed AZAL recognition as GPU audio on certain AMD platforms (thx to wkpark)
 - Added external GPU disabling API with device and kernel selection via properties
