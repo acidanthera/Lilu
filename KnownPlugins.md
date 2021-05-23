@@ -24,7 +24,7 @@ Please note that improperly written immature plugins will not be listed there.
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
 [RestrictEvents](https://github.com/acidanthera/RestrictEvents) | Blocking unwanted processes causing compatibility issues on different hardware
 [RTCMemoryFixup](https://github.com/acidanthera/RTCMemoryFixup) | Offsets in CMOS (RTC) memory emulation
-[SidecarEnabler](https://github.com/hieplpvip/SidecarEnabler) | Enable Sidecar for all Macs and iPads
+[SidecarFixup](https://github.com/acidanthera/SidecarFixup) | Enabling Sidecar support
 [SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
 [ThunderboltReset](https://github.com/osy86/ThunderboltReset) | Disable the ICM in the Alpine Ridge
 [VirtualSMC](https://github.com/acidanthera/VirtualSMC) | Advanced SMC emulation
@@ -47,3 +47,4 @@ Plugins which functionality was merged into other plugins:
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [Shiki](https://github.com/acidanthera/Shiki) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[SidecarEnabler](https://github.com/hieplpvip/SidecarEnabler) | Superseded by [SidecarFixup](https://github.com/acidanthera/SidecarFixup)
