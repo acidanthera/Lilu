@@ -1,7 +1,7 @@
 Lilu Changelog
 ==============
 #### v1.5.4
-- Allow loading on 12.0 without `-lilubetaall`
+- Allow loading on macOS 12 without `-lilubetaall` (With adapted for macOS 12 plug-ins)
 
 #### v1.5.3
 - Fixed kernel patcher support on 10.7
