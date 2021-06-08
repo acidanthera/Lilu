@@ -357,6 +357,7 @@ enum KernelVersion {
 	Mojave        = 18,
 	Catalina      = 19,
 	BigSur        = 20,
+	Monterey      = 21,
 };
 
 /**

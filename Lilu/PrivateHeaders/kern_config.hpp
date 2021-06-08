@@ -47,7 +47,7 @@ private:
 	/**
 	 * Maxmimum supported kernel version
 	 */
-	static constexpr KernelVersion maxKernel {KernelVersion::BigSur};
+	static constexpr KernelVersion maxKernel {KernelVersion::Monterey};
 
 	/**
 	 *  Set once the arguments are parsed
