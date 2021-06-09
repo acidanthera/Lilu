@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.5.4
 - Allow loading on macOS 12 without `-lilubetaall` (With adapted for macOS 12 plug-ins)
+- Add guarding for address slot usage to avoid potential kernel routing overflow
 
 #### v1.5.3
 - Fixed kernel patcher support on 10.7
