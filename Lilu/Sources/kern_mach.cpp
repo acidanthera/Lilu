@@ -839,7 +839,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	prelink_slid = true;
 	running_mh = inner;
 	memory_size = last_addr - reinterpret_cast<mach_vm_address_t>(inner);
-	if (slide != 0) {
+	if (slide != 0 || isKernel) {
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
 		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
 		while (*reinterpret_cast<uint32_t *>(address_slots_end) == 0) {
