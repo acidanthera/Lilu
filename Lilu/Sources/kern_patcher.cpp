@@ -421,7 +421,7 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		// is an unsupported configuration, as it breaks previous plugin...
 		if (!buildWrapper) trampoline = 0;
 	} else if (buildWrapper) {
-		if (info && absolute && jumpType == JumpType::Auto) {
+		if (info && absolute && (jumpType == JumpType::Auto || jumpType == JumpType::Long)) {
 			addressSlot = info->getAddressSlot();
 			DBGLOG("patcher", "using slotted jumping via " PRIKADDR, CASTKADDR(addressSlot));
 		}
