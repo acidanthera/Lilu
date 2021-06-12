@@ -718,7 +718,7 @@ private:
 	/**
 	 *  A pointer to OSKext::unload()
 	 */
-	OSReturn (*orgOSKextUnload)(void *thisKext) {nullptr};
+	mach_vm_address_t orgOSKextUnload {};
 
 	/**
 	 *  Called at kext loading and unloading if kext listening is enabled
@@ -728,7 +728,7 @@ private:
 	/**
 	 *  A pointer to OSKext::saveLoadedKextPanicList()
 	 */
-	void (*orgOSKextSaveLoadedKextPanicList)(void) {nullptr};
+	mach_vm_address_t orgOSKextSaveLoadedKextPanicList {};
 
 #endif /* LILU_KEXTPATCH_SUPPORT */
 

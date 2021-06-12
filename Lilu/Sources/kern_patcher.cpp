@@ -678,7 +678,7 @@ OSReturn KernelPatcher::onOSKextUnload(void *thisKext) {
 	if (that) {
 		// Prevent handling kexts if we are unloading, which may change the head of the kmod list.
 		that->isKextUnloading = true;
-		status = that->orgOSKextUnload(thisKext);
+		status = FunctionCast(onOSKextUnload, that->orgOSKextUnload)(thisKext);
 		that->isKextUnloading = false;
 	}
 
@@ -686,44 +686,48 @@ OSReturn KernelPatcher::onOSKextUnload(void *thisKext) {
 }
 
 void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
-	if (that) {
-		that->orgOSKextSaveLoadedKextPanicList();
-		
-		// Flag set during OSKext::unload() to prevent triggering during an unload.
-		if (!that->isKextUnloading) {
-			DBGLOG("patcher", "invoked at kext loading");
+	if (!that) {
+		return;
+	}
+	
+	FunctionCast(onOSKextSaveLoadedKextPanicList, that->orgOSKextSaveLoadedKextPanicList)();
+	
+	// Flag set during OSKext::unload() to prevent triggering during an unload.
+	if (that->isKextUnloading) {
+		return;
+	}
+	
+	DBGLOG("patcher", "invoked at kext loading");
 
-			if (that->waitingForAlreadyLoadedKexts) {
-				that->processAlreadyLoadedKexts();
-				that->waitingForAlreadyLoadedKexts = false;
-			} else {
-				kmod_info_t *newKmod = *that->kextKmods;
-				if (newKmod) {
-					uint64_t kmodAddr = (uint64_t)newKmod->address;
-					DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, newKmod->name);
-					
-					// We may add khandlers items inside the handler
-					for (size_t i = 0; i < that->khandlers.size(); i++) {
-						auto handler = that->khandlers[i];
-						if (!strncmp(handler->id, newKmod->name, KMOD_MAX_NAME)) {
-							DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(kmodAddr));
-							if (!that->kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
-								SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", newKmod->name, CASTKADDR(kmodAddr));
-								continue;
-							}
-							handler->address = kmodAddr;
-							handler->size = newKmod->size;
-							handler->handler(handler);
-							// Remove the item
-							if (!that->khandlers[i]->reloadable)
-								that->khandlers.erase(i);
-							break;
-						}
+	if (that->waitingForAlreadyLoadedKexts) {
+		that->processAlreadyLoadedKexts();
+		that->waitingForAlreadyLoadedKexts = false;
+	} else {
+		kmod_info_t *newKmod = *that->kextKmods;
+		if (newKmod) {
+			uint64_t kmodAddr = (uint64_t)newKmod->address;
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, newKmod->name);
+			
+			// We may add khandlers items inside the handler
+			for (size_t i = 0; i < that->khandlers.size(); i++) {
+				auto handler = that->khandlers[i];
+				if (!strncmp(handler->id, newKmod->name, KMOD_MAX_NAME)) {
+					DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(kmodAddr));
+					if (!that->kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
+						SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", newKmod->name, CASTKADDR(kmodAddr));
+						continue;
 					}
-				} else {
-					SYSLOG("patcher", "no kext is currently loaded, this should not happen");
+					handler->address = kmodAddr;
+					handler->size = newKmod->size;
+					handler->handler(handler);
+					// Remove the item
+					if (!that->khandlers[i]->reloadable)
+						that->khandlers.erase(i);
+					break;
 				}
 			}
+		} else {
+			SYSLOG("patcher", "no kext is currently loaded, this should not happen");
 		}
 	}
 }
