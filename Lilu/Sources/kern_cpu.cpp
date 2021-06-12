@@ -50,6 +50,7 @@ void CPUInfo::init() {
 	if (bdi.cpuFamily == 15 || bdi.cpuFamily == 6)
 		bdi.cpuModel |= ver.fmt.extendedModel << 4;
 	bdi.cpuStepping = ver.fmt.stepping;
+	bdi.cpuHasAvx2 = getCpuid(7, 0, nullptr, &b) && (b & CPUInfo::bit_AVX2) != 0;
 
 	// Last but not least detect CPU generation
 	uint32_t generation = 0;
@@ -226,9 +227,4 @@ bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, ui
 	if (d) *d = edx;
 
 	return supported;
-}
-
-bool CPUInfo::isHaswellEligible() {
-	uint32_t ebx = 0;
-	return CPUInfo::getCpuid(7, 0, nullptr, &ebx) && (ebx & CPUInfo::bit_AVX2) != 0;
 }

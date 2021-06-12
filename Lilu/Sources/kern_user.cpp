@@ -10,6 +10,7 @@
 #include <Headers/kern_user.hpp>
 #include <Headers/kern_cpu.hpp>
 #include <Headers/kern_file.hpp>
+#include <Headers/kern_devinfo.hpp>
 #include <PrivateHeaders/kern_config.hpp>
 
 #include <mach/vm_map.h>
@@ -103,7 +104,7 @@ int UserPatcher::execListener(kauth_cred_t, void *idata, kauth_action_t action, 
 
 bool UserPatcher::init(KernelPatcher &kernelPatcher, bool preferSlowMode) {
 	if (ADDPR(config).isUserDisabled) {
-		SYSLOG("user", "disabling user patcher on request!");
+		SYSLOG_COND(ADDPR(debugEnabled), "user", "disabling user patcher on request!");
 		return true;
 	}
 
@@ -756,7 +757,7 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
-	bool isHaswell = CPUInfo::isHaswellEligible();
+	bool isHaswell = BaseDeviceInfo::get().cpuHasAvx2;
 	if (getKernelVersion() >= KernelVersion::BigSur) {
 		buffer = FileIO::readFileToBuffer(isHaswell ? bigSurSharedCacheMapHaswell : bigSurSharedCacheMapLegacy, bufferSize);
 	}
@@ -1185,8 +1186,32 @@ void UserPatcher::activate() {
 }
 
 const char *UserPatcher::getSharedCachePath() {
-	bool isHaswell = CPUInfo::isHaswellEligible();
+	bool isHaswell = BaseDeviceInfo::get().cpuHasAvx2;
 	if (getKernelVersion() >= KernelVersion::BigSur)
 		return isHaswell ? bigSurSharedCacheHaswell : bigSurSharedCacheLegacy;
 	return isHaswell ? sharedCacheHaswell : sharedCacheLegacy;
+}
+
+bool UserPatcher::matchSharedCachePath(const char *path) {
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		auto len = strlen(bigSurSharedCacheLegacy);
+		if (strncmp(path, bigSurSharedCacheLegacy, len) != 0)
+			return false;
+		path += len;
+	} else {
+		auto len = strlen(sharedCacheLegacy);
+		if (strncmp(path, sharedCacheLegacy, len) != 0)
+			return false;
+		path += len;
+	}
+
+	// Allow non-haswell cache on haswell, but not otherwise.
+	if (BaseDeviceInfo::get().cpuHasAvx2 && path[0] == 'h')
+		path++;
+
+	// Skip suffix matching on macOS 12 and newer
+	if (getKernelVersion() >= KernelVersion::Monterey && path[0] == '.' && path[1] >= '1' && path[1] <= '9')
+		path += 2;
+
+	return path[0] == '\0';
 }

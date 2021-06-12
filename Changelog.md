@@ -5,6 +5,7 @@ Lilu Changelog
 - Added guarding for address slot usage to avoid potential kernel routing overflow
 - Allow using medium size function routing in the kernel
 - Added medium size function routing for `Long` mode as they are functionally equivalent
+- Added `matchSharedCachePath` API to support dyld cache matching on macOS 12
 
 #### v1.5.3
 - Fixed kernel patcher support on 10.7

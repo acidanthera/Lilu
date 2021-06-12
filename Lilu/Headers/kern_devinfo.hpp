@@ -404,6 +404,11 @@ public:
 	uint32_t cpuMaxLevelExt {0x80000000};
 
 	/**
+	 *  AVX 2.0 support
+	 */
+	bool cpuHasAvx2 {false};
+
+	/**
 	 *  Obtain base device info.
 	 */
 	EXPORT static const BaseDeviceInfo &get();

@@ -231,7 +231,16 @@ public:
 	 *
 	 *  @return shared cache path constant
 	 */
-	EXPORT static const char *getSharedCachePath();
+	EXPORT static const char *getSharedCachePath() DEPRECATE("Use matchSharedCachePath, macOS 12 has multiple caches");
+
+	/**
+	 *  Check if the supplied path matches dyld shared cache path.
+	 *
+	 *  @param path  image path
+	 *
+	 *  @return shared cache path constant
+	 */
+	EXPORT static bool matchSharedCachePath(const char *path);
 
 private:
 
