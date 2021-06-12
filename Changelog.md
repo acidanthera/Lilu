@@ -6,6 +6,7 @@ Lilu Changelog
 - Allow using medium size function routing in the kernel
 - Added medium size function routing for `Long` mode as they are functionally equivalent
 - Added `matchSharedCachePath` API to support dyld cache matching on macOS 12
+- Added `_kmod` hooking for kext listening to unify kext patcher logic
 
 #### v1.5.3
 - Fixed kernel patcher support on 10.7
