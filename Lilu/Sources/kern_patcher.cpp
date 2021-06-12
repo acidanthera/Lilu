@@ -17,7 +17,6 @@
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 static KernelPatcher *that {nullptr};
-static SInt32 updateSummariesEntryCount;
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 IOSimpleLock *KernelPatcher::kernelWriteLock {nullptr};
@@ -230,34 +229,24 @@ void KernelPatcher::setupKextListening() {
 	// We have already done this
 	if (that) return;
 
-	loadedKextSummaries = reinterpret_cast<OSKextLoadedKextSummaryHeaderAny **>(solveSymbol(KernelID, "_gLoadedKextSummaries"));
 
-	if (loadedKextSummaries) {
-		DBGLOG("patcher", "_gLoadedKextSummaries address %p", loadedKextSummaries);
+	kextKmods = reinterpret_cast<kmod_info_t **>(solveSymbol(KernelID, "_kmod"));
+
+	if (kextKmods) {
+		DBGLOG("patcher", "_kmod address %p", kextKmods);
 	} else {
 		code = Error::NoSymbolFound;
 		return;
 	}
 
-	bool hookOuter = getKernelVersion() >= KernelVersion::Sierra;
+	KernelPatcher::RouteRequest requests[] = {
+		{ "__ZN6OSKext6unloadEv", onOSKextUnload, orgOSKextUnload },
+		{ "__ZN6OSKext23saveLoadedKextPanicListEv", onOSKextSaveLoadedKextPanicList, orgOSKextSaveLoadedKextPanicList }
+	};
 
-	mach_vm_address_t s = solveSymbol(KernelID, hookOuter ?
-									  "__ZN6OSKext25updateLoadedKextSummariesEv" :
-									  "_OSKextLoadedKextSummariesUpdated");
-
-	if (s) {
-		DBGLOG("patcher", "kext summaries (%d) address %llX value %llX", hookOuter, s, *reinterpret_cast<uint64_t *>(s));
-	} else {
-		code = Error::NoSymbolFound;
+	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
+		SYSLOG("patcher", "failed to route kext listener functions");
 		return;
-	}
-
-	if (hookOuter) {
-		orgUpdateLoadedKextSummaries = reinterpret_cast<void(*)(void)>(
-			routeFunctionLong(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated), true, true)
-		);
-	} else {
-		routeFunctionLong(s, reinterpret_cast<mach_vm_address_t>(onKextSummariesUpdated));
 	}
 
 	if (getError() == Error::NoError) {
@@ -365,12 +354,8 @@ void KernelPatcher::freeFileBufferResources() {
 void KernelPatcher::activate() {
 #ifdef LILU_KEXTPATCH_SUPPORT
 	if (getKernelVersion() >= KernelVersion::BigSur && waitingForAlreadyLoadedKexts) {
-		auto header = *loadedKextSummaries;
-		auto num = header->base.numSummaries;
-		if (num > 0) {
-			processAlreadyLoadedKexts(header, num);
-			waitingForAlreadyLoadedKexts = false;
-		}
+		processAlreadyLoadedKexts();
+		waitingForAlreadyLoadedKexts = false;
 	}
 #endif
 
@@ -687,91 +672,82 @@ mach_vm_address_t KernelPatcher::createTrampoline(mach_vm_address_t func, size_t
 }
 
 #ifdef LILU_KEXTPATCH_SUPPORT
-void KernelPatcher::onKextSummariesUpdated() {
+OSReturn KernelPatcher::onOSKextUnload(void *thisKext) {
+	OSReturn status = kOSReturnError;
+
 	if (that) {
-		// macOS 10.12 generates an interrupt during this call but unlike 10.11 and below
-		// it never stops handling interrupts hanging forever inside hndl_allintrs.
-		// This happens even with cpus=1, and the reason is not fully understood.
-		//
-		// For this reason on 10.12 and above the outer function is routed, and so far it
-		// seems to cause fewer issues. Regarding syncing:
-		//  - the only place modifying gLoadedKextSummaries is updateLoadedKextSummaries
-		//  - updateLoadedKextSummaries is called from load/unload separately
-		//  - sKextSummariesLock is not exported or visible
-		// As a result no syncing should be necessary but there are guards for future
-		// changes and in case of any misunderstanding.
+		// Prevent handling kexts if we are unloading, which may change the head of the kmod list.
+		that->isKextUnloading = true;
+		status = FunctionCast(onOSKextUnload, that->orgOSKextUnload)(thisKext);
+		that->isKextUnloading = false;
+	}
 
-		if (getKernelVersion() >= KernelVersion::Sierra) {
-			if (OSIncrementAtomic(&updateSummariesEntryCount) != 0) {
-				PANIC("patcher", "onKextSummariesUpdated entered another time");
-			}
+	return status;
+}
 
-			that->orgUpdateLoadedKextSummaries();
-		}
+void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
+	if (!that) {
+		return;
+	}
+	
+	FunctionCast(onOSKextSaveLoadedKextPanicList, that->orgOSKextSaveLoadedKextPanicList)();
+	
+	// Flag set during OSKext::unload() to prevent triggering during an unload.
+	if (that->isKextUnloading) {
+		return;
+	}
+	
+	DBGLOG("patcher", "invoked at kext loading");
 
-		DBGLOG("patcher", "invoked at kext loading/unloading");
-
-		if (atomic_load_explicit(&that->activated, memory_order_relaxed) &&
-			that->loadedKextSummaries) {
-			auto prevNumSummaries = that->numSummaries;
-			that->numSummaries = atomic_load_explicit(&(*that->loadedKextSummaries)->base.numSummaries, memory_order_relaxed);
-			if (that->numSummaries > 0) {
-				if (that->waitingForAlreadyLoadedKexts) {
-					that->processAlreadyLoadedKexts((*that->loadedKextSummaries), that->numSummaries);
-					that->waitingForAlreadyLoadedKexts = false;
-				}
-				if (that->khandlers.size() > 0) {
-					for (uint32_t num = prevNumSummaries; num < that->numSummaries; ++num) {
-						OSKextLoadedKextSummaryBase &last = getKernelVersion() >= KernelVersion::BigSur
-							? (*that->loadedKextSummaries)->bigSur.summaries[num].base : (*that->loadedKextSummaries)->legacy.summaries[num].base;
-						DBGLOG("patcher", "last kext is " PRIKADDR " and its name is %.*s", CASTKADDR(last.address), KMOD_MAX_NAME, last.name);
-						// We may add khandlers items inside the handler
-						for (size_t i = 0; i < that->khandlers.size(); i++) {
-							auto handler = that->khandlers[i];
-							if (!strncmp(handler->id, last.name, KMOD_MAX_NAME)) {
-								DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(last.address));
-								if (!that->kinfos[handler->index]->isCurrentBinary(last.address)) {
-									SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", last.name, CASTKADDR(last.address));
-									continue;
-								}
-								handler->address = last.address;
-								handler->size = last.size;
-								handler->handler(handler);
-								// Remove the item
-								if (!that->khandlers[i]->reloadable)
-									that->khandlers.erase(i);
-								break;
-							}
-						}
+	if (that->waitingForAlreadyLoadedKexts) {
+		that->processAlreadyLoadedKexts();
+		that->waitingForAlreadyLoadedKexts = false;
+	} else {
+		kmod_info_t *newKmod = *that->kextKmods;
+		if (newKmod) {
+			uint64_t kmodAddr = (uint64_t)newKmod->address;
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, newKmod->name);
+			
+			// We may add khandlers items inside the handler
+			for (size_t i = 0; i < that->khandlers.size(); i++) {
+				auto handler = that->khandlers[i];
+				if (!strncmp(handler->id, newKmod->name, KMOD_MAX_NAME)) {
+					DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(kmodAddr));
+					if (!that->kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
+						SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", newKmod->name, CASTKADDR(kmodAddr));
+						continue;
 					}
+					handler->address = kmodAddr;
+					handler->size = newKmod->size;
+					handler->handler(handler);
+					// Remove the item
+					if (!that->khandlers[i]->reloadable)
+						that->khandlers.erase(i);
+					break;
 				}
-			} else {
-				SYSLOG("patcher", "no kext is currently loaded, this should not happen");
 			}
-		}
-
-		if (getKernelVersion() >= KernelVersion::Sierra && OSDecrementAtomic(&updateSummariesEntryCount) != 1) {
-			PANIC("patcher", "onKextSummariesUpdated left another time");
+		} else {
+			SYSLOG("patcher", "no kext is currently loaded, this should not happen");
 		}
 	}
 }
 
-void KernelPatcher::processAlreadyLoadedKexts(OSKextLoadedKextSummaryHeaderAny *header, size_t num) {
-	DBGLOG("patcher", "processing already loaded kexts by iterating over %lu summaries", num);
+void KernelPatcher::processAlreadyLoadedKexts() {
+	DBGLOG("patcher", "processing already loaded kexts by iterating over all kmods");
 
-	for (size_t i = 0; i < num; i++) {
-		OSKextLoadedKextSummaryBase &curr = getKernelVersion() >= KernelVersion::BigSur
-			? header->bigSur.summaries[i].base : header->legacy.summaries[i].base;
+	for (kmod_info_t *kmod = *kextKmods; kmod; kmod = kmod->next) {
+		uint64_t kmodAddr = (uint64_t)kmod->address;
+
 		for (size_t j = 0; j < khandlers.size(); j++) {
 			auto handler = khandlers[j];
-			if (handler->loaded && !strncmp(handler->id, curr.name, KMOD_MAX_NAME)) {
-				DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", curr.name, CASTKADDR(curr.address));
-				if (!kinfos[handler->index]->isCurrentBinary(curr.address)) {
-					SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", curr.name, CASTKADDR(curr.address));
+			if (handler->loaded && !strncmp(handler->id, kmod->name, KMOD_MAX_NAME)) {
+				DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", kmod->name, CASTKADDR(kmodAddr));
+				if (!kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
+					SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", kmod->name, CASTKADDR(kmodAddr));
 					continue;
 				}
-				handler->address = curr.address;
-				handler->size = curr.size;
+				handler->address = kmodAddr;
+				handler->size = kmod->size;
 				handler->handler(handler);
 				// Remove the item
 				if (!that->khandlers[j]->reloadable)

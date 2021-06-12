@@ -700,27 +700,35 @@ private:
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**
-	 *  Called at kext loading and unloading if kext listening is enabled
-	 */
-	static void onKextSummariesUpdated();
-
-	/**
-	 *  A pointer to loaded kext information
-	 */
-	OSKextLoadedKextSummaryHeaderAny **loadedKextSummaries {nullptr};
-
-	/**
-	 *  A pointer to kext summaries update
-	 */
-	void (*orgUpdateLoadedKextSummaries)(void) {nullptr};
-
-	/**
 	 *  Process already loaded kexts once at the start
 	 *
-	 *  @param summaries loaded kext summaries
-	 *  @param num       number of loaded kext summaries
 	 */
-	void processAlreadyLoadedKexts(OSKextLoadedKextSummaryHeaderAny *summaries, size_t num);
+	void processAlreadyLoadedKexts();
+
+	/**
+	 *  Pointer to loaded kmods for kexts
+	 */
+	kmod_info_t **kextKmods {nullptr};
+
+	/**
+	 *  Called at kext unloading if kext listening is enabled
+	 */
+	static OSReturn onOSKextUnload(void *thisKext);
+
+	/**
+	 *  A pointer to OSKext::unload()
+	 */
+	mach_vm_address_t orgOSKextUnload {};
+
+	/**
+	 *  Called at kext loading and unloading if kext listening is enabled
+	 */
+	static void onOSKextSaveLoadedKextPanicList();
+
+	/**
+	 *  A pointer to OSKext::saveLoadedKextPanicList()
+	 */
+	mach_vm_address_t orgOSKextSaveLoadedKextPanicList {};
 
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
@@ -751,9 +759,9 @@ private:
 	bool waitingForAlreadyLoadedKexts {false};
 
 	/**
-	 *  Number of processed kext summaries
+	 *  Flag to prevent kext processing during an unload
 	 */
-	uint32_t numSummaries {0};
+	bool isKextUnloading {false};
 
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
