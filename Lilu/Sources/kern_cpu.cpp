@@ -32,6 +32,8 @@ void CPUInfo::init() {
 
 	getCpuid(0x80000000, 0, &bdi.cpuMaxLevelExt);
 
+	bdi.cpuHasAvx2 = getCpuid(7, 0, nullptr, &b) && (b & CPUInfo::bit_AVX2) != 0;
+
 	// Only do extended model checking on Intel or when unsupported.
 	if (bdi.cpuVendor != CpuVendor::Intel || bdi.cpuMaxLevel < 1)
 		return;
@@ -50,7 +52,6 @@ void CPUInfo::init() {
 	if (bdi.cpuFamily == 15 || bdi.cpuFamily == 6)
 		bdi.cpuModel |= ver.fmt.extendedModel << 4;
 	bdi.cpuStepping = ver.fmt.stepping;
-	bdi.cpuHasAvx2 = getCpuid(7, 0, nullptr, &b) && (b & CPUInfo::bit_AVX2) != 0;
 
 	// Last but not least detect CPU generation
 	uint32_t generation = 0;
