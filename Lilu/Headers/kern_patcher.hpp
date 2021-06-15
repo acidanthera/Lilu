@@ -648,11 +648,12 @@ private:
 	/**
 	 *  Read previous jump destination from function
 	 *
-	 *  @param from         formerly routed function
+	 *  @param from          formerly routed function
+	 *  @param jumpType previous jump type
 	 *
 	 *  @return wrapper pointer on success or 0
 	 */
-	mach_vm_address_t readChain(mach_vm_address_t from);
+	mach_vm_address_t readChain(mach_vm_address_t from, JumpType &jumpType);
 
 	/**
 	 *  Created routed trampoline page

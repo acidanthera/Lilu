@@ -397,7 +397,8 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 
 	// If we already routed this function, we simply redirect the original function
 	// to the new one, and call the previous function as "original".
-	mach_vm_address_t trampoline = readChain(from);
+	JumpType prevJump;
+	mach_vm_address_t trampoline = readChain(from, prevJump);
 	mach_vm_address_t addressSlot = 0;
 	if (trampoline) {
 		// Do not perform double revert
@@ -405,6 +406,22 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		// In case we were requested to make unconditional route, still obey, but this
 		// is an unsupported configuration, as it breaks previous plugin...
 		if (!buildWrapper) trampoline = 0;
+		// Forbid routing multiple times with anything but long and medium functions.
+		// You must update all the plugins sharing function routes with routeMultipleLong call.
+		if (prevJump == JumpType::Short)
+			PANIC("patcher", "previous plugin had short jump type on a multiroute function, this is not allowed");
+		if (jumpType == JumpType::Short)
+			PANIC("patcher", "current plugin has short jump type on a multiroute function, this is not allowed");
+
+		// Make sure to use just 6 bytes for medium routes instead of 14.
+		if (prevJump == JumpType::Medium) {
+			addressSlot = info->getAddressSlot();
+			DBGLOG("patcher", "using slotted jumping for previous via " PRIKADDR, CASTKADDR(addressSlot));
+			// If this happens, then we should allow slotted jumping only for Auto type.
+			if (addressSlot == 0)
+				PANIC("patcher", "not enough memory for slotted jumping, this is a bug in Lilu");
+		}
+
 	} else if (buildWrapper) {
 		if (info && absolute && (jumpType == JumpType::Auto || jumpType == JumpType::Long)) {
 			addressSlot = info->getAddressSlot();
@@ -607,14 +624,17 @@ bool KernelPatcher::routeMultipleInternal(size_t id, RouteRequest *requests, siz
 
 uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribute__((section("__TEXT,__text")));
 
-mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from) {
+mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from, JumpType &jumpType) {
 	// Note, unaligned access for simplicity
 	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix) {
 		auto disp = *reinterpret_cast<int32_t *>(from + sizeof(LongJumpPrefix));
+		jumpType = disp != 0 ? JumpType::Medium : JumpType::Long;
 		return *reinterpret_cast<mach_vm_address_t *>(from + MediumJump + disp);
 	}
-	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix)
+	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix) {
+		jumpType = JumpType::Short;
 		return from + SmallJump + *reinterpret_cast<int32_t *>(from + sizeof(SmallJumpPrefix));
+	}
 	return 0;
 }
 
