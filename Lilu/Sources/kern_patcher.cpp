@@ -706,7 +706,7 @@ OSReturn KernelPatcher::onOSKextUnload(void *thisKext) {
 }
 
 void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
-	if (!that) {
+	if (!that || !atomic_load_explicit(&that->activated, memory_order_relaxed)) {
 		return;
 	}
 	
