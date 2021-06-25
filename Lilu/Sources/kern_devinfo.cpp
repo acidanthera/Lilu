@@ -305,7 +305,7 @@ DeviceInfo *DeviceInfo::create() {
 
 	list->requestedExternalSwitchOff = checkKernelArgument(RequestedExternalSwitchOffArg);
 	list->requestedInternalSwitchOff = checkKernelArgument(RequestedInternalSwitchOffArg);
-
+	list->requestedGPUSwitch = checkKernelArgument(RequestedGPUSwitchArg);
 	auto rootSect = IORegistryEntry::fromPath("/", gIODTPlane);
 	if (rootSect) {
 		// Find every PCI root, X299 may have many
@@ -412,22 +412,26 @@ void DeviceInfo::processSwitchOff() {
 
 	if (videoExternal.size() == 0)
 		videoExternal.deinit();
-
+	bool internalSwitchOff = true;
 	if (videoBuiltin != nullptr) {
-		// Check whether we want to explicitly disable this GPU.
+	// Check whether we want to explicitly disable this GPU.
 		if (!requestedInternalSwitchOff) {
 			// If there is no requesto to disable, skip.
 			if (!videoBuiltin->getProperty(RequestedGpuSwitchOffName))
-				return;
+				internalSwitchOff = false;
 			uint32_t minKernel = 0;
 			WIOKit::getOSDataValue(videoBuiltin, RequestedGpuSwitchOffMinKernelName, minKernel);
 			uint32_t maxKernel = getKernelVersion();
 			WIOKit::getOSDataValue(videoBuiltin, RequestedGpuSwitchOffMaxKernelName, maxKernel);
 			DBGLOG("dev", "disable %s GPU request from %u to %u on %u kernel", safeString(videoBuiltin->getName()), minKernel, maxKernel, getKernelVersion());
 			if (minKernel > getKernelVersion() || maxKernel < getKernelVersion())
-				return;
+				internalSwitchOff = false;
 		}
-
+		if (requestedGPUSwitch && videoExternal.size() > 0)
+		{
+			internalSwitchOff = true;
+		}
+		if (!internalSwitchOff) return;
 		WIOKit::awaitPublishing(videoBuiltin);
 		auto gpu = OSDynamicCast(IOService, videoBuiltin);
 		auto pci = OSDynamicCast(IOService, videoBuiltin->getParentEntry(gIOServicePlane));
