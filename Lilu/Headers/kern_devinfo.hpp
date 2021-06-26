@@ -156,15 +156,15 @@ private:
 
 	/**
 	 *  The boot-arg to force-disable any internal GPU if found.
-	 *  For user configuration only! Use requestedExternalSwitchOff!
+	 *  For user configuration only! Use requestedInternalSwitchOff!
 	 */
 	static constexpr const char *RequestedInternalSwitchOffArg {"-wegnoigpu"};
 
 	/**
 	 *  The boot-arg to force-disable any internal GPU if external GPU found.
-	 *  For user configuration only! Use requestedExternalSwitchOff!
+	 *  For user configuration only! Use requestedGpuSwitch!!
 	 */
-	static constexpr const char *RequestedGPUSwitchArg {"-wegswitchgpu"};
+	static constexpr const char *RequestedGpuSwitchArg {"-wegswitchgpu"};
 
 	/**
 	 *  The property to set your platform id for Intel drivers (Ivy and newer).
@@ -183,6 +183,12 @@ private:
 	 *  For user configuration only! Use processSwitchOff()!
 	 */
 	static constexpr const char *RequestedExternalSwitchOffName {"disable-external-gpu"};
+
+	/**
+	 *  The IGPU property to force-disable the IGPU if any external GPU is found.
+	 *  For user configuration only! Use processSwitchOff()!
+	 */
+	static constexpr const char *RequestedGpuSwitchName {"switch-to-external-gpu"};
 
 	/**
 	 *  The GPU property to force-disable any external or internal GPU.
@@ -301,7 +307,7 @@ public:
 	/**
 	 *  Requested GPU switch
 	 */
-	bool requestedGPUSwitch {false};
+	bool requestedGpuSwitch {false};
 	/**
 	 *  Allocate and initialise cached device list.
 	 *

@@ -305,7 +305,7 @@ DeviceInfo *DeviceInfo::create() {
 
 	list->requestedExternalSwitchOff = checkKernelArgument(RequestedExternalSwitchOffArg);
 	list->requestedInternalSwitchOff = checkKernelArgument(RequestedInternalSwitchOffArg);
-	list->requestedGPUSwitch = checkKernelArgument(RequestedGPUSwitchArg);
+	list->requestedGpuSwitch = checkKernelArgument(RequestedGpuSwitchArg);
 	auto rootSect = IORegistryEntry::fromPath("/", gIODTPlane);
 	if (rootSect) {
 		// Find every PCI root, X299 may have many
@@ -415,6 +415,8 @@ void DeviceInfo::processSwitchOff() {
 	bool internalSwitchOff = true;
 	if (videoBuiltin != nullptr) {
 	// Check whether we want to explicitly disable this GPU.
+		if (videoBuiltin->getProperty(RequestedGpuSwitchName))
+			requestedGpuSwitch = true;
 		if (!requestedInternalSwitchOff) {
 			// If there is no requesto to disable, skip.
 			if (!videoBuiltin->getProperty(RequestedGpuSwitchOffName))
@@ -427,7 +429,7 @@ void DeviceInfo::processSwitchOff() {
 			if (minKernel > getKernelVersion() || maxKernel < getKernelVersion())
 				internalSwitchOff = false;
 		}
-		if (requestedGPUSwitch && videoExternal.size() > 0)
+		if (requestedGpuSwitch && videoExternal.size() > 0)
 		{
 			internalSwitchOff = true;
 		}
