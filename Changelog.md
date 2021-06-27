@@ -9,6 +9,7 @@ Lilu Changelog
 - Added `_kmod` hooking for kext listening to unify kext patcher logic
 - Added zlib decompression API
 - Fixed kernel patcher support on 64-bit 10.6
+- Added new GPU switching API
 
 #### v1.5.3
 - Fixed kernel patcher support on 10.7
