@@ -149,7 +149,7 @@ OSData *NVStorage::read(const char *key, uint8_t opts, const uint8_t *enckey) {
 bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_t opts, const uint8_t *enckey) {
 	if (!src || size == 0) {
 		SYSLOG("nvram", "write invalid size %u", size);
-		return nullptr;
+		return false;
 	}
 
 	bool payloadAlloc = false;
@@ -176,7 +176,7 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 
 			if (!payloadBuf) {
 				SYSLOG("nvram", "write %s can't compressed data", key);
-				return nullptr;
+				return false;
 			}
 		}
 
@@ -186,7 +186,7 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 
 			if (!payloadBuf) {
 				SYSLOG("nvram", "write %s can't encrypt data", key);
-				return nullptr;
+				return false;
 			}
 		}
 
@@ -228,7 +228,7 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 bool NVStorage::write(const char *key, const OSData *data, uint8_t opts, const uint8_t *enckey) {
 	if (!data) {
 		SYSLOG("nvram", "write invalid data object");
-		return nullptr;
+		return false;
 	}
 
 	return write(key, static_cast<const uint8_t *>(data->getBytesNoCopy()), data->getLength(), opts, enckey);
