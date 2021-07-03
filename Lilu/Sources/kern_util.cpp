@@ -17,6 +17,13 @@
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;
 
+inline bool lilu_get_interrupts_enabled() {
+	uint32_t flags;
+
+	__asm__ volatile ("pushf; pop	%0" :  "=r" (flags));
+	return (flags & EFL_IF) != 0;
+}
+
 void lilu_os_log(const char *format, ...) {
 	char tmp[1024];
 	tmp[0] = '\0';
@@ -25,7 +32,7 @@ void lilu_os_log(const char *format, ...) {
 	vsnprintf(tmp, sizeof(tmp), format, va);
 	va_end(va);
 
-	if (ml_get_interrupts_enabled())
+	if (lilu_get_interrupts_enabled())
 		IOLog("%s", tmp);
 
 #ifdef DEBUG
@@ -45,7 +52,7 @@ void lilu_os_log(const char *format, ...) {
 	}
 #endif
 
-	if (ml_get_interrupts_enabled() && ADDPR(debugPrintDelay) > 0)
+	if (lilu_get_interrupts_enabled() && ADDPR(debugPrintDelay) > 0)
 		IOSleep(ADDPR(debugPrintDelay));
 }
 

@@ -246,14 +246,19 @@ mach_vm_address_t MachInfo::findKernelBase() {
 			}
 #endif
 			
+			// 10.5 and older have __PAGEZERO first and __TEXT second.
 			auto segmentCommand = reinterpret_cast<segment_command_current *>(header + 1);
+			if (getKernelVersion() < KernelVersion::SnowLeopard) {
+				segmentCommand = reinterpret_cast<segment_command_current *>(reinterpret_cast<mach_vm_address_t>(segmentCommand) + segmentCommand->cmdsize);
+			}
 			if (!strncmp(segmentCommand->segname, "__TEXT", sizeof(segmentCommand->segname))) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
 				break;
 			}
 		}
 
-		tmp -= KASLRAlignment;
+		// 10.5 and older require 4K granularity for searching
+		tmp -= getKernelVersion() >= KernelVersion::SnowLeopard ? KASLRAlignment : PAGE_SIZE;
 	}
 
 	m_kernel_base = tmp;

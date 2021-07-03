@@ -13,15 +13,22 @@ bool RTCStorage::init(bool wait) {
 	auto matching = IOService::serviceMatching("AppleRTC");
 	if (matching) {
 		if (wait) {
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_10_6
+			rtcSrv = IOService::waitForService(matching);
+			if (rtcSrv)
+				rtcSrv->retain();
+#else
 			rtcSrv = IOService::waitForMatchingService(matching);
+			matching->release();
+#endif
 		} else {
 			auto rtcIterator = IOService::getMatchingServices(matching);
 			if (rtcIterator) {
 				rtcSrv = OSDynamicCast(IOService, rtcIterator->getNextObject());
 				rtcIterator->release();
 			}
+			matching->release();
 		}
-		matching->release();
 	} else {
 		SYSLOG("rtc", "failed to allocate rtc service matching");
 	}

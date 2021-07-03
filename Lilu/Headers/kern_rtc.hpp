@@ -129,8 +129,15 @@ public:
 		IOService *rtcDev = nullptr;
 		auto matching = IOService::nameMatching(name);
 		if (matching) {
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_10_6
+			rtcDev = IOService::waitForService(matching);
+			if (rtcDev)
+				rtcDev->retain();
+#else
 			rtcDev = IOService::waitForMatchingService(matching);
 			matching->release();
+#endif
+
 		} else {
 			SYSLOG("rtc", "failed to allocate rtc device matching");
 		}
