@@ -281,8 +281,8 @@ bool Configuration::getBootArguments() {
 
 	readArguments = true;
 
-	DBGLOG("config", "version %s, args: disabled %d, debug %d, slow %d, decompress %d",
-		   kextVersion, isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
+	DBGLOG("config", "version %s (%s), args: disabled %d, debug %d, slow %d, decompress %d",
+		   kextVersion, currentArch, isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
 
 	if (isDisabled) {
 		SYSLOG("config", "found a disabling argument or no arguments, exiting");

@@ -20,6 +20,22 @@
 #include <mach/vm_param.h>
 #include <libkern/c++/OSDictionary.h>
 
+#if defined(__i386__)
+#define mach_header_current			mach_header
+#define segment_command_current	segment_command
+#define nlist_current						struct nlist
+#define LC_SEGMENT_CURRENT			LC_SEGMENT
+
+#elif defined(__x86_64__)
+#define mach_header_current			mach_header_64
+#define segment_command_current	segment_command_64
+#define nlist_current						struct nlist_64
+#define LC_SEGMENT_CURRENT			LC_SEGMENT_64
+
+#else
+#error Unsupported arch.
+#endif
+
 class MachInfo {
 	mach_vm_address_t running_text_addr {0}; // the address of running __TEXT segment
 	mach_vm_address_t disk_text_addr {0};    // the same address at from a file
@@ -36,7 +52,7 @@ class MachInfo {
 	uint32_t symboltable_fileoff {0};        // file offset to symbol table - used to position inside the __LINKEDIT buffer
 	uint32_t symboltable_nr_symbols {0};
 	uint32_t stringtable_fileoff {0};        // file offset to string table
-	mach_header_64 *running_mh {nullptr};    // pointer to mach-o header of running kernel item
+	mach_header_current *running_mh {nullptr};    // pointer to mach-o header of running kernel item
 	mach_vm_address_t address_slots {0};     // pointer after mach-o header to store pointers
 	mach_vm_address_t address_slots_end {0}; // pointer after mach-o header to store pointers
 	off_t fat_offset {0};                    // additional fat offset
@@ -165,6 +181,19 @@ public:
 	 *  Each header is assumed to fit two pages
 	 */
 	static constexpr size_t HeaderSize {PAGE_SIZE_64*2};
+	
+	/**
+	 *	Magic signature for current running architecture.
+	 */
+#if defined(__i386__)
+	static constexpr uint32_t CurrentMachMagic {MH_MAGIC};
+	static constexpr uint32_t CurrentMachCpuType {CPU_TYPE_I386};
+#elif defined(__x86_64__)
+	static constexpr uint32_t CurrentMachMagic {MH_MAGIC_64};
+	static constexpr uint32_t CurrentMachCpuType {CPU_TYPE_X86_64};
+#else
+#error Unsupported arch.
+#endif
 
 	/**
 	 *  Representation mode (kernel/kext)

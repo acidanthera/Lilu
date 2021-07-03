@@ -37,6 +37,17 @@ public:
 	 *  Externally handled boot arguments
 	 */
 	static constexpr const char *bootargCpu {"lilucpu"};            // Simulate this CPU generation, handled in kern_cpu.cpp
+	
+	/**
+	 *	Current architecture name
+	 */
+#if defined(__i386__)
+	static constexpr const char *currentArch {"i386"};
+#elif defined(__x86_64__)
+	static constexpr const char *currentArch {"x86_64"};
+#else
+#error Unsupported arch.
+#endif
 
 private:
 	/**

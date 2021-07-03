@@ -234,8 +234,9 @@ mach_vm_address_t MachInfo::findKernelBase() {
 
 	// Search backwards for the kernel base address (mach-o header)
 	while (true) {
-		auto header = reinterpret_cast<mach_header_64 *>(tmp);
-		if (header->magic == MH_MAGIC_64) {
+		auto header = reinterpret_cast<mach_header_current *>(tmp);
+		if (header->magic == CurrentMachMagic) {
+#if defined (__x86_64__)
 			// make sure it's the header and not some reference to the MAGIC number.
 			// 0xC is MH_FILESET, available exclusively in newer SDKs.
 			if (getKernelVersion() >= KernelVersion::BigSur && header->filetype == 0xC && header->flags == 0 && header->reserved == 0) {
@@ -243,7 +244,9 @@ mach_vm_address_t MachInfo::findKernelBase() {
 				m_kernel_collection = kernel_collection = true;
 				break;
 			}
-			auto segmentCommand = reinterpret_cast<segment_command_64 *>(header + 1);
+#endif
+			
+			auto segmentCommand = reinterpret_cast<segment_command_current *>(header + 1);
 			if (!strncmp(segmentCommand->segname, "__TEXT", sizeof(segmentCommand->segname))) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
 				break;
@@ -318,7 +321,7 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	// we just read the __LINKEDIT but fileoff values are relative to the full Mach-O
 	// subtract the base of LINKEDIT to fix the value into our buffer
 
-	auto nlist = reinterpret_cast<nlist_64 *>(linkedit_buf + (symboltable_fileoff - linkedit_fileoff));
+	auto nlist = reinterpret_cast<nlist_current *>(linkedit_buf + (symboltable_fileoff - linkedit_fileoff));
 	auto strlist = reinterpret_cast<char *>(linkedit_buf + (stringtable_fileoff - linkedit_fileoff));
 	auto endaddr = linkedit_buf + linkedit_size;
 
@@ -364,7 +367,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 		DBGLOG("mach", "readMachHeader got magic %08X", *magicPtr);
 
 		switch (*magicPtr) {
-			case MH_MAGIC_64:
+			case CurrentMachMagic:
 				fat_offset = off;
 				return KERN_SUCCESS;
 			case FAT_CIGAM:
@@ -377,7 +380,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 				bool swapBytes = *magicPtr == FAT_CIGAM;
 				uint32_t num = reinterpret_cast<fat_header *>(buffer)->nfat_arch;
 				if (swapBytes) num = OSSwapInt32(num);
-				if (static_cast<uint64_t>(num) * sizeof(fat_arch) > HeaderSize - sizeof(fat_arch)) {
+				if (static_cast<size_t>(num) * sizeof(fat_arch) > HeaderSize - sizeof(fat_arch)) {
 					SYSLOG("mach", "invalid fat arch count %u", num);
 					return KERN_FAILURE;
 				}
@@ -386,14 +389,14 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					auto arch = reinterpret_cast<fat_arch *>(buffer + i * sizeof(fat_arch) + sizeof(fat_header));
 					cpu_type_t cpu = arch->cputype;
 					if (swapBytes) cpu = OSSwapInt32(cpu);
-					if (cpu == CPU_TYPE_X86_64) {
+					if (cpu == CurrentMachCpuType) {
 						uint32_t offset = arch->offset;
 						if (swapBytes) offset = OSSwapInt32(offset);
 						return readMachHeader(buffer, vnode, ctxt, offset);
 					}
 				}
 
-				SYSLOG("mach", "magic failed to find a x86_64 mach");
+				SYSLOG("mach", "magic failed to find a %s mach", Configuration::currentArch);
 				return KERN_FAILURE;
 			}
 #ifdef LILU_COMPRESSION_SUPPORT
@@ -622,8 +625,8 @@ void MachInfo::freeFileBufferResources() {
 }
 
 void MachInfo::processMachHeader(void *header) {
-	mach_header_64 *mh = static_cast<mach_header_64 *>(header);
-	size_t headerSize = sizeof(mach_header_64);
+	auto mh = static_cast<mach_header_current *>(header);
+	size_t headerSize = sizeof(mach_header_current);
 
 	// point to the first load command
 	auto addr    = static_cast<uint8_t *>(header) + headerSize;
@@ -643,8 +646,8 @@ void MachInfo::processMachHeader(void *header) {
 			return;
 		}
 
-		if (loadCmd->cmd == LC_SEGMENT_64) {
-			segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+		if (loadCmd->cmd == LC_SEGMENT_CURRENT) {
+			auto segCmd = reinterpret_cast<segment_command_current *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
 			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found TEXT");
@@ -756,6 +759,11 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 }
 
 kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
+#if defined (__i386__)
+	// KC is not supported on 32-bit.
+	return KERN_FAILURE;
+	
+#elif defined (__x86_64__)
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
@@ -849,6 +857,10 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 		DBGLOG("mach", "activating slots for %s in " PRIKADDR " - " PRIKADDR, objectId, CASTKADDR(address_slots), CASTKADDR(address_slots_end));
 	}
 	return KERN_SUCCESS;
+
+#else
+#error Unsupported arch.
+#endif
 }
 
 mach_vm_address_t MachInfo::getAddressSlot() {
@@ -880,8 +892,8 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 
 	if (base != 0) {
 		// get the vm address of __TEXT segment
-		auto mh = reinterpret_cast<mach_header_64 *>(base);
-		auto headerSize = sizeof(mach_header_64);
+		auto mh = reinterpret_cast<mach_header_current *>(base);
+		auto headerSize = sizeof(mach_header_current);
 
 		load_command *loadCmd;
 		auto addr = reinterpret_cast<uint8_t *>(base) + headerSize;
@@ -899,8 +911,8 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 				return KERN_FAILURE;
 			}
 
-			if (loadCmd->cmd == LC_SEGMENT_64) {
-				segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+			if (loadCmd->cmd == LC_SEGMENT_CURRENT) {
+				auto segCmd = reinterpret_cast<segment_command_current *>(loadCmd);
 				if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 					running_text_addr = segCmd->vmaddr;
 					running_mh = mh;
@@ -944,8 +956,8 @@ void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 uint64_t *MachInfo::getUUID(void *header) {
 	if (!header) return nullptr;
 
-	auto mh = static_cast<mach_header_64 *>(header);
-	size_t size = sizeof(mach_header_64);
+	auto mh = static_cast<mach_header_current *>(header);
+	size_t size = sizeof(mach_header_current);
 
 	auto *addr = static_cast<uint8_t *>(header) + size;
 	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
