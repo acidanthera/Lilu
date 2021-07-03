@@ -80,7 +80,7 @@ public:
 #ifdef LILU_KEXTPATCH_SUPPORT
 	struct KextInfo {
 		static constexpr size_t Unloaded {0};
-		enum SysFlags : size_t {
+		enum SysFlags : uint64_t {
 			Loaded,      // invoke for kext if it is already loaded
 			Reloadable,  // allow the kext to unload and get patched again
 			Disabled,    // do not load this kext (formerly achieved pathNum = 0, this no longer works)
@@ -89,7 +89,7 @@ public:
 			Reserved,
 			SysFlagNum,
 		};
-		static constexpr size_t UserFlagNum {sizeof(size_t)-SysFlagNum};
+		static constexpr uint64_t UserFlagNum {sizeof(uint64_t)-SysFlagNum};
 		static_assert(UserFlagNum > 0, "There should be at least one user flag");
 		const char *id {nullptr};
 		const char **paths {nullptr};
@@ -107,7 +107,7 @@ public:
 		}
 	};
 
-	static_assert(sizeof(KextInfo) == 5 * sizeof(size_t), "KextInfo is no longer ABI compatible");
+	static_assert(sizeof(KextInfo) == 4 * sizeof(size_t) + sizeof(uint64_t), "KextInfo is no longer ABI compatible");
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 	/**
