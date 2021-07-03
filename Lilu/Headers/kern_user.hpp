@@ -115,7 +115,7 @@ public:
 
 #if defined(__i386__)
 	static_assert(sizeof(BinaryModPatch) == 36, "BinaryModPatch 32-bit ABI compatibility failure");
-#elif defined__x86_64__
+#elif defined(__x86_64__)
 	static_assert(sizeof(BinaryModPatch) == 56, "BinaryModPatch 64-bit ABI compatibility failure");
 #else
 #error Unsupported arch.
