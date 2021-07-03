@@ -9,8 +9,6 @@
 #include <Headers/kern_disasm.hpp>
 #include <Headers/kern_util.hpp>
 
-#include <hde64.h>
-
 #ifdef LILU_ADVANCED_DISASSEMBLY
 
 #include <umm_malloc.h>
@@ -74,6 +72,16 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	size_t total = 0;
 
 	do {
+#if defined(__i386__)
+		hde32s hs;
+		auto len = hde32_disasm(reinterpret_cast<void *>(addr), &hs);
+
+		if (hs.flags & F_ERROR) {
+			SYSLOG("disasm", "hde decoding failure");
+			return 0;
+		}
+		
+#elif defined(__x86_64__)
 		hde64s hs;
 		auto len = hde64_disasm(reinterpret_cast<void *>(addr), &hs);
 
@@ -82,6 +90,10 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 			return 0;
 		}
 
+#else
+#error Unsupported arch.
+#endif
+
 		addr += len;
 		total += len;
 	} while (total < min);
@@ -89,9 +101,19 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	return total;
 }
 
+#if defined(__i386__)
+size_t Disassembler::hdeDisasm(mach_vm_address_t code, hde32s *hs) {
+	return hde32_disasm(reinterpret_cast<void*>(code), hs);
+}
+
+#elif defined(__x86_64__)
 size_t Disassembler::hdeDisasm(mach_vm_address_t code, hde64s *hs) {
 	return hde64_disasm(reinterpret_cast<void*>(code), hs);
 }
+
+#else
+#error Unsupported arch.
+#endif
 
 #ifdef LILU_ADVANCED_DISASSEMBLY
 

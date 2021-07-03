@@ -592,8 +592,8 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 							SYSLOG("mach", "found section %s size %u in segment %lu is invalid", sectionName, sno, vmsegment);
 							return;
 						}
-						vmsegment = scmd->vmaddr;
-						vmsection = sect->addr;
+						vmsegment = (vm_address_t)scmd->vmaddr;
+						vmsection = (vm_address_t)sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
 						DBGLOG("mach", "found section %s size %u in segment %lu", sectionName, sno, vmsegment);
@@ -652,7 +652,7 @@ void MachInfo::processMachHeader(void *header) {
 			} else if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found LINKEDIT");
 				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size = segCmd->filesize;
+				linkedit_size = (size_t)segCmd->filesize;
 			}
 		}
 		// table information available at LC_SYMTAB command
@@ -807,7 +807,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 			if (!linkedit_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				linkedit_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
 				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size = segCmd->vmsize;
+				linkedit_size = (size_t)segCmd->vmsize;
 				linkedit_buf_ro = true;
 			} else if (segCmd->vmaddr + segCmd->vmsize > last_addr) {
 				// We exclude __LINKEDIT here as it is much farther from the rest of the segments,
@@ -838,7 +838,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	kaslr_slide_set = true;
 	prelink_slid = true;
 	running_mh = inner;
-	memory_size = last_addr - reinterpret_cast<mach_vm_address_t>(inner);
+	memory_size = (size_t)(last_addr - reinterpret_cast<mach_vm_address_t>(inner));
 	if (slide != 0 || isKernel) {
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
 		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;

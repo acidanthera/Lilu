@@ -32,7 +32,7 @@ class MachInfo {
 	uint8_t *linkedit_buf {nullptr};         // pointer to __LINKEDIT buffer containing symbols to solve
 	bool linkedit_buf_ro {false};            // linkedit_buf is read-only (not copy).
 	uint64_t linkedit_fileoff {0};           // __LINKEDIT file offset so we can read
-	uint64_t linkedit_size {0};
+	size_t linkedit_size {0};
 	uint32_t symboltable_fileoff {0};        // file offset to symbol table - used to position inside the __LINKEDIT buffer
 	uint32_t symboltable_nr_symbols {0};
 	uint32_t stringtable_fileoff {0};        // file offset to string table

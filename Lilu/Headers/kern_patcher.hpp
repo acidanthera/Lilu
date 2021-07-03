@@ -791,7 +791,7 @@ private:
 			uint64_t disp;
 			uint8_t  org[2];
 		} l;
-		static_assert(sizeof(l) == sizeof(unsigned __int128), "Invalid long patch rounding");
+		static_assert(sizeof(l) == sizeof(lilu_uint128_t), "Invalid long patch rounding");
 		struct PACKED MediumPatch {
 			uint16_t opcode;
 			uint32_t argument;
@@ -811,7 +811,7 @@ private:
 				reinterpret_cast<volatile T *>(this)->org[i] = *reinterpret_cast<uint8_t *>(source + offsetof(T, org) + i);
 		}
 		uint64_t value64;
-		unsigned __int128 value128;
+		lilu_uint128_t value128;
 	} patch;
 
 	/**

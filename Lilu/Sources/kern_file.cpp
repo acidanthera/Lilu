@@ -58,7 +58,7 @@ size_t FileIO::readFileSize(vnode_t vnode, vfs_context_t ctxt) {
 	vnode_attr va;
 	VATTR_INIT(&va);
 	VATTR_WANTED(&va, va_data_size);
-	return vnode_getattr(vnode, &va, ctxt) ? 0 : va.va_data_size;
+	return vnode_getattr(vnode, &va, ctxt) ? 0 : (size_t)va.va_data_size;
 }
 
 int FileIO::writeBufferToFile(const char *path, void *buffer, size_t size, int fmode, int cmode) {

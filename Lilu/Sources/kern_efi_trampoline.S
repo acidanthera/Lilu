@@ -29,6 +29,7 @@
  */
 .globl _performEfiCallAsm
 _performEfiCallAsm:
+#if __x86_64__
 pushq %rbp
 movq %rsp, %rbp
 
@@ -77,5 +78,6 @@ pop	%r12
 pop	%rbx
 
 leave
+#endif
 
 ret

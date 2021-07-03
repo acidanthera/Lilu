@@ -497,9 +497,9 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 			opcode->patch();
 			argument->patch();
 		}
-	} else if ((from & (sizeof(unsigned __int128)-1)) == 0) {
-		auto p = reinterpret_cast<_Atomic(unsigned __int128) *>(from);
-		atomic_store(p, patch.value128);
+	} else if ((from & (sizeof(lilu_uint128_t)-1)) == 0) {
+	//	auto p = reinterpret_cast<_Atomic(lilu_uint128_t) *>(from);
+		//atomic_store(p, patch.value128); //FIXME
 	} else {
 		disp->patch();
 		opcode->patch();

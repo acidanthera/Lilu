@@ -37,7 +37,7 @@ namespace Patch {
 		typename conditional<P == Variant::U16, uint16_t,
 		typename conditional<P == Variant::U32, uint32_t,
 		typename conditional<P == Variant::U64, uint64_t,
-		typename conditional<P == Variant::U128, unsigned __int128, void
+		typename conditional<P == Variant::U128, lilu_uint128_t, void
 	>::type>::type>::type>::type>::type;
 
 	template <typename T>

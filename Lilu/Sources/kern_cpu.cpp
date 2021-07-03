@@ -215,11 +215,21 @@ bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, ui
 
 	// At least pass zeroes on failure
 	if (supported) {
+#if defined(__i386__)
+		asm ("xchg %%ebx, %q1\n"
+			 "cpuid\n"
+			 "xchg %%ebx, %q1"
+			 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+			 : "0" (no), "2" (count));
+#elif defined(__x86_64__)
 		asm ("xchgq %%rbx, %q1\n"
 			 "cpuid\n"
 			 "xchgq %%rbx, %q1"
 			 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 			 : "0" (no), "2" (count));
+#else
+#error Unsupported arch.
+#endif
 	}
 
 	if (a) *a = eax;
