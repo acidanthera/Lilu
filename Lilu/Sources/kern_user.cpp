@@ -26,28 +26,6 @@ struct procref {
 	task_t task;             /* corresponding task (static)*/
 };
 
-/**
- *  Restrict 64-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
- */
-segment_command_64 restrictSegment64 {
-	LC_SEGMENT_64,
-	sizeof(segment_command_64),
-	"__RESTRICT",
-	SHARED_REGION_BASE_X86_64,
-	1, 0, 0, 0, 0, 0, 0
-};
-
-/**
- *  Restrict 32-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
- */
-segment_command restrictSegment32 {
-	LC_SEGMENT,
-	sizeof(segment_command),
-	"__RESTRICT",
-	SHARED_REGION_BASE_I386,
-	1, 0, 0, 0, 0, 0, 0
-};
-
 kern_return_t UserPatcher::vmProtect(vm_map_t map, vm_offset_t start, vm_size_t size, boolean_t set_maximum, vm_prot_t new_protection) {
 	// On 10.14 XNU attempted to fix broken W^X and introduced several changes:
 	// 1. vm_protect (vm_map_protect) got a call to cs_process_enforcement (formerly cs_enforcement), which aborts

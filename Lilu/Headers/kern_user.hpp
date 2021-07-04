@@ -458,6 +458,28 @@ private:
 
 	evector<LookupStorage *, LookupStorage::deleter> lookupStorage;
 	Lookup lookup;
+	
+	/**
+	 *  Restrict 64-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
+	 */
+	segment_command_64 restrictSegment64 {
+		LC_SEGMENT_64,
+		sizeof(segment_command_64),
+		"__RESTRICT",
+		SHARED_REGION_BASE_X86_64,
+		1, 0, 0, 0, 0, 0, 0
+	};
+
+	/**
+	 *  Restrict 32-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
+	 */
+	segment_command restrictSegment32 {
+		LC_SEGMENT,
+		sizeof(segment_command),
+		"__RESTRICT",
+		SHARED_REGION_BASE_I386,
+		1, 0, 0, 0, 0, 0, 0
+	};
 
 	/**
 	 *  Temporary buffer for reading image data
