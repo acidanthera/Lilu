@@ -701,7 +701,7 @@ private:
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**
-	 *	Process loaded kext
+	 *  Process loaded kext
 	 */
 	void processKext(kmod_info_t *kmod, bool loaded);
 	
@@ -738,12 +738,12 @@ private:
 	
 #if defined(__i386__)
 	/**
-	 *	Called at kext loading if kext listening is enabled on macOS 10.4 and 10.5
+	 *  Called at kext loading if kext listening is enabled on macOS 10.4 and 10.5
 	 */
 	static kern_return_t onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id);
 	
 	/**
-	 *	A pointer to kmod_create_internal()
+	 *  A pointer to kmod_create_internal()
 	 */
 	mach_vm_address_t orgKmodCreateInternal {};
 #endif
