@@ -701,6 +701,11 @@ private:
 
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**
+	 *	Process loaded kext
+	 */
+	void processKext(kmod_info_t *kmod, bool loaded);
+	
+	/**
 	 *  Process already loaded kexts once at the start
 	 *
 	 */
@@ -712,7 +717,7 @@ private:
 	kmod_info_t **kextKmods {nullptr};
 
 	/**
-	 *  Called at kext unloading if kext listening is enabled
+	 *  Called at kext unloading if kext listening is enabled on macOS 10.6 and newer
 	 */
 	static OSReturn onOSKextUnload(void *thisKext);
 
@@ -722,7 +727,7 @@ private:
 	mach_vm_address_t orgOSKextUnload {};
 
 	/**
-	 *  Called at kext loading and unloading if kext listening is enabled
+	 *  Called at kext loading and unloading if kext listening is enabled on macOS 10.6 and newer
 	 */
 	static void onOSKextSaveLoadedKextPanicList();
 
@@ -730,6 +735,18 @@ private:
 	 *  A pointer to OSKext::saveLoadedKextPanicList()
 	 */
 	mach_vm_address_t orgOSKextSaveLoadedKextPanicList {};
+	
+#if defined(__i386__)
+	/**
+	 *	Called at kext loading if kext listening is enabled on macOS 10.4 and 10.5
+	 */
+	static kern_return_t onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id);
+	
+	/**
+	 *	A pointer to kmod_create_internal()
+	 */
+	mach_vm_address_t orgKmodCreateInternal {};
+#endif
 
 #endif /* LILU_KEXTPATCH_SUPPORT */
 

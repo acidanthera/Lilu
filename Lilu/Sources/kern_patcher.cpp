@@ -239,15 +239,28 @@ void KernelPatcher::setupKextListening() {
 		return;
 	}
 
-	KernelPatcher::RouteRequest requests[] = {
-		{ "__ZN6OSKext6unloadEv", onOSKextUnload, orgOSKextUnload },
-		{ "__ZN6OSKext23saveLoadedKextPanicListEv", onOSKextSaveLoadedKextPanicList, orgOSKextSaveLoadedKextPanicList }
-	};
+#if defined(__i386__)
+	if (getKernelVersion() >= KernelVersion::SnowLeopard) {
+#endif
+		KernelPatcher::RouteRequest requests[] = {
+			{ "__ZN6OSKext6unloadEv", onOSKextUnload, orgOSKextUnload },
+			{ "__ZN6OSKext23saveLoadedKextPanicListEv", onOSKextSaveLoadedKextPanicList, orgOSKextSaveLoadedKextPanicList }
+		};
 
-	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
-		SYSLOG("patcher", "failed to route kext listener functions");
-		return;
+		if (!routeMultiple(KernelID, requests, arrsize(requests))) {
+			SYSLOG("patcher", "failed to route kext listener functions");
+			return;
+		}
+#if defined(__i386__)
+	} else {
+		// 10.5 and older do not have the OSKext class
+		KernelPatcher::RouteRequest request("_kmod_create_internal", onKmodCreateInternal, orgKmodCreateInternal);
+		if (!routeMultiple(KernelID, &request, 1)) {
+			SYSLOG("patcher", "failed to route kext listener function");
+			return;
+		}
 	}
+#endif
 
 	if (getError() == Error::NoError) {
 		// Allow static functions to access the patcher body
@@ -723,31 +736,66 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 		that->processAlreadyLoadedKexts();
 		that->waitingForAlreadyLoadedKexts = false;
 	} else {
-		kmod_info_t *newKmod = *that->kextKmods;
-		if (newKmod) {
-			uint64_t kmodAddr = (uint64_t)newKmod->address;
-			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, newKmod->name);
+		kmod_info_t *kmod = *that->kextKmods;
+		if (kmod) {
+			uint64_t kmodAddr = (uint64_t)kmod->address;
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, kmod->name);
 			
-			// We may add khandlers items inside the handler
-			for (size_t i = 0; i < that->khandlers.size(); i++) {
-				auto handler = that->khandlers[i];
-				if (!strncmp(handler->id, newKmod->name, KMOD_MAX_NAME)) {
-					DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(kmodAddr));
-					if (!that->kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
-						SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", newKmod->name, CASTKADDR(kmodAddr));
-						continue;
-					}
-					handler->address = kmodAddr;
-					handler->size = newKmod->size;
-					handler->handler(handler);
-					// Remove the item
-					if (!that->khandlers[i]->reloadable)
-						that->khandlers.erase(i);
-					break;
-				}
-			}
+			that->processKext(kmod, false);
 		} else {
 			SYSLOG("patcher", "no kext is currently loaded, this should not happen");
+		}
+	}
+}
+
+#if defined(__i386__)
+
+kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id) {
+	if (!that)
+		return KERN_INVALID_ARGUMENT;
+	
+	kern_return_t result = FunctionCast(onKmodCreateInternal, that->orgKmodCreateInternal)(kmod, id);
+	if (result == KERN_SUCCESS) {
+		DBGLOG("patcher", "invoked at kext loading");
+		
+		if (that->waitingForAlreadyLoadedKexts) {
+			that->processAlreadyLoadedKexts();
+			that->waitingForAlreadyLoadedKexts = false;
+		} else {
+			uint64_t kmodAddr = (uint64_t)kmod->address;
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, kmod->name);
+			
+			that->processKext(kmod, false);
+		}
+	}
+	
+	return result;
+}
+
+#endif
+
+void KernelPatcher::processKext(kmod_info_t *kmod, bool loaded) {
+	uint64_t kmodAddr = (uint64_t)kmod->address;
+
+	for (size_t i = 0; i < khandlers.size(); i++) {
+		auto handler = khandlers[i];
+		if (loaded && !handler->loaded)
+			continue;
+
+		if (!strncmp(handler->id, kmod->name, KMOD_MAX_NAME)) {
+			DBGLOG("patcher", "caught the right kext %s at " PRIKADDR ", invoking handler", kmod->name, CASTKADDR(kmodAddr));
+			if (!kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
+				SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", kmod->name, CASTKADDR(kmodAddr));
+				continue;
+			}
+			handler->address = kmodAddr;
+			handler->size = kmod->size;
+			handler->handler(handler);
+
+			// Remove the item
+			if (!khandlers[i]->reloadable)
+				khandlers.erase(i);
+			break;
 		}
 	}
 }
@@ -756,25 +804,7 @@ void KernelPatcher::processAlreadyLoadedKexts() {
 	DBGLOG("patcher", "processing already loaded kexts by iterating over all kmods");
 
 	for (kmod_info_t *kmod = *kextKmods; kmod; kmod = kmod->next) {
-		uint64_t kmodAddr = (uint64_t)kmod->address;
-
-		for (size_t j = 0; j < khandlers.size(); j++) {
-			auto handler = khandlers[j];
-			if (handler->loaded && !strncmp(handler->id, kmod->name, KMOD_MAX_NAME)) {
-				DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", kmod->name, CASTKADDR(kmodAddr));
-				if (!kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
-					SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", kmod->name, CASTKADDR(kmodAddr));
-					continue;
-				}
-				handler->address = kmodAddr;
-				handler->size = kmod->size;
-				handler->handler(handler);
-				// Remove the item
-				if (!that->khandlers[j]->reloadable)
-					that->khandlers.erase(j);
-				break;
-			}
-		}
+		processKext(kmod, true);
 	}
 }
 #endif /* LILU_KEXTPATCH_SUPPORT */
