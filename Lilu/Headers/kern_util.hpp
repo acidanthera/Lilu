@@ -346,6 +346,8 @@ extern "C" {
  *  Known kernel versions
  */
 enum KernelVersion {
+	Tiger         = 8,
+	Leopard       = 9,
 	SnowLeopard   = 10,
 	Lion          = 11,
 	MountainLion  = 12,
