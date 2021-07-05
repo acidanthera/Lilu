@@ -151,7 +151,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	bool found = false;
 	// Starting with 10.10 macOS supports kcsuffix that may be appended to processes, kernels, and kexts
 	char suffix[32] {};
-	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix)) ? 2 : 0;
+	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && lilu_get_boot_args("kcsuffix", suffix, sizeof(suffix)) ? 2 : 0;
 
 	for (size_t i = 0; i < num && !found; i++) {
 		auto pathlen = static_cast<uint32_t>(strlen(paths[i]));

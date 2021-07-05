@@ -15,7 +15,7 @@ DeviceInfo *globalDeviceInfo;
 
 void DeviceInfo::updateLayoutId() {
 	reportedLayoutId = DefaultReportedLayoutId;
-	if (PE_parse_boot_argn(ReportedLayoutIdArg, &reportedLayoutId, sizeof(reportedLayoutId))) {
+	if (lilu_get_boot_args(ReportedLayoutIdArg, &reportedLayoutId, sizeof(reportedLayoutId))) {
 		DBGLOG("dev", "found boot-arg layout id override to %u", reportedLayoutId);
 	} else if (audioBuiltinAnalog && WIOKit::getOSDataValue(audioBuiltinAnalog, ReportedLayoutIdName, reportedLayoutId)) {
 		DBGLOG("dev", "found property layout id override to %u", reportedLayoutId);
@@ -32,7 +32,7 @@ void DeviceInfo::updateFramebufferId() {
 	else
 		reportedFramebufferName = ReportedFrameIdLegacyName;
 
-	if (PE_parse_boot_argn(ReportedFrameIdArg, &reportedFramebufferId, sizeof(reportedFramebufferId))) {
+	if (lilu_get_boot_args(ReportedFrameIdArg, &reportedFramebufferId, sizeof(reportedFramebufferId))) {
 		DBGLOG("dev", "found boot-arg frame id override to %08X", reportedFramebufferId);
 	} else if (checkKernelArgument(ReportedVesaIdArg)) {
 		DBGLOG("dev", "found vesa boot-arg frame id");

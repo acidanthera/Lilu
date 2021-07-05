@@ -54,7 +54,7 @@ void PRODUCT_NAME::stop(IOService *provider) {
 
 EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 	// This is an ugly hack necessary on some systems where buffering kills most of debug output.
-	PE_parse_boot_argn("liludelay", &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+	lilu_get_boot_args("liludelay", &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
 	auto error = lilu.requestAccess();
 	if (error == LiluAPI::Error::NoError) {

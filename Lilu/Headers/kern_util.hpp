@@ -342,6 +342,27 @@ extern "C" {
 	EXPORT void lilu_os_free(void *addr);
 }
 
+#if defined(__i386__)
+// ml_get_interrupts_enabled is not exported on 10.5 or older
+inline bool lilu_get_interrupts_enabled() {
+	uint32_t flags;
+
+	__asm__ volatile ("pushf; pop	%0" :  "=r" (flags));
+	return (flags & EFL_IF) != 0;
+}
+
+inline bool lilu_get_boot_args(const char *arg_string, void *arg_ptr, int max_len) {
+	return PE_parse_boot_arg(arg_string, arg_ptr);
+}
+
+#elif defined(__x86_64__)
+#define lilu_get_interrupts_enabled   ml_get_interrupts_enabled
+#define lilu_get_boot_args            PE_parse_boot_argn
+
+#else
+#error Unsupported arch.
+#endif
+
 /**
  *  Known kernel versions
  */
@@ -394,7 +415,7 @@ inline KernelMinorVersion getKernelMinorVersion() {
  */
 inline bool checkKernelArgument(const char *name) {
 	int val[16];
-	return PE_parse_boot_argn(name, val, sizeof(val));
+	return lilu_get_boot_args(name, val, sizeof(val));
 }
 
 /**

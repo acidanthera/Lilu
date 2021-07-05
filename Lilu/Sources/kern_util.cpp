@@ -17,22 +17,6 @@
 bool ADDPR(debugEnabled) = false;
 uint32_t ADDPR(debugPrintDelay) = 0;
 
-// ml_get_interrupts_enabled is not exported on 10.5 or older
-#if defined(__i386__)
-inline bool lilu_get_interrupts_enabled() {
-	uint32_t flags;
-
-	__asm__ volatile ("pushf; pop	%0" :  "=r" (flags));
-	return (flags & EFL_IF) != 0;
-}
-
-#elif defined(__x86_64__)
-#define lilu_get_interrupts_enabled	ml_get_interrupts_enabled
-
-#else
-#error Unsupported arch.
-#endif
-
 void lilu_os_log(const char *format, ...) {
 	char tmp[1024];
 	tmp[0] = '\0';

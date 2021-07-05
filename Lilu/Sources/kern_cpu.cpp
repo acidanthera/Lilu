@@ -55,7 +55,7 @@ void CPUInfo::init() {
 
 	// Last but not least detect CPU generation
 	uint32_t generation = 0;
-	if (PE_parse_boot_argn(Configuration::bootargCpu, &generation, sizeof(generation))) {
+	if (lilu_get_boot_args(Configuration::bootargCpu, &generation, sizeof(generation))) {
 		DBGLOG("cpu", "found CPU generation override %u", generation);
 		if (generation < static_cast<uint32_t>(CPUInfo::CpuGeneration::MaxGeneration)) {
 			bdi.cpuGeneration = static_cast<CPUInfo::CpuGeneration>(generation);

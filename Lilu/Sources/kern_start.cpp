@@ -222,10 +222,10 @@ bool Configuration::getBootArguments() {
 	isUserDisabled = checkKernelArgument(bootargUserOff) ||
 		getKernelVersion() <= KernelVersion::SnowLeopard || getKernelVersion() >= KernelVersion::BigSur;
 
-	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+	lilu_get_boot_args(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
 #ifdef DEBUG
-	PE_parse_boot_argn(bootargDump, &debugDumpTimeout, sizeof(debugDumpTimeout));
+	lilu_get_boot_args(bootargDump, &debugDumpTimeout, sizeof(debugDumpTimeout));
 	// Slightly out of place, but we need to do that as early as possible.
 	initCustomDebugSupport();
 #endif
