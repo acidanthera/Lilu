@@ -87,23 +87,6 @@ private:
 	bool performCommonInit();
 
 	/**
-	 *  Initialise kernel and user patchers from policy handler
-	 */
-	void policyInit(const char *name) {
-		(void)name;
-
-		// Outer check is used here to avoid unnecessary locking after we initialise
-		if (!atomic_load_explicit(&initialised, memory_order_relaxed)) {
-			IOLockLock(policyLock);
-			if (!atomic_load_explicit(&initialised, memory_order_relaxed)) {
-				DBGLOG("config", "init via %s", name);
-				performInit();
-			}
-			IOLockUnlock(policyLock);
-		}
-	}
-
-	/**
 	 *  TrustedBSD policy called at exec
 	 *
 	 *  @param old Existing subject credential
@@ -139,12 +122,14 @@ private:
 	 */
 	static int initConsole(PE_Video *info, int op);
 
+#if defined(__x86_64__)
 	/**
 	 *  TrustedBSD policy options
 	 */
 	mac_policy_ops policyOps {
 		.mpo_policy_initbsd = policyInitBSD
 	};
+#endif
 
 	/**
 	 *  TrustedBSD policy handlers are not thread safe
@@ -183,6 +168,23 @@ private:
 #endif
 
 public:
+	/**
+	 *  Initialise kernel and user patchers from policy handler
+	 */
+	void policyInit(const char *name) {
+		(void)name;
+
+		// Outer check is used here to avoid unnecessary locking after we initialise
+		if (!atomic_load_explicit(&initialised, memory_order_relaxed)) {
+			IOLockLock(policyLock);
+			if (!atomic_load_explicit(&initialised, memory_order_relaxed)) {
+				DBGLOG("config", "init via %s", name);
+				performInit();
+			}
+			IOLockUnlock(policyLock);
+		}
+	}
+	
 	/**
 	 *  Retrieve boot arguments
 	 *
@@ -257,10 +259,12 @@ public:
 	 */
 	KernelPatcher kernelPatcher;
 
+#if defined(__x86_64__)
 	/**
 	 *  Policy controller
 	 */
 	Policy policy;
+#endif
 
 #ifdef DEBUG
 	/**
@@ -297,7 +301,9 @@ public:
 	static constexpr const char *fullName {xStringify(PRODUCT_NAME) " Kernel Extension " xStringify(MODULE_VERSION)};
 #endif
 
+#if defined(__x86_64__)
 	Configuration() : policy(xStringify(PRODUCT_NAME), fullName, &policyOps) {}
+#endif
 };
 
 extern Configuration ADDPR(config);

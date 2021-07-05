@@ -35,7 +35,7 @@
 			<key>IOProviderClass</key>
 			<string>IOResources</string>
 			<key>IOResourceMatch</key>
-			<string>IOKit</string>
+			<string>IOBSD</string>
 		</dict>
 	</dict>
 	<key>NSHumanReadableCopyright</key>
@@ -49,8 +49,6 @@
 		<key>com.apple.kpi.libkern</key>
 		<string>8.0.0</string>
 		<key>com.apple.kpi.mach</key>
-		<string>8.0.0</string>
-		<key>com.apple.kpi.dsep</key>
 		<string>8.0.0</string>
 		<key>com.apple.kpi.unsupported</key>
 		<string>8.0.0</string>
