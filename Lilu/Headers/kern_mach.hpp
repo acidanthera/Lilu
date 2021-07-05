@@ -45,13 +45,14 @@ class MachInfo {
 	uint8_t *prelink_addr {nullptr};         // prelink text base address
 	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address (for kexts this is their actual slide)
 	uint32_t file_buf_size {0};              // read file data size
-	uint8_t *linkedit_buf {nullptr};         // pointer to __LINKEDIT buffer containing symbols to solve
-	bool linkedit_buf_ro {false};            // linkedit_buf is read-only (not copy).
-	uint64_t linkedit_fileoff {0};           // __LINKEDIT file offset so we can read
-	size_t linkedit_size {0};
+	uint8_t *sym_buf {nullptr};              // pointer to buffer (normally __LINKEDIT) containing symbols to solve
+	bool sym_buf_ro {false};                 // sym_buf is read-only (not copy).
+	uint64_t sym_fileoff {0};                // file offset of symbols (normally __LINKEDIT) so we can read
+	size_t sym_size {0};
 	uint32_t symboltable_fileoff {0};        // file offset to symbol table - used to position inside the __LINKEDIT buffer
 	uint32_t symboltable_nr_symbols {0};
 	uint32_t stringtable_fileoff {0};        // file offset to string table
+	uint32_t stringtable_size {0};
 	mach_header_current *running_mh {nullptr};    // pointer to mach-o header of running kernel item
 	mach_vm_address_t address_slots {0};     // pointer after mach-o header to store pointers
 	mach_vm_address_t address_slots_end {0}; // pointer after mach-o header to store pointers
@@ -110,14 +111,14 @@ class MachInfo {
 	kern_return_t readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_context_t ctxt, off_t off=0);
 
 	/**
-	 *  Retrieve the whole linkedit segment into target buffer from kernel binary at disk
+	 *  Retrieve the whole symbol table (typically contained within the linkedit segment) into target buffer from kernel binary at disk
 	 *
 	 *  @param vnode file node
 	 *  @param ctxt  filesystem context
 	 *
 	 *  @return KERN_SUCCESS on success
 	 */
-	kern_return_t readLinkedit(vnode_t vnode, vfs_context_t ctxt);
+	kern_return_t readSymbols(vnode_t vnode, vfs_context_t ctxt);
 
 	/**
 	 *  Retrieve necessary mach-o header information from the mach header

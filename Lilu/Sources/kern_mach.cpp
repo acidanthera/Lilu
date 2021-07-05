@@ -63,11 +63,11 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	// to prelinked. This does not solve the main problem of distinguishing kexts, but the only practical cases
 	// of our failure are missing kexts in both places and AirPort drivers in installer/recovery only present
 	// in prelinked. For this reason we are fine.
-	if (!linkedit_buf)
+	if (!sym_buf)
 		error = initFromFileSystem(paths, num);
 
 	// Attempt to get linkedit from prelink
-	if (!linkedit_buf)
+	if (!sym_buf)
 		error = initFromPrelinked(prelink);
 
 	return error;
@@ -76,10 +76,10 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 void MachInfo::deinit() {
 	freeFileBufferResources();
 
-	if (linkedit_buf) {
-		if (!linkedit_buf_ro)
-			Buffer::deleter(linkedit_buf);
-		linkedit_buf = nullptr;
+	if (sym_buf) {
+		if (!sym_buf_ro)
+			Buffer::deleter(sym_buf);
+		sym_buf = nullptr;
 	}
 }
 
@@ -109,10 +109,10 @@ kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
 
 		if (file_buf && file_buf_size >= HeaderSize) {
 			processMachHeader(file_buf);
-			if (linkedit_fileoff && symboltable_fileoff) {
+			if (sym_fileoff && symboltable_fileoff) {
 				if (loadUUID(file_buf)) {
 					// read linkedit from prelink
-					error = readLinkedit(NULLVP, nullptr);
+					error = readSymbols(NULLVP, nullptr);
 					if (error == KERN_SUCCESS) {
 						// for prelinked kexts assume that we have slide (this is true for modern os)
 						prelink_slid = true;
@@ -124,7 +124,7 @@ kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
 				}
 			} else {
 				SYSLOG("mach", "couldn't find the necessary mach segments or sections in prelink (linkedit %llX, sym %X)",
-					   linkedit_fileoff, symboltable_fileoff);
+					   sym_fileoff, symboltable_fileoff);
 			}
 		} else {
 			DBGLOG("mach", "unable to load missing %d image %s from prelink", missing, objectId);
@@ -197,14 +197,14 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	}
 
 	processMachHeader(machHeader);
-	if (linkedit_fileoff && symboltable_fileoff) {
-		// read linkedit from filesystem
-		error = readLinkedit(vnode, ctxt);
+	if (sym_fileoff && symboltable_fileoff) {
+		// read symbols from filesystem
+		error = readSymbols(vnode, ctxt);
 		if (error != KERN_SUCCESS)
-			SYSLOG("mach", "could not read the linkedit segment");
+			SYSLOG("mach", "could not read symbols");
 	} else {
 		SYSLOG("mach", "couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
-			   linkedit_fileoff, symboltable_fileoff);
+			   sym_fileoff, symboltable_fileoff);
 	}
 
 	vnode_put(vnode);
@@ -307,8 +307,8 @@ kern_return_t MachInfo::setKernelWriting(bool enable, IOSimpleLock *lock) {
 }
 
 mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
-	if (!linkedit_buf) {
-		SYSLOG("mach", "no loaded linkedit buffer found");
+	if (!sym_buf) {
+		SYSLOG("mach", "no loaded symbols buffer found");
 		return 0;
 	}
 
@@ -325,12 +325,13 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	// symbols and strings offsets into LINKEDIT
 	// we just read the __LINKEDIT but fileoff values are relative to the full Mach-O
 	// subtract the base of LINKEDIT to fix the value into our buffer
+	//
+	// 32-bit MH_OBJECT does not have __LINKEDIT
+	auto nlist = reinterpret_cast<nlist_current *>(sym_buf + (symboltable_fileoff - sym_fileoff));
+	auto strlist = reinterpret_cast<char *>(sym_buf + (stringtable_fileoff - sym_fileoff));
+	auto endaddr = sym_buf + sym_size;
 
-	auto nlist = reinterpret_cast<nlist_current *>(linkedit_buf + (symboltable_fileoff - linkedit_fileoff));
-	auto strlist = reinterpret_cast<char *>(linkedit_buf + (stringtable_fileoff - linkedit_fileoff));
-	auto endaddr = linkedit_buf + linkedit_size;
-
-	if (reinterpret_cast<uint8_t *>(nlist) >= linkedit_buf && reinterpret_cast<uint8_t *>(strlist) >= linkedit_buf) {
+	if (reinterpret_cast<uint8_t *>(nlist) >= sym_buf && reinterpret_cast<uint8_t *>(strlist) >= sym_buf) {
 		auto symlen = strlen(symbol) + 1;
 		for (uint32_t i = 0; i < symboltable_nr_symbols; i++, nlist++) {
 			if (reinterpret_cast<uint8_t *>(nlist+1) <= endaddr) {
@@ -344,12 +345,12 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 					return nlist->n_value + kaslr_slide;
 				}
 			} else {
-				SYSLOG("mach", "symbol at %u out of %u exceeds linkedit bounds", i, symboltable_nr_symbols);
+				SYSLOG("mach", "symbol at %u out of %u exceeds symbol table bounds", i, symboltable_nr_symbols);
 				break;
 			}
 		}
 	} else {
-		SYSLOG("mach", "invalid symbol/string tables point behind linkedit");
+		SYSLOG("mach", "invalid symbol/string tables point behind symbol table");
 	}
 
 	return 0;
@@ -450,35 +451,37 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 	return KERN_FAILURE;
 }
 
-kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
+kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 	// we know the location of linkedit and offsets into symbols and their strings
 	// now we need to read linkedit into a buffer so we can process it later
 	// __LINKEDIT total size is around 1MB
 	// we should free this buffer later when we don't need anymore to solve symbols
-	linkedit_buf = Buffer::create<uint8_t>(linkedit_size);
-	if (!linkedit_buf) {
-		SYSLOG("mach", "Could not allocate enough memory (%lld) for __LINKEDIT segment", linkedit_size);
+	//
+	// on 32-bit MH_OBJECT, symbols are not contained within a segment
+	sym_buf = Buffer::create<uint8_t>(sym_size);
+	if (!sym_buf) {
+		SYSLOG("mach", "Could not allocate enough memory (%lld) for symbols", sym_size);
 		return KERN_FAILURE;
 	}
 
 #ifdef LILU_COMPRESSION_SUPPORT
 	if (file_buf) {
-		if (file_buf_size >= linkedit_size && file_buf_size - linkedit_size >= linkedit_fileoff) {
-			lilu_os_memcpy(linkedit_buf, file_buf + linkedit_fileoff, linkedit_size);
+		if (file_buf_size >= sym_size && file_buf_size - sym_size >= sym_fileoff) {
+			lilu_os_memcpy(sym_buf, file_buf + sym_fileoff, sym_size);
 			return KERN_SUCCESS;
 		}
-		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", linkedit_fileoff, linkedit_size, file_buf_size);
+		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", sym_fileoff, sym_size, file_buf_size);
 	} else
 #endif /* LILU_COMPRESSION_SUPPORT */
 	{
-		int error = FileIO::readFileData(linkedit_buf, fat_offset + linkedit_fileoff, linkedit_size, vnode, ctxt);
+		int error = FileIO::readFileData(sym_buf, fat_offset + sym_fileoff, sym_size, vnode, ctxt);
 		if (!error)
 			return KERN_SUCCESS;
-		SYSLOG("mach", "linkedit read failed with %d error", error);
+		SYSLOG("mach", "symbols read failed with %d error", error);
 	}
 
-	Buffer::deleter(linkedit_buf);
-	linkedit_buf = nullptr;
+	Buffer::deleter(sym_buf);
+	sym_buf = nullptr;
 
 	return KERN_FAILURE;
 }
@@ -659,8 +662,8 @@ void MachInfo::processMachHeader(void *header) {
 				disk_text_addr = segCmd->vmaddr;
 			} else if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found LINKEDIT");
-				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size = (size_t)segCmd->filesize;
+				sym_fileoff = segCmd->fileoff;
+				sym_size = (size_t)segCmd->filesize;
 			}
 		}
 		// table information available at LC_SYMTAB command
@@ -670,9 +673,23 @@ void MachInfo::processMachHeader(void *header) {
 			symboltable_fileoff = symtab_cmd->symoff;
 			symboltable_nr_symbols = symtab_cmd->nsyms;
 			stringtable_fileoff = symtab_cmd->stroff;
+			stringtable_size = symtab_cmd->strsize;
 		}
 		addr += loadCmd->cmdsize;
 	}
+	
+#if defined(__i386__)
+	// 32-bit MH_OBJECT does not have a __LINKEDIT segment for symbols
+	if (mh->filetype == MH_OBJECT && symboltable_fileoff && !sym_fileoff) {
+		if (symboltable_fileoff < stringtable_fileoff) {
+			sym_fileoff = symboltable_fileoff;
+			sym_size = (stringtable_fileoff - symboltable_fileoff) + stringtable_size;
+		} else {
+			sym_fileoff = stringtable_fileoff;
+			sym_size = (symboltable_fileoff - stringtable_fileoff) + (symboltable_nr_symbols * sizeof(struct nlist));
+		}
+	}
+#endif
 }
 
 void MachInfo::updatePrelinkInfo() {
@@ -892,7 +909,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
-	if (kernel_collection && !linkedit_buf)
+	if (kernel_collection && !sym_buf)
 		return kcGetRunningAddresses(slide);
 
 	if (base != 0) {
@@ -923,13 +940,31 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 					running_mh = mh;
 					break;
 				}
+#if defined(__i386__)
+				// MH_OBJECT has a single unnamed segment
+				else if (mh->filetype == MH_OBJECT && !strncmp(segCmd->segname, "", sizeof(segCmd->segname))) {
+					for (uint32_t j = 0; j < segCmd->nsects; j++) {
+						auto sect = reinterpret_cast<section *>(segCmd + 1) + j;
+						
+						if (!strncmp(sect->sectname, "__text", sizeof(sect->sectname))) {
+							running_text_addr = sect->addr;
+							running_mh = mh;
+							break;
+						}
+					}
+				}
+#endif
 			}
 			addr += loadCmd->cmdsize;
 		}
 	}
 
 	// compute kaslr slide
-	if (running_text_addr && running_mh) {
+	if (
+#if defined(__x86_64__)
+			running_text_addr &&
+#endif
+			running_mh) {
 		if (!slide) // This is kernel image
 			kaslr_slide = running_text_addr - disk_text_addr;
 		else // This is kext image
