@@ -834,11 +834,11 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 			auto segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			DBGLOG("mach", "%s has segment is %s from " PRIKADDR " to " PRIKADDR, objectId, segCmd->segname,
 				   CASTKADDR(segCmd->vmaddr), CASTKADDR(segCmd->vmaddr + segCmd->vmsize));
-			if (!linkedit_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-				linkedit_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
-				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size = (size_t)segCmd->vmsize;
-				linkedit_buf_ro = true;
+			if (!sym_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+				sym_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
+				sym_fileoff = segCmd->fileoff;
+				sym_size = (size_t)segCmd->vmsize;
+				sym_buf_ro = true;
 			} else if (segCmd->vmaddr + segCmd->vmsize > last_addr) {
 				// We exclude __LINKEDIT here as it is much farther from the rest of the segments,
 				// and we will unlikely need to patch it anyway. Doing this makes it much safer
@@ -855,8 +855,8 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 		addr += loadCmd->cmdsize;
 	}
 
-	if (!linkedit_buf || !symboltable_fileoff) {
-		SYSLOG("mach", "failed to find kc linkedit %d symtab %d", linkedit_buf != nullptr, symboltable_fileoff != 0);
+	if (!sym_buf || !symboltable_fileoff) {
+		SYSLOG("mach", "failed to find kc linkedit %d symtab %d", sym_buf != nullptr, symboltable_fileoff != 0);
 		return KERN_FAILURE;
 	}
 
