@@ -1,9 +1,14 @@
 //
-//  kern_efi.cpp
+//  kern_efi_trampoline_x86_64.s
 //  Lilu
 //
 //  Copyright © 2018 vit9696. All rights reserved.
 //
+
+#if defined(__x86_64__)
+
+#define KERNEL32_CS	0x50		/* kernel 32-bit code for 64-bit kernel */
+#define KERNEL64_CS 0x08		/* kernel 64-bit code for 64-bit kernel */
 
 /*
  * Copy "count" bytes from "src" to %rsp, using
@@ -20,16 +25,10 @@
 
 /**
  * This code is a slightly modified pal_efi_call_in_64bit_mode_asm function.
- *
- * Switch from compatibility mode to long mode, and
- * then execute the function pointer with the specified
- * register and stack contents (based at %rsp). Afterwards,
- * collect the return value, restore the original state,
- * and return.
  */
-.globl _performEfiCallAsm
-_performEfiCallAsm:
-#if __x86_64__
+.globl _performEfiCallAsm64
+_performEfiCallAsm64:
+
 pushq %rbp
 movq %rsp, %rbp
 
@@ -78,6 +77,7 @@ pop	%r12
 pop	%rbx
 
 leave
-#endif
 
 ret
+
+#endif

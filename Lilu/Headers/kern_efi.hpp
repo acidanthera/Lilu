@@ -22,6 +22,15 @@ static_assert(EFI_LOAD_ERROR == 0x80000001 && EFI_ERROR64(EFI_LOAD_ERROR) == 0x8
 class EfiRuntimeServices {
 	IOLock *accessLock {nullptr};
 	static EfiRuntimeServices *instance;
+private:
+	bool is32BitEFI {false};
+	void *efiRuntimeServices {nullptr};
+	
+	/**
+	 *  Set EFI runtime services table pointer
+	 */
+	void setRuntimeServices();
+	
 public:
 	/**
 	 *  Activates EFI Runtime Services

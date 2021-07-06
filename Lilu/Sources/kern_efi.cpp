@@ -44,7 +44,8 @@ const EFI_GUID EfiRuntimeServices::LiluReadOnlyGuid = OC_READ_ONLY_VARIABLE_GUID
 const EFI_GUID EfiRuntimeServices::LiluWriteOnlyGuid = OC_WRITE_ONLY_VARIABLE_GUID;
 
 /**
- * Load registers with these values.
+ * Load registers with these values. In 32-bit mode,
+ * only the low-order half is loaded (if applicable)
  */
 struct pal_efi_registers {
 	uint64_t rcx;
@@ -56,33 +57,80 @@ struct pal_efi_registers {
 
 /**
  *  Exported gRT and gST pointers (from Unsupported)
+ *  gRT is not available in 10.4 and cannot be used in 32-bit builds
  */
+#if defined(__x86_64__)
 extern void *gPEEFIRuntimeServices;
+#endif
 extern void *gPEEFISystemTable;
 
+
+#if defined(__i386__)
 /**
- *  EFI call function wrapper
+ *  EFI 32-bit call function wrapper
  */
-extern "C" void performEfiCallAsm(uint64_t func, pal_efi_registers *efi_reg, void *stack_contents, size_t stack_contents_size);
+extern "C" void performEfiCallAsm32(uint32_t func, pal_efi_registers *efi_reg, void *stack_contents, size_t stack_contents_size);
 
 /**
- *  This is a slightly simplified pal_efi_call_in_64bit_mode function, since it is a private export.
+ *  This is a slightly simplified pal_efi_call_in_32bit_mode function, since it is a private export.
  */
-static kern_return_t performEfiCall(uint64_t func, pal_efi_registers *efi_reg, void *stack_contents, size_t stack_contents_size, /* 16-byte multiple */  uint64_t *efi_status) {
+static kern_return_t performEfiCall32(uint32_t func, pal_efi_registers *efi_reg, void *stack_contents, size_t stack_contents_size, /* 16-byte multiple */  uint32_t *efi_status) {
 	if (func == 0)
 		return KERN_INVALID_ADDRESS;
 
 	if (efi_reg == NULL || stack_contents == NULL || stack_contents_size % 16 != 0)
 		return KERN_INVALID_ARGUMENT;
 
-	if (!gPEEFISystemTable || !gPEEFIRuntimeServices)
+	if (!gPEEFISystemTable)
 		return KERN_NOT_SUPPORTED;
 
-	performEfiCallAsm(func, efi_reg, stack_contents, stack_contents_size);
+	performEfiCallAsm32(func, efi_reg, stack_contents, stack_contents_size);
+	*efi_status = (uint32_t) efi_reg->rax;
 
+	return KERN_SUCCESS;
+}
+#endif
+
+/**
+ *  EFI 64-bit call function wrapper
+ */
+extern "C" void performEfiCallAsm64(uint64_t func, pal_efi_registers *efi_reg, void *stack_contents, size_t stack_contents_size);
+
+/**
+ *  This is a slightly simplified pal_efi_call_in_64bit_mode function, since it is a private export.
+ */
+static kern_return_t performEfiCall64(uint64_t func, pal_efi_registers *efi_reg, void *stack_contents, size_t stack_contents_size, /* 16-byte multiple */  uint64_t *efi_status) {
+	if (func == 0)
+		return KERN_INVALID_ADDRESS;
+
+	if (efi_reg == NULL || stack_contents == NULL || stack_contents_size % 16 != 0)
+		return KERN_INVALID_ARGUMENT;
+
+	if (!gPEEFISystemTable)
+		return KERN_NOT_SUPPORTED;
+
+	performEfiCallAsm64(func, efi_reg, stack_contents, stack_contents_size);
 	*efi_status = efi_reg->rax;
 
 	return KERN_SUCCESS;
+}
+
+void EfiRuntimeServices::setRuntimeServices() {
+#if defined(__i386__)
+	if (is32BitEFI) {
+		auto efiSystemTable = static_cast<EFI_SYSTEM_TABLE_32 *>(gPEEFISystemTable);
+		efiRuntimeServices = reinterpret_cast<EFI_RUNTIME_SERVICES_32 *>(efiSystemTable->RuntimeServices);
+	} else {
+		auto efiSystemTable = static_cast<EFI_SYSTEM_TABLE_64 *>(gPEEFISystemTable);
+		efiRuntimeServices = reinterpret_cast<EFI_RUNTIME_SERVICES_64 *>(efiSystemTable->RuntimeServices);
+	}
+			
+#elif defined(__x86_64__)
+	efiRuntimeServices = gPEEFIRuntimeServices;
+
+#else
+#error Unsupported arch
+#endif
 }
 
 void EfiRuntimeServices::activate() {
@@ -90,10 +138,21 @@ void EfiRuntimeServices::activate() {
 	auto efi = IORegistryEntry::fromPath("/efi", gIODTPlane);
 	if (efi) {
 		auto abi = OSDynamicCast(OSData, efi->getProperty("firmware-abi"));
-		if (abi && abi->isEqualTo("EFI64", sizeof("EFI64")))
+		if (abi && abi->isEqualTo("EFI64", sizeof("EFI64"))) {
 			services = new EfiRuntimeServices;
-		else
+			services->is32BitEFI = false;
+			services->setRuntimeServices();
+			
+#if defined(__i386__)
+		} else if (abi && abi->isEqualTo("EFI32", sizeof("EFI32"))) {
+			services = new EfiRuntimeServices;
+			services->is32BitEFI = true;
+			services->setRuntimeServices();
+#endif
+			
+		} else {
 			SYSLOG("efi", "invalid or unsupported firmware abi");
+		}
 		efi->release();
 
 		if (services) {
@@ -125,21 +184,40 @@ void EfiRuntimeServices::put() {
 }
 
 void EfiRuntimeServices::resetSystem(EFI_RESET_TYPE type) {
-	uint64_t function = static_cast<EFI_RUNTIME_SERVICES_64 *>(gPEEFIRuntimeServices)->ResetSystem;
+	uint64_t function =
+#if defined(__i386__)
+		is32BitEFI ?
+		static_cast<EFI_RUNTIME_SERVICES_32 *>(efiRuntimeServices)->ResetSystem :
+#endif
+		static_cast<EFI_RUNTIME_SERVICES_64 *>(efiRuntimeServices)->ResetSystem;
+
 	pal_efi_registers regs {};
 	regs.rcx = type;
 	regs.rdx = EFI_SUCCESS;
 	uint8_t stack[48] {};
+
 	uint64_t status = EFI_SUCCESS;
-	auto code = performEfiCall(function, &regs, stack, sizeof(stack), &status);
+	auto code =
+#if defined(__i386__)
+		is32BitEFI ?
+		performEfiCall32((uint32_t)function, &regs, stack, sizeof(stack), (uint32_t *)&status) :
+#endif
+		performEfiCall64(function, &regs, stack, sizeof(stack), &status);
+
 	if (code == KERN_SUCCESS)
-		DBGLOG("efi", "successful efi call with response %08llX", status);
+		DBGLOG("efi", "successful %s call with response %08llX", is32BitEFI ? "efi32" : "efi64", status);
 	else
-		DBGLOG("efi", "efi call failure %d", code);
+		DBGLOG("efi", "%s call failure %d", is32BitEFI ? "efi32" : "efi64", code);
 }
 
 uint64_t EfiRuntimeServices::getVariable(const char16_t *name, const EFI_GUID *guid, uint32_t *attr, uint64_t *size, void *data) {
-	uint64_t function = static_cast<EFI_RUNTIME_SERVICES_64 *>(gPEEFIRuntimeServices)->GetVariable;
+	uint64_t function =
+#if defined(__i386__)
+		is32BitEFI ?
+		static_cast<EFI_RUNTIME_SERVICES_32 *>(efiRuntimeServices)->GetVariable :
+#endif
+		static_cast<EFI_RUNTIME_SERVICES_64 *>(efiRuntimeServices)->GetVariable;
+	
 	pal_efi_registers regs {};
 	regs.rcx = reinterpret_cast<uint64_t>(name);
 	regs.rdx = reinterpret_cast<uint64_t>(guid);
@@ -148,17 +226,29 @@ uint64_t EfiRuntimeServices::getVariable(const char16_t *name, const EFI_GUID *g
 	uint64_t stack[6] {0, 0, 0, 0, reinterpret_cast<uint64_t>(data), 0};
 
 	uint64_t status = EFI_SUCCESS;
-	auto code = performEfiCall(function, &regs, stack, sizeof(stack), &status);
+	auto code =
+#if defined(__i386__)
+		is32BitEFI ?
+		performEfiCall32((uint32_t)function, &regs, stack, sizeof(stack), (uint32_t *)&status) :
+#endif
+		performEfiCall64(function, &regs, stack, sizeof(stack), &status);
+
 	if (code == KERN_SUCCESS)
-		DBGLOG("efi", "successful efi call GetVariable with response %08llX", status);
+		DBGLOG("efi", "successful %s call GetVariable with response %08llX", is32BitEFI ? "efi32" : "efi64", status);
 	else
-		DBGLOG("efi", "efi call GetVariable failure %d", code);
+		DBGLOG("efi", "%s call GetVariable failure %d", is32BitEFI ? "efi32" : "efi64", code);
 
 	return status;
 }
 
 uint64_t EfiRuntimeServices::setVariable(const char16_t *name, const EFI_GUID *guid, uint32_t attr, uint64_t size, void *data) {
-	uint64_t function = static_cast<EFI_RUNTIME_SERVICES_64 *>(gPEEFIRuntimeServices)->SetVariable;
+	uint64_t function =
+#if defined(__i386__)
+		is32BitEFI ?
+		static_cast<EFI_RUNTIME_SERVICES_32 *>(efiRuntimeServices)->SetVariable :
+#endif
+		static_cast<EFI_RUNTIME_SERVICES_64 *>(efiRuntimeServices)->SetVariable;
+	
 	pal_efi_registers regs {};
 	regs.rcx = reinterpret_cast<uint64_t>(name);
 	regs.rdx = reinterpret_cast<uint64_t>(guid);
@@ -167,11 +257,17 @@ uint64_t EfiRuntimeServices::setVariable(const char16_t *name, const EFI_GUID *g
 	uint64_t stack[6] {0, 0, 0, 0, reinterpret_cast<uint64_t>(data), 0};
 
 	uint64_t status = EFI_SUCCESS;
-	auto code = performEfiCall(function, &regs, stack, sizeof(stack), &status);
+	auto code =
+#if defined(__i386__)
+		is32BitEFI ?
+		performEfiCall32((uint32_t)function, &regs, stack, sizeof(stack), (uint32_t *)&status) :
+#endif
+		performEfiCall64(function, &regs, stack, sizeof(stack), &status);
+
 	if (code == KERN_SUCCESS)
-		DBGLOG("efi", "successful efi call SetVariable with response %08llX", status);
+		DBGLOG("efi", "successful %s call SetVariable with response %08llX", is32BitEFI ? "efi32" : "efi64", status);
 	else
-		DBGLOG("efi", "efi call SetVariable failure %d", code);
+		DBGLOG("efi", "%s call SetVariable failure %d", is32BitEFI ? "efi32" : "efi64", code);
 
 	return status;
 }
