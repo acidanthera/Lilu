@@ -343,7 +343,9 @@ extern "C" {
 }
 
 #if defined(__i386__)
-// ml_get_interrupts_enabled is not exported on 10.5 or older
+/**
+ *  ml_get_interrupts_enabled implementation as ml_get_interrupts_enabled is not exported on 10.5 or older
+ */
 inline bool lilu_get_interrupts_enabled() {
 	uint32_t flags;
 
@@ -351,13 +353,22 @@ inline bool lilu_get_interrupts_enabled() {
 	return (flags & EFL_IF) != 0;
 }
 
+/**
+ *  Wrapper around PE_parse_boot_arg as PE_parse_boot_argn is not exported in 10.4
+ */
 inline bool lilu_get_boot_args(const char *arg_string, void *arg_ptr, int max_len) {
 	return PE_parse_boot_arg(arg_string, arg_ptr);
 }
 
+/**
+ *  Implementation of strlcpy for 32-bit as strlcpy is not exported in 10.4
+ */
+EXPORT size_t lilu_strlcpy(char *dst, const char *src, size_t siz);
+
 #elif defined(__x86_64__)
 #define lilu_get_interrupts_enabled   ml_get_interrupts_enabled
 #define lilu_get_boot_args            PE_parse_boot_argn
+#define lilu_strlcpy                  strlcpy
 
 #else
 #error Unsupported arch.

@@ -297,7 +297,7 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 
 						auto pend = new PendingUser;
 						if (pend != nullptr) {
-							lilu_os_strlcpy(pend->path, path, MAXPATHLEN);
+							lilu_strlcpy(pend->path, path, MAXPATHLEN);
 							pend->pathLen = len;
 							// This should not happen after we added task_set_main_thread_qos hook, which gets always called
 							// unlike proc_exec_switch_task. Increasing pending count to 32 should accomodate for most CPUs.
