@@ -45,6 +45,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	if (kernel_collection && strstr(paths[0], ".kext") != NULL)
 		return error;
 
+#if defined (__x86_64__)
 	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
 	// When calling kauth_cred_get() for the current_thread.
 	//TODO: Try to find a better solution...
@@ -53,6 +54,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 			   !kernproc, !current_thread(), !vfs_context_current(), !vfs_context_ucred(vfs_context_current()));
 		return error;
 	}
+#endif
 
 	//TODO: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
 	// We are fine to detect prelinked usage (#27), but prelinked may not contain certain kexts and even more
@@ -1024,6 +1026,10 @@ uint64_t *MachInfo::getUUID(void *header) {
 }
 
 bool MachInfo::loadUUID(void *header) {
+	// Versions older than 10.5 may not have UUIDs on system binaries.
+	if (getKernelVersion() < KernelVersion::Leopard)
+		return true;
+	
 	auto p = getUUID(header);
 	if (p) {
 		self_uuid[0] = p[0];
@@ -1035,6 +1041,10 @@ bool MachInfo::loadUUID(void *header) {
 
 bool MachInfo::isCurrentBinary(mach_vm_address_t base) {
 	if (kernel_collection)
+		return true;
+	
+	// Versions older than 10.5 may not have UUIDs on system binaries.
+	if (getKernelVersion() < KernelVersion::Leopard)
 		return true;
 
 	auto binaryBase = reinterpret_cast<void *>(base ? base : findKernelBase());
