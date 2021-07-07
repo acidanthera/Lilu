@@ -28,7 +28,9 @@ namespace Patch {
 		U16,
 		U32,
 		U64,
+#if defined(__x86_64__)
 		U128
+#endif
 	};
 
 	template <Variant P>
@@ -37,8 +39,16 @@ namespace Patch {
 		typename conditional<P == Variant::U16, uint16_t,
 		typename conditional<P == Variant::U32, uint32_t,
 		typename conditional<P == Variant::U64, uint64_t,
-		typename conditional<P == Variant::U128, lilu_uint128_t, void
+#if defined(__x86_64__)
+		typename conditional<P == Variant::U128, unsigned __int128,
+#endif
+		void
+
+#if defined(__x86_64__)
 	>::type>::type>::type>::type>::type;
+#else
+	>::type>::type>::type>::type;
+#endif
 
 	template <typename T>
 	static void writeType(mach_vm_address_t addr, T value) {
@@ -69,13 +79,17 @@ namespace Patch {
 		explicit All(P<Variant::U16> &&v) : u16(v) {}
 		explicit All(P<Variant::U32> &&v) : u32(v) {}
 		explicit All(P<Variant::U64> &&v) : u64(v) {}
+#if defined(__x86_64__)
 		explicit All(P<Variant::U128> &&v) : u128(v) {}
+#endif
 
 		P<Variant::U8> u8;
 		P<Variant::U16> u16;
 		P<Variant::U32> u32;
 		P<Variant::U64> u64;
+#if defined(__x86_64__)
 		P<Variant::U128> u128;
+#endif
 
 		void patch() {
 			switch (u8.type) {
@@ -83,7 +97,9 @@ namespace Patch {
 				case Variant::U16: return u16.patch();
 				case Variant::U32: return u32.patch();
 				case Variant::U64: return u64.patch();
+#if defined(__x86_64__)
 				case Variant::U128: return u128.patch();
+#endif
 				default: PANIC("patcher", "unsupported patch type %d, cannot patch", static_cast<int>(u8.type));
 			}
 		}
@@ -94,7 +110,9 @@ namespace Patch {
 				case Variant::U16: return u16.restore();
 				case Variant::U32: return u32.restore();
 				case Variant::U64: return u64.restore();
+#if defined(__x86_64__)
 				case Variant::U128: return u128.restore();
+#endif
 				default: PANIC("patcher", "unsupported patch type %d, cannot restore", static_cast<int>(u8.type));
 			}
 		}

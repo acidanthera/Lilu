@@ -400,6 +400,14 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		absolute = true;
 	}
 
+#if defined(__i386__)
+	if (jumpType != JumpType::Auto && jumpType != JumpType::Short) {
+		DBGLOG("patcher", "non-short jumps are not valid on i386");
+		code = Error::MemoryIssue;
+		return EINVAL;
+	}
+
+#elif defined(__x86_64__)
 	if (jumpType == JumpType::Long) {
 		absolute = true;
 	} else if (jumpType == JumpType::Short && absolute) {
@@ -407,6 +415,10 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		code = Error::MemoryIssue;
 		return EINVAL;
 	}
+
+#else
+#error Unsupported arch
+#endif
 
 	// If we already routed this function, we simply redirect the original function
 	// to the new one, and call the previous function as "original".
@@ -455,6 +467,7 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 	// This solves the problem of having short prologues followed by non-movable
 	// commands like mov rax, <vtable_address> commonly found in 11.0 (e.g. ATIController::start).
 
+#if defined(__x86_64__)
 	if (addressSlot) {
 		patch.m.opcode = LongJumpPrefix;
 		patch.m.argument = static_cast<uint32_t>(addressSlot - (from + MediumJump));
@@ -473,13 +486,16 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, l.argument), patch.l.argument);
 		disp = Patch::create<Patch::Variant::U64>(from + offsetof(FunctionPatch, l.disp), patch.l.disp);
 	} else {
+#endif
 		patch.s.opcode = SmallJumpPrefix;
 		patch.s.argument = newArgument;
 		patch.sourceIt<decltype(patch.s)>(from);
 
 		opcode = Patch::create<Patch::Variant::U8>(from + offsetof(FunctionPatch, s.opcode), patch.s.opcode);
 		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, s.argument), patch.s.argument);
+#if defined(__x86_64__)
 	}
+#endif
 
 	if (!opcode || !argument || (absolute && !disp)) {
 		SYSLOG("patcher", "cannot create the necessary patches");
@@ -510,9 +526,11 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 			opcode->patch();
 			argument->patch();
 		}
-	} else if ((from & (sizeof(lilu_uint128_t)-1)) == 0) {
-	//	auto p = reinterpret_cast<_Atomic(lilu_uint128_t) *>(from);
-		//atomic_store(p, patch.value128); //FIXME
+#if defined(__x86_64__)
+	} else if ((from & (sizeof(unsigned __int128)-1)) == 0) {
+		auto p = reinterpret_cast<_Atomic(unsigned __int128) *>(from);
+		atomic_store(p, patch.value128);
+#endif
 	} else {
 		disp->patch();
 		opcode->patch();

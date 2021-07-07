@@ -30,15 +30,9 @@
 #endif
 
 #if defined(__i386__)
-typedef struct {
-	uint64_t seg1;
-	uint64_t seg2;
-} lilu_uint128_t;
-
 #define lilu_strtou	strtoul
 
 #elif defined(__x86_64__)
-#define lilu_uint128_t unsigned __int128
 #define lilu_strtou	strtouq
 
 #else
