@@ -20,7 +20,6 @@ Please note that improperly written immature plugins will not be listed there.
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [Innie](https://github.com/cdf/Innie) | Making PCIe drives appear as internal
 [MacHyperVSupport](https://github.com/acidanthera/MacHyperVSupport) | Hyper-V integration services for macOS
-[NightShiftEnabler](https://github.com/cdf/NightShiftEnabler) | Enables Night Shift on all the models
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
 [NVMeFix](https://github.com/acidanthera/NVMeFix) | Improved power management for generic NVMe SSDs
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
@@ -44,7 +43,8 @@ Plugins which functionality was merged into other plugins:
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [MacProMemoryNotificationDisabler](https://github.com/IOIIIO/MacProMemoryNotificationDisabler) | Superseded by [RestrictEvents](https://github.com/acidanthera/RestrictEvents)
 [NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
-[NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Superseded by [NightShiftEnabler](https://github.com/cdf/NightShiftEnabler)
+[NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Superseded by [FeatureUnlock](https://github.com/acidanthera/FeatureUnlock)
+[NightShiftEnabler](https://github.com/cdf/NightShiftEnabler) | Superseded by [FeatureUnlock](https://github.com/acidanthera/FeatureUnlock)
 [IntelGraphicsDVMTFixup](https://github.com/BarbaraPalvin/IntelGraphicsDVMTFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [IntelGraphicsFixup](https://github.com/lvs1974/IntelGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NvidiaGraphicsFixup](https://github.com/lvs1974/NvidiaGraphicsFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
