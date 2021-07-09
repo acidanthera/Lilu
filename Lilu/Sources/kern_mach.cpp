@@ -236,24 +236,44 @@ mach_vm_address_t MachInfo::findKernelBase() {
 
 	// Search backwards for the kernel base address (mach-o header)
 	while (true) {
-		auto header = reinterpret_cast<mach_header_current *>(tmp);
-		if (header->magic == CurrentMachMagic) {
+		auto mh = reinterpret_cast<mach_header_native *>(tmp);
+		if (mh->magic == MachMagicNative) {
 #if defined (__x86_64__)
 			// make sure it's the header and not some reference to the MAGIC number.
 			// 0xC is MH_FILESET, available exclusively in newer SDKs.
-			if (getKernelVersion() >= KernelVersion::BigSur && header->filetype == 0xC && header->flags == 0 && header->reserved == 0) {
+			if (getKernelVersion() >= KernelVersion::BigSur && header->filetype == 0xC && mh->flags == 0 && mh->reserved == 0) {
 				DBGLOG("mach", "found kernel nouveau mach-o header address at %llx", tmp);
 				m_kernel_collection = kernel_collection = true;
 				break;
 			}
 #endif
 			
+			// Search for __TEXT segment load command.
 			// 10.5 and older have __PAGEZERO first and __TEXT second.
-			auto segmentCommand = reinterpret_cast<segment_command_current *>(header + 1);
-			if (getKernelVersion() < KernelVersion::SnowLeopard) {
-				segmentCommand = reinterpret_cast<segment_command_current *>(reinterpret_cast<mach_vm_address_t>(segmentCommand) + segmentCommand->cmdsize);
+			bool foundHeader = false;
+			size_t headerSize = sizeof(mach_header_native);
+
+			// point to the first load command
+			auto addr    = reinterpret_cast<uint8_t *>(tmp) + headerSize;
+			auto endaddr = reinterpret_cast<uint8_t *>(tmp) + HeaderSize;
+
+			for (uint32_t i = 0; i < mh->ncmds; i++) {
+				auto loadCmd = reinterpret_cast<load_command *>(addr);
+				if (!isAligned(loadCmd) || addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
+					break;
+				}
+
+				if (loadCmd->cmd == SegmentTypeNative) {
+					auto segCmd = reinterpret_cast<segment_command_native *>(loadCmd);
+					if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
+						foundHeader = true;
+						break;
+					}
+				}
+				addr += loadCmd->cmdsize;
 			}
-			if (!strncmp(segmentCommand->segname, "__TEXT", sizeof(segmentCommand->segname))) {
+			
+			if (foundHeader) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
 				break;
 			}
@@ -329,7 +349,7 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	// subtract the base of LINKEDIT to fix the value into our buffer
 	//
 	// 32-bit MH_OBJECT does not have __LINKEDIT
-	auto nlist = reinterpret_cast<nlist_current *>(sym_buf + (symboltable_fileoff - sym_fileoff));
+	auto nlist = reinterpret_cast<nlist_native *>(sym_buf + (symboltable_fileoff - sym_fileoff));
 	auto strlist = reinterpret_cast<char *>(sym_buf + (stringtable_fileoff - sym_fileoff));
 	auto endaddr = sym_buf + sym_size;
 
@@ -375,7 +395,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 		DBGLOG("mach", "readMachHeader got magic %08X", *magicPtr);
 
 		switch (*magicPtr) {
-			case CurrentMachMagic:
+			case MachMagicNative:
 				fat_offset = off;
 				return KERN_SUCCESS;
 			case FAT_CIGAM:
@@ -397,7 +417,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					auto arch = reinterpret_cast<fat_arch *>(buffer + i * sizeof(fat_arch) + sizeof(fat_header));
 					cpu_type_t cpu = arch->cputype;
 					if (swapBytes) cpu = OSSwapInt32(cpu);
-					if (cpu == CurrentMachCpuType) {
+					if (cpu == MachCpuTypeNative) {
 						uint32_t offset = arch->offset;
 						if (swapBytes) offset = OSSwapInt32(offset);
 						return readMachHeader(buffer, vnode, ctxt, offset);
@@ -635,8 +655,8 @@ void MachInfo::freeFileBufferResources() {
 }
 
 void MachInfo::processMachHeader(void *header) {
-	auto mh = static_cast<mach_header_current *>(header);
-	size_t headerSize = sizeof(mach_header_current);
+	auto mh = static_cast<mach_header_native *>(header);
+	size_t headerSize = sizeof(mach_header_native);
 
 	// point to the first load command
 	auto addr    = static_cast<uint8_t *>(header) + headerSize;
@@ -656,8 +676,8 @@ void MachInfo::processMachHeader(void *header) {
 			return;
 		}
 
-		if (loadCmd->cmd == LC_SEGMENT_CURRENT) {
-			auto segCmd = reinterpret_cast<segment_command_current *>(loadCmd);
+		if (loadCmd->cmd == SegmentTypeNative) {
+			auto segCmd = reinterpret_cast<segment_command_native *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
 			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found TEXT");
@@ -916,8 +936,8 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 
 	if (base != 0) {
 		// get the vm address of __TEXT segment
-		auto mh = reinterpret_cast<mach_header_current *>(base);
-		auto headerSize = sizeof(mach_header_current);
+		auto mh = reinterpret_cast<mach_header_native *>(base);
+		auto headerSize = sizeof(mach_header_native);
 
 		load_command *loadCmd;
 		auto addr = reinterpret_cast<uint8_t *>(base) + headerSize;
@@ -935,8 +955,8 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 				return KERN_FAILURE;
 			}
 
-			if (loadCmd->cmd == LC_SEGMENT_CURRENT) {
-				auto segCmd = reinterpret_cast<segment_command_current *>(loadCmd);
+			if (loadCmd->cmd == SegmentTypeNative) {
+				auto segCmd = reinterpret_cast<segment_command_native *>(loadCmd);
 				if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 					running_text_addr = segCmd->vmaddr;
 					running_mh = mh;
@@ -998,8 +1018,8 @@ void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 uint64_t *MachInfo::getUUID(void *header) {
 	if (!header) return nullptr;
 
-	auto mh = static_cast<mach_header_current *>(header);
-	size_t size = sizeof(mach_header_current);
+	auto mh = static_cast<mach_header_native *>(header);
+	size_t size = sizeof(mach_header_native);
 
 	auto *addr = static_cast<uint8_t *>(header) + size;
 	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
