@@ -148,6 +148,7 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 }
 
 bool CPUInfo::getCpuTopology(CpuTopology &topology) {
+#if __MAC_OS_X_VERSION_MIN_REQUIRED > __MAC_10_4
 	// Obtain power management callbacks
 	if (getKernelVersion() < KernelVersion::Lion) {
 		SYSLOG("cpu", "cannot use pmKextRegister before 10.7");
@@ -204,6 +205,10 @@ bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 	}
 
 	return true;
+#else
+	SYSLOG("cpu", "cannot use pmKextRegister on this platform");
+	return false;
+#endif
 }
 
 bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
