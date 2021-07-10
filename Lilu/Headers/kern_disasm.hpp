@@ -48,6 +48,16 @@ class Disassembler {
 	static constexpr size_t MaxInstruction {15};
 public:
 
+#if defined(__i386__)
+	using hde_t = hde32s;
+	static constexpr auto hde_disasm = hde32_disasm;
+#elif defined(__x86_64__)
+	using hde_t = hde64s;
+	static constexpr auto hde_disasm = hde64_disasm;
+#else
+#error Unsupported arch.
+#endif
+
 	/**
 	 *  Return the real instruction size contained within min bytes
 	 *  Unlike instructionSize this uses HDE engine and at the cost of reduced compatibility it is much faster
@@ -61,13 +71,7 @@ public:
 	EXPORT static size_t quickInstructionSize(mach_vm_address_t ptr, size_t min);
 
 	/* Note, code should point to at least 32 valid bytes. */
-#if defined(__i386__)
-	EXPORT static size_t hdeDisasm(mach_vm_address_t code, hde32s *hs);
-#elif defined(__x86_64__)
-	EXPORT static size_t hdeDisasm(mach_vm_address_t code, hde64s *hs);
-#else
-#error Unsupported arch.
-#endif
+	EXPORT static size_t hdeDisasm(mach_vm_address_t code, hde_t *hs);
 
 #ifdef LILU_ADVANCED_DISASSEMBLY
 
