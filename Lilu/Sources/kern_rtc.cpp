@@ -7,7 +7,6 @@
 
 #include <Headers/kern_rtc.hpp>
 #include <Headers/kern_mach.hpp>
-#include <IOKit/IOUserClient.h>
 
 bool RTCStorage::init(bool wait) {
 	auto matching = IOService::serviceMatching("AppleRTC");
@@ -49,7 +48,8 @@ bool RTCStorage::checkExtendedMemory() {
 }
 
 bool RTCStorage::read(uint64_t off, uint32_t size, uint8_t *buffer) {
-	if (!rtcSrv)
+	// IOUserClient::externalMethod does not exist on 10.4
+	if (!rtcSrv || getKernelVersion() < KernelVersion::Leopard)
 		return false;
 
 	IOUserClient *rtcHandler = nullptr;
@@ -66,7 +66,12 @@ bool RTCStorage::read(uint64_t off, uint32_t size, uint8_t *buffer) {
 		args.structureOutput = buffer;
 		args.structureOutputSize = size;
 
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_10_5
+		auto userExternalMethod = reinterpret_cast<t_UserClientExternalMethod **>(rtcHandler)[0][UserClientExternalMethodIndex];
+		ret = userExternalMethod(rtcHandler, 0, &args, 0, 0, 0);
+#else
 		ret = rtcHandler->externalMethod(0, &args);
+#endif
 		rtcHandler->release();
 		if (ret == kIOReturnSuccess)
 			return true;
@@ -79,13 +84,14 @@ bool RTCStorage::read(uint64_t off, uint32_t size, uint8_t *buffer) {
 }
 
 bool RTCStorage::write(uint64_t off, uint32_t size, uint8_t *buffer) {
-	if (!rtcSrv)
+	// IOUserClient::externalMethod does not exist on 10.4
+	if (!rtcSrv || getKernelVersion() < KernelVersion::Leopard)
 		return false;
 
 	IOUserClient *rtcHandler = nullptr;
 	auto ret = rtcSrv->newUserClient(current_task(), current_task(), 0x101beef, &rtcHandler);
 	if (ret == kIOReturnSuccess) {
-		DBGLOG("rtc", "successful rtc read client obtain");
+		DBGLOG("rtc", "successful rtc write client obtain");
 		IOExternalMethodArguments args {};
 
 		args.version = kIOExternalMethodArgumentsCurrentVersion;
@@ -96,7 +102,12 @@ bool RTCStorage::write(uint64_t off, uint32_t size, uint8_t *buffer) {
 		args.structureInput = buffer;
 		args.structureInputSize = size;
 
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_10_5
+		auto userExternalMethod = reinterpret_cast<t_UserClientExternalMethod **>(rtcHandler)[0][UserClientExternalMethodIndex];
+		ret = userExternalMethod(rtcHandler, 1, &args, 0, 0, 0);
+#else
 		ret = rtcHandler->externalMethod(1, &args);
+#endif
 		rtcHandler->release();
 		if (ret == kIOReturnSuccess)
 			return true;
