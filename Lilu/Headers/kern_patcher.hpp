@@ -839,7 +839,7 @@ private:
 	 *  Possible kernel paths
 	 */
 #ifdef LILU_COMPRESSION_SUPPORT
-	const char *prelinkKernelPaths[6] {
+	const char *prelinkKernelPaths[7] {
 		// This is the usual kernel cache place, which often the best thing to use
 		"/System/Library/Caches/com.apple.kext.caches/Startup/kernelcache",
 		// Otherwise fallback to one of the prelinked kernels
@@ -848,7 +848,8 @@ private:
 		"/macOS Install Data/Locked Files/Boot Files/prelinkedkernel", // 10.13 installer
 		"/com.apple.boot.R/prelinkedkernel", // 10.12+ fusion drive installer
 		"/com.apple.boot.S/System/Library/PrelinkedKernels/prelinkedkernel", // 10.11 fusion drive installer
-		"/com.apple.recovery.boot/prelinkedkernel" // recovery
+		"/com.apple.recovery.boot/prelinkedkernel", // recovery
+		"/kernelcache" // 10.7 installer
 	};
 #endif
 
