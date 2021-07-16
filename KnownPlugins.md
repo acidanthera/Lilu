@@ -24,6 +24,7 @@ Please note that improperly written immature plugins will not be listed there.
 [NVMeFix](https://github.com/acidanthera/NVMeFix) | Improved power management for generic NVMe SSDs
 [OpcodeEmulator](https://www.insanelymac.com/forum/topic/329704-opcode-emulator-opemu-plug-in-project/) | Intel Haswell Pentium / Celeron Series Or older processor expansion instruction set Emulation
 [RestrictEvents](https://github.com/acidanthera/RestrictEvents) | Blocking unwanted processes causing compatibility issues on different hardware
+[RealtekCardReaderFriend](https://github.com/0xFireWolf/RealtekCardReaderFriend) | Recognize Realtek card readers as native ones
 [RTCMemoryFixup](https://github.com/acidanthera/RTCMemoryFixup) | Offsets in CMOS (RTC) memory emulation
 [FeatureUnlock](https://github.com/acidanthera/FeatureUnlock) | Enabling Sidecar support and other
 [SystemProfilerMemoryFixup](https://github.com/Goldfish64/SystemProfilerMemoryFixup) | Show memory tab on MacBook models with soldered RAM
