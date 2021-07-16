@@ -613,6 +613,14 @@ public:
 
 		return false;
 	}
+	
+	/**
+	 *  Simple find and replace in kernel memory but require both `find` and `replace` buffers to have the same length
+	 */
+	template <size_t N>
+	static inline bool findAndReplace(void *data, size_t dataSize, const uint8_t (&find)[N], const uint8_t (&replace)[N]) {
+		return findAndReplace(data, dataSize, find, N, replace, N);
+	}
 
 private:
 	/**
