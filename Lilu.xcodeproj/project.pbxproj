@@ -85,7 +85,6 @@
 		CE744A911F42100E0077C377 /* table64.h in Headers */ = {isa = PBXBuildFile; fileRef = CE744A8D1F42100E0077C377 /* table64.h */; };
 		CE74B2501F75D1FB00F90A08 /* sha256.c in Sources */ = {isa = PBXBuildFile; fileRef = CE74B24E1F75CFEB00F90A08 /* sha256.c */; };
 		CE77590F211D8B200063EAE6 /* kern_time.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CE77590E211D8B200063EAE6 /* kern_time.hpp */; };
-		CE8D9EE3251790DD008C44E8 /* libkmod.a in Frameworks */ = {isa = PBXBuildFile; fileRef = CE8D9EE2251790DD008C44E8 /* libkmod.a */; };
 		CE8D9EE82517A4D4008C44E8 /* kern_qsort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE8D9EE72517A4D4008C44E8 /* kern_qsort.cpp */; };
 		CEA03B5B20ED6D3100BA842F /* kern_devinfo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEA03B5A20ED6D3100BA842F /* kern_devinfo.cpp */; };
 		CEB667C621028A4C00CD5D7A /* lzvn.h in Headers */ = {isa = PBXBuildFile; fileRef = CEB667C521028A4C00CD5D7A /* lzvn.h */; };
@@ -223,7 +222,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CE8D9EE3251790DD008C44E8 /* libkmod.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -684,6 +682,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = x86_64;
+				CC = "$(inherited)";
+				"CC[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -705,6 +705,9 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"COMPILER_INDEX_STORE_ENABLE[arch=ACID32]" = NO;
+				CXX = "$(inherited)";
+				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -724,8 +727,11 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				KERNEL_FRAMEWORK_HEADERS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
+				LDPLUSPLUS = "$(inherited)";
+				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				VALID_ARCHS = "x86_64 ACID32";
 			};
 			name = Debug;
 		};
@@ -734,6 +740,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = x86_64;
+				CC = "$(inherited)";
+				"CC[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -755,6 +763,10 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COMPILER_INDEX_STORE_ENABLE = YES;
+				"COMPILER_INDEX_STORE_ENABLE[arch=ACID32]" = NO;
+				CXX = "$(inherited)";
+				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
@@ -770,13 +782,17 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				KERNEL_FRAMEWORK_HEADERS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
+				LDPLUSPLUS = "$(inherited)";
+				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				SDKROOT = macosx;
+				VALID_ARCHS = "x86_64 ACID32";
 			};
 			name = Release;
 		};
 		1C748C321C21952C0024EED2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
@@ -806,9 +822,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/$(PROJECT_NAME)$(LOCAL_LIBRARY_DIR)",
-					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
+					"$(PROJECT_DIR)/MacKernelSDK/Library/universal",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				"MACOSX_DEPLOYMENT_TARGET[arch=ACID32]" = 10.4;
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
@@ -836,7 +853,39 @@
 					"-nostdlib",
 					"-Wno-stdlibcxx-not-found",
 				);
+				"OTHER_CFLAGS[arch=ACID32]" = (
+					"-mmmx",
+					"-msse",
+					"-msse2",
+					"-mfpmath=sse",
+					"-ftree-vectorize",
+					"-fno-non-call-exceptions",
+					"-fno-builtin",
+					"-fno-asynchronous-unwind-tables",
+					"-Wall",
+					"-Wextra",
+					"-Wno-unused-parameter",
+					"-Wno-deprecated-register",
+					"-Wno-unknown-pragmas",
+					"-Wno-unknown-warning-option",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
+					"-Werror",
+					"-nostdlib",
+					"-Wno-stdlibcxx-not-found",
+					"-static",
+					"-fallow-unsupported",
+					"-fno-jump-tables",
+					"-fno-stack-protector",
+					"-target",
+					"i386-apple-macos10.4",
+				);
 				OTHER_LDFLAGS = "-static";
+				"OTHER_LDFLAGS[arch=ACID32]" = (
+					"-static",
+					"-target",
+					"i386-apple-macos10.4",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "";
@@ -847,6 +896,7 @@
 		1C748C331C21952C0024EED2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
 				CURRENT_PROJECT_VERSION = "$(MODULE_VERSION)";
@@ -875,10 +925,11 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/$(PROJECT_NAME)$(LOCAL_LIBRARY_DIR)",
-					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
+					"$(PROJECT_DIR)/MacKernelSDK/Library/universal",
 				);
 				LLVM_LTO = YES;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				"MACOSX_DEPLOYMENT_TARGET[arch=ACID32]" = 10.4;
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
@@ -906,7 +957,39 @@
 					"-nostdlib",
 					"-Wno-stdlibcxx-not-found",
 				);
+				"OTHER_CFLAGS[arch=ACID32]" = (
+					"-mmmx",
+					"-msse",
+					"-msse2",
+					"-mfpmath=sse",
+					"-ftree-vectorize",
+					"-fno-non-call-exceptions",
+					"-fno-builtin",
+					"-fno-asynchronous-unwind-tables",
+					"-Wall",
+					"-Wextra",
+					"-Wno-unused-parameter",
+					"-Wno-deprecated-register",
+					"-Wno-unknown-pragmas",
+					"-Wno-unknown-warning-option",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
+					"-Werror",
+					"-nostdlib",
+					"-Wno-stdlibcxx-not-found",
+					"-static",
+					"-fallow-unsupported",
+					"-fno-jump-tables",
+					"-fno-stack-protector",
+					"-target",
+					"i386-apple-macos10.4",
+				);
 				OTHER_LDFLAGS = "-static";
+				"OTHER_LDFLAGS[arch=ACID32]" = (
+					"-static",
+					"-target",
+					"i386-apple-macos10.4",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRIP_STYLE = "non-global";
@@ -920,6 +1003,8 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = x86_64;
+				CC = "$(inherited)";
+				"CC[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -941,6 +1026,10 @@
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COMPILER_INDEX_STORE_ENABLE = YES;
+				"COMPILER_INDEX_STORE_ENABLE[arch=ACID32]" = NO;
+				CXX = "$(inherited)";
+				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -960,14 +1049,18 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				KERNEL_FRAMEWORK_HEADERS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
+				LDPLUSPLUS = "$(inherited)";
+				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				VALID_ARCHS = "x86_64 ACID32";
 			};
 			name = Sanitize;
 		};
 		CE2687F8213BCEA000E17BDD /* Sanitize */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
@@ -998,9 +1091,10 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/$(PROJECT_NAME)$(LOCAL_LIBRARY_DIR)",
-					"$(PROJECT_DIR)/MacKernelSDK/Library/x86_64",
+					"$(PROJECT_DIR)/MacKernelSDK/Library/universal",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				"MACOSX_DEPLOYMENT_TARGET[arch=ACID32]" = 10.4;
 				MODULE_NAME = as.vit9696.Lilu;
 				MODULE_START = "$(PRODUCT_NAME)_kern_start";
 				MODULE_STOP = "$(PRODUCT_NAME)_kern_stop";
@@ -1030,7 +1124,39 @@
 					"-nostdlib",
 					"-Wno-stdlibcxx-not-found",
 				);
+				"OTHER_CFLAGS[arch=ACID32]" = (
+					"-mmmx",
+					"-msse",
+					"-msse2",
+					"-mfpmath=sse",
+					"-ftree-vectorize",
+					"-fno-non-call-exceptions",
+					"-fno-builtin",
+					"-fno-asynchronous-unwind-tables",
+					"-Wall",
+					"-Wextra",
+					"-Wno-unused-parameter",
+					"-Wno-deprecated-register",
+					"-Wno-unknown-pragmas",
+					"-Wno-unknown-warning-option",
+					"-Wno-ossharedptr-misuse",
+					"-Wno-vla",
+					"-Werror",
+					"-nostdlib",
+					"-Wno-stdlibcxx-not-found",
+					"-static",
+					"-fallow-unsupported",
+					"-fno-jump-tables",
+					"-fno-stack-protector",
+					"-target",
+					"i386-apple-macos10.4",
+				);
 				OTHER_LDFLAGS = "-static";
+				"OTHER_LDFLAGS[arch=ACID32]" = (
+					"-static",
+					"-target",
+					"i386-apple-macos10.4",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(MODULE_NAME)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = "";
