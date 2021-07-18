@@ -793,7 +793,7 @@ private:
 	 *  Jump instruction sizes
 	 */
 	static constexpr size_t SmallJump {1 + sizeof(int32_t)};
-	static constexpr size_t LongJump {6 + sizeof(uint64_t)};
+	static constexpr size_t LongJump {6 + sizeof(uintptr_t)};
 	static constexpr size_t MediumJump {6};
 	static constexpr uint8_t SmallJumpPrefix {0xE9};
 	static constexpr uint16_t LongJumpPrefix {0x25FF};
@@ -802,15 +802,13 @@ private:
 	 * Atomic trampoline generator, wraps jumper into 64-bit or 128-bit storage
 	 */
 	union FunctionPatch {
-#if defined(__x86_64__)
 		struct PACKED LongPatch {
-			uint16_t opcode;
-			uint32_t argument;
-			uint64_t disp;
-			uint8_t  org[2];
+			uint16_t  opcode;
+			uint32_t  argument;
+			uintptr_t disp;
+			uint8_t   org[sizeof(uint64_t) - sizeof(uintptr_t) + sizeof(uint16_t)];
 		} l;
-		static_assert(sizeof(l) == sizeof(unsigned __int128), "Invalid long patch rounding");
-#endif
+		static_assert(sizeof(l) == (sizeof(uint64_t) * 2), "Invalid long patch rounding");
 		struct PACKED MediumPatch {
 			uint16_t opcode;
 			uint32_t argument;

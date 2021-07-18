@@ -395,14 +395,6 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 
 	bool absolute {false};
 
-#if defined(__i386__)
-	if (jumpType != JumpType::Auto && jumpType != JumpType::Short) {
-		DBGLOG("patcher", "non-short jumps are not valid on i386");
-		code = Error::MemoryIssue;
-		return EINVAL;
-	}
-
-#elif defined(__x86_64__)
 	if (diff != static_cast<mach_vm_address_t>(newArgument)) {
 		DBGLOG("patcher", "will use absolute jumping to " PRIKADDR, CASTKADDR(to));
 		absolute = true;
@@ -416,10 +408,6 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		return EINVAL;
 	}
 
-#else
-#error Unsupported arch
-#endif
-
 	// If we already routed this function, we simply redirect the original function
 	// to the new one, and call the previous function as "original".
 	JumpType prevJump;
@@ -431,7 +419,6 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		// In case we were requested to make unconditional route, still obey, but this
 		// is an unsupported configuration, as it breaks previous plugin...
 		if (!buildWrapper) trampoline = 0;
-#if defined(__x86_64__)
 		// Forbid routing multiple times with anything but long and medium functions.
 		// You must update all the plugins sharing function routes with routeMultipleLong call.
 		if (prevJump == JumpType::Short)
@@ -447,22 +434,14 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 			if (addressSlot == 0)
 				PANIC("patcher", "not enough memory for slotted jumping, this is a bug in Lilu");
 		}
-#endif
 
 	} else if (buildWrapper) {
-#if defined(__i386__)
-		trampoline = createTrampoline(from, SmallJump);
-		if (!trampoline) return EINVAL;
-#elif defined(__x86_64__)
 		if (info && absolute && (jumpType == JumpType::Auto || jumpType == JumpType::Long)) {
 			addressSlot = info->getAddressSlot();
 			DBGLOG("patcher", "using slotted jumping via " PRIKADDR, CASTKADDR(addressSlot));
 		}
 		trampoline = createTrampoline(from, absolute ? (addressSlot ? MediumJump : LongJump) : SmallJump);
 		if (!trampoline) return EINVAL;
-#else
-#error Unsupported arch
-#endif
 	}
 
 	// Write original function before making route to avoid null pointer dereference.
@@ -476,7 +455,6 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 	// This solves the problem of having short prologues followed by non-movable
 	// commands like mov rax, <vtable_address> commonly found in 11.0 (e.g. ATIController::start).
 
-#if defined(__x86_64__)
 	if (addressSlot) {
 		patch.m.opcode = LongJumpPrefix;
 		patch.m.argument = static_cast<uint32_t>(addressSlot - (from + MediumJump));
@@ -487,24 +465,34 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		disp = Patch::create<Patch::Variant::U64>(addressSlot, to);
 	} else if (absolute) {
 		patch.l.opcode = LongJumpPrefix;
+#if defined(__i386__)
+		patch.l.argument = static_cast<uint32_t>(from + MediumJump);
+		patch.l.disp = static_cast<uint32_t>(to);
+#elif defined(__x86_64__)
 		patch.l.argument = 0;
 		patch.l.disp = to;
+#else
+#error Unsupported arch
+#endif
 		patch.sourceIt<decltype(patch.l)>(from);
 
 		opcode = Patch::create<Patch::Variant::U16>(from + offsetof(FunctionPatch, l.opcode), patch.l.opcode);
 		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, l.argument), patch.l.argument);
+#if defined(__i386__)
+		disp = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, l.disp), patch.l.disp);
+#elif defined(__x86_64__)
 		disp = Patch::create<Patch::Variant::U64>(from + offsetof(FunctionPatch, l.disp), patch.l.disp);
-	} else {
+#else
+#error Unsupported arch
 #endif
+	} else {
 		patch.s.opcode = SmallJumpPrefix;
 		patch.s.argument = newArgument;
 		patch.sourceIt<decltype(patch.s)>(from);
 
 		opcode = Patch::create<Patch::Variant::U8>(from + offsetof(FunctionPatch, s.opcode), patch.s.opcode);
 		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, s.argument), patch.s.argument);
-#if defined(__x86_64__)
 	}
-#endif
 
 	if (!opcode || !argument || (absolute && !disp)) {
 		SYSLOG("patcher", "cannot create the necessary patches");
@@ -666,13 +654,19 @@ uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribut
 
 mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from, JumpType &jumpType) {
 	// Note, unaligned access for simplicity
-#if defined(__x86_64__)
 	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix) {
+#if defined(__i386__)
+		auto disp = *reinterpret_cast<uint32_t *>(from + sizeof(LongJumpPrefix));
+		jumpType = JumpType::Long;
+		return *reinterpret_cast<mach_vm_address_t *>(disp);
+#elif defined(__x86_64__)
 		auto disp = *reinterpret_cast<int32_t *>(from + sizeof(LongJumpPrefix));
 		jumpType = disp != 0 ? JumpType::Medium : JumpType::Long;
 		return *reinterpret_cast<mach_vm_address_t *>(from + MediumJump + disp);
-	}
+#else
+#error Unsupported arch
 #endif
+	}
 	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix) {
 		jumpType = JumpType::Short;
 		return from + SmallJump + *reinterpret_cast<int32_t *>(from + sizeof(SmallJumpPrefix));
