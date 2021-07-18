@@ -93,6 +93,7 @@ extern "C" void lilu_os_free(void *addr) {
 	if (addr) kern_os_free(addr);
 }
 
+#if defined(__i386__)
 size_t lilu_strlcpy(char *dst, const char *src, size_t siz) {
 	char *d = dst;
 	const char *s = src;
@@ -115,6 +116,7 @@ size_t lilu_strlcpy(char *dst, const char *src, size_t siz) {
 
 	return(s - src - 1); // count does not include null terminator.
 }
+#endif
 
 bool Page::alloc() {
 	if (p && vm_deallocate(kernel_map, reinterpret_cast<vm_address_t>(p), PAGE_SIZE) != KERN_SUCCESS)
