@@ -19,6 +19,7 @@ Please note that improperly written immature plugins will not be listed there.
 [ECEnabler](https://github.com/1Revenger1/ECEnabler) | Allows reading Embedded Controller fields over 1 byte long, vastly reducing the amount of ACPI modification needed (if any) for working battery status
 [HibernationFixup](https://github.com/acidanthera/HibernationFixup) | Enable 3 & 25 mode hibernation on certain hardware
 [Innie](https://github.com/cdf/Innie) | Making PCIe drives appear as internal
+[Kryptonite](https://github.com/mayankk2308/kryptonite) | Various patches for Thunderbolt-based eGPUs
 [MacHyperVSupport](https://github.com/acidanthera/MacHyperVSupport) | Hyper-V integration services for macOS
 [NoTouchID](https://github.com/al3xtjames/NoTouchID) | Disables Touch ID checks causing hangs
 [NVMeFix](https://github.com/acidanthera/NVMeFix) | Improved power management for generic NVMe SSDs
