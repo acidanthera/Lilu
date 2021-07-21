@@ -117,6 +117,7 @@ LZFSE_INLINE uintmax_t extract(uintmax_t container, unsigned lsb,
   return (container >> lsb) & (((uintmax_t)1 << width) - 1);
 }
 
+// 10.4 and 10.5 do not support jump/switch tables; disable on 32-bit platforms.
 #if !defined(HAVE_LABELS_AS_VALUES)
 #  if (defined(__GNUC__) || defined(__clang__)) && !defined(__i386__)
 #    define HAVE_LABELS_AS_VALUES 1
