@@ -609,7 +609,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\nstrip -S \"${EXECUTABLE_PATH}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\n\narchive=\"${PRODUCT_NAME}-${MODULE_VERSION}-$(echo $CONFIGURATION | tr /a-z/ /A-Z/).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\n${SRCROOT}/MacKernelSDK/Tools/fix-macho32 \"${EXECUTABLE_PATH}\"\nzip -qry -FS \"${archive}\" \"${dist[@]}\"\n";
+			shellScript = "cd \"${TARGET_BUILD_DIR}\"\n\nstrip -S \"${EXECUTABLE_PATH}\"\n\ndist=(\"$FULL_PRODUCT_NAME\")\nif [ -d \"$DWARF_DSYM_FILE_NAME\" ]; then dist+=(\"$DWARF_DSYM_FILE_NAME\"); fi\n\narchive=\"${PRODUCT_NAME}-${MODULE_VERSION}-$(echo $CONFIGURATION | tr /a-z/ /A-Z/).zip\"\nrm -rf *.zip\nif [ \"$CONFIGURATION\" == \"Release\" ]; then\n  strip -x -T \"${EXECUTABLE_PATH}\" &>/dev/null || strip -x \"${EXECUTABLE_PATH}\"\nfi\n\nif [[ \"$ARCHS\" == *\"ACID32\"* ]]; then\n  ${SRCROOT}/clang32/fix-macho32 \"${EXECUTABLE_PATH}\" || exit 1\nfi\nzip -qry -FS \"${archive}\" \"${dist[@]}\"\n";
 		};
 		CE3CFAEF1E509A7800336BF6 /* Copy SDK */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -683,7 +683,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = x86_64;
 				CC = "$(inherited)";
-				"CC[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"CC[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -707,7 +707,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"COMPILER_INDEX_STORE_ENABLE[arch=ACID32]" = NO;
 				CXX = "$(inherited)";
-				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -728,7 +728,7 @@
 				KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				KERNEL_FRAMEWORK_HEADERS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				LDPLUSPLUS = "$(inherited)";
-				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				VALID_ARCHS = "x86_64 ACID32";
@@ -741,7 +741,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = x86_64;
 				CC = "$(inherited)";
-				"CC[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"CC[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -766,7 +766,7 @@
 				COMPILER_INDEX_STORE_ENABLE = YES;
 				"COMPILER_INDEX_STORE_ENABLE[arch=ACID32]" = NO;
 				CXX = "$(inherited)";
-				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = c11;
@@ -783,7 +783,7 @@
 				KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				KERNEL_FRAMEWORK_HEADERS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				LDPLUSPLUS = "$(inherited)";
-				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				SDKROOT = macosx;
 				VALID_ARCHS = "x86_64 ACID32";
 			};
@@ -1006,7 +1006,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ARCHS = x86_64;
 				CC = "$(inherited)";
-				"CC[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"CC[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++1y";
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
@@ -1031,7 +1031,7 @@
 				COMPILER_INDEX_STORE_ENABLE = YES;
 				"COMPILER_INDEX_STORE_ENABLE[arch=ACID32]" = NO;
 				CXX = "$(inherited)";
-				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"CXX[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1052,7 +1052,7 @@
 				KERNEL_EXTENSION_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				KERNEL_FRAMEWORK_HEADERS = "$(PROJECT_DIR)/MacKernelSDK/Headers";
 				LDPLUSPLUS = "$(inherited)";
-				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/MacKernelSDK/clang32/clang-12";
+				"LDPLUSPLUS[arch=ACID32]" = "$(PROJECT_DIR)/clang32/clang-12";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				VALID_ARCHS = "x86_64 ACID32";
