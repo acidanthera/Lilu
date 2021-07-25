@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.5.5
 - Added a variant of `KernelPatcher::findAndReplace` that requires both `find` and `replace` buffers to have the same length.
+- Added support for macOS 10.4 and newer
 
 #### v1.5.4
 - Allow loading on macOS 12 without `-lilubetaall` (With adapted for macOS 12 plug-ins)
