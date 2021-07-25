@@ -147,9 +147,9 @@ namespace WIOKit {
 
 	bool getComputerInfo(char *model, size_t modelsz, char *board, size_t boardsz) {
 		if (model && modelsz > 0)
-			lilu_os_strlcpy(model, BaseDeviceInfo::get().modelIdentifier, modelsz);
+			lilu_strlcpy(model, BaseDeviceInfo::get().modelIdentifier, modelsz);
 		if (board && boardsz > 0)
-			lilu_os_strlcpy(board, BaseDeviceInfo::get().boardIdentifier, boardsz);
+			lilu_strlcpy(board, BaseDeviceInfo::get().boardIdentifier, boardsz);
 		return true;
 	}
 

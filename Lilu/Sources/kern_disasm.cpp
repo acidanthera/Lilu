@@ -9,8 +9,6 @@
 #include <Headers/kern_disasm.hpp>
 #include <Headers/kern_util.hpp>
 
-#include <hde64.h>
-
 #ifdef LILU_ADVANCED_DISASSEMBLY
 
 #include <umm_malloc.h>
@@ -74,9 +72,8 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	size_t total = 0;
 
 	do {
-		hde64s hs;
-		auto len = hde64_disasm(reinterpret_cast<void *>(addr), &hs);
-
+		hde_t hs;
+		auto len = hde_disasm(reinterpret_cast<void *>(addr), &hs);
 		if (hs.flags & F_ERROR) {
 			SYSLOG("disasm", "hde decoding failure");
 			return 0;
@@ -89,8 +86,8 @@ size_t Disassembler::quickInstructionSize(mach_vm_address_t addr, size_t min) {
 	return total;
 }
 
-size_t Disassembler::hdeDisasm(mach_vm_address_t code, hde64s *hs) {
-	return hde64_disasm(reinterpret_cast<void*>(code), hs);
+size_t Disassembler::hdeDisasm(mach_vm_address_t code, hde_t *hs) {
+	return hde_disasm(reinterpret_cast<void*>(code), hs);
 }
 
 #ifdef LILU_ADVANCED_DISASSEMBLY

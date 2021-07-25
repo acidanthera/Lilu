@@ -9,6 +9,7 @@
 #include <Headers/kern_policy.hpp>
 #include <Headers/kern_util.hpp>
 
+#if defined(__x86_64__)
 bool Policy::registerPolicy() {
 	return mac_policy_register(&policyConf, &policyHandle, nullptr) == KERN_SUCCESS;
 }
@@ -20,3 +21,4 @@ bool Policy::unregisterPolicy() {
 
 	return mac_policy_unregister(policyHandle) == KERN_SUCCESS;
 }
+#endif

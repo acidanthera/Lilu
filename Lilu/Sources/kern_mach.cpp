@@ -45,6 +45,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	if (kernel_collection && strstr(paths[0], ".kext") != NULL)
 		return error;
 
+#if defined (__x86_64__)
 	// Check if we have a proper credential, prevents a race-condition panic on 10.11.4 Beta
 	// When calling kauth_cred_get() for the current_thread.
 	//TODO: Try to find a better solution...
@@ -53,6 +54,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 			   !kernproc, !current_thread(), !vfs_context_current(), !vfs_context_ucred(vfs_context_current()));
 		return error;
 	}
+#endif
 
 	//TODO: There still is a chance of booting with outdated prelink cache, so we cannot optimise it currently.
 	// We are fine to detect prelinked usage (#27), but prelinked may not contain certain kexts and even more
@@ -63,11 +65,11 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 	// to prelinked. This does not solve the main problem of distinguishing kexts, but the only practical cases
 	// of our failure are missing kexts in both places and AirPort drivers in installer/recovery only present
 	// in prelinked. For this reason we are fine.
-	if (!linkedit_buf)
+	if (!sym_buf)
 		error = initFromFileSystem(paths, num);
 
 	// Attempt to get linkedit from prelink
-	if (!linkedit_buf)
+	if (!sym_buf)
 		error = initFromPrelinked(prelink);
 
 	return error;
@@ -76,10 +78,10 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 void MachInfo::deinit() {
 	freeFileBufferResources();
 
-	if (linkedit_buf) {
-		if (!linkedit_buf_ro)
-			Buffer::deleter(linkedit_buf);
-		linkedit_buf = nullptr;
+	if (sym_buf) {
+		if (!sym_buf_ro)
+			Buffer::deleter(sym_buf);
+		sym_buf = nullptr;
 	}
 }
 
@@ -109,10 +111,10 @@ kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
 
 		if (file_buf && file_buf_size >= HeaderSize) {
 			processMachHeader(file_buf);
-			if (linkedit_fileoff && symboltable_fileoff) {
+			if (sym_fileoff && symboltable_fileoff) {
 				if (loadUUID(file_buf)) {
 					// read linkedit from prelink
-					error = readLinkedit(NULLVP, nullptr);
+					error = readSymbols(NULLVP, nullptr);
 					if (error == KERN_SUCCESS) {
 						// for prelinked kexts assume that we have slide (this is true for modern os)
 						prelink_slid = true;
@@ -124,7 +126,7 @@ kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
 				}
 			} else {
 				SYSLOG("mach", "couldn't find the necessary mach segments or sections in prelink (linkedit %llX, sym %X)",
-					   linkedit_fileoff, symboltable_fileoff);
+					   sym_fileoff, symboltable_fileoff);
 			}
 		} else {
 			DBGLOG("mach", "unable to load missing %d image %s from prelink", missing, objectId);
@@ -151,7 +153,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	bool found = false;
 	// Starting with 10.10 macOS supports kcsuffix that may be appended to processes, kernels, and kexts
 	char suffix[32] {};
-	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && PE_parse_boot_argn("kcsuffix", suffix, sizeof(suffix)) ? 2 : 0;
+	size_t suffixnum = getKernelVersion() >= KernelVersion::Yosemite && lilu_get_boot_args("kcsuffix", suffix, sizeof(suffix)) ? 2 : 0;
 
 	for (size_t i = 0; i < num && !found; i++) {
 		auto pathlen = static_cast<uint32_t>(strlen(paths[i]));
@@ -197,14 +199,14 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 	}
 
 	processMachHeader(machHeader);
-	if (linkedit_fileoff && symboltable_fileoff) {
-		// read linkedit from filesystem
-		error = readLinkedit(vnode, ctxt);
+	if (sym_fileoff && symboltable_fileoff) {
+		// read symbols from filesystem
+		error = readSymbols(vnode, ctxt);
 		if (error != KERN_SUCCESS)
-			SYSLOG("mach", "could not read the linkedit segment");
+			SYSLOG("mach", "could not read symbols");
 	} else {
 		SYSLOG("mach", "couldn't find the necessary mach segments or sections (linkedit %llX, sym %X)",
-			   linkedit_fileoff, symboltable_fileoff);
+			   sym_fileoff, symboltable_fileoff);
 	}
 
 	vnode_put(vnode);
@@ -234,23 +236,51 @@ mach_vm_address_t MachInfo::findKernelBase() {
 
 	// Search backwards for the kernel base address (mach-o header)
 	while (true) {
-		auto header = reinterpret_cast<mach_header_64 *>(tmp);
-		if (header->magic == MH_MAGIC_64) {
+		auto mh = reinterpret_cast<mach_header_native *>(tmp);
+		if (mh->magic == MachMagicNative) {
+#if defined (__x86_64__)
 			// make sure it's the header and not some reference to the MAGIC number.
 			// 0xC is MH_FILESET, available exclusively in newer SDKs.
-			if (getKernelVersion() >= KernelVersion::BigSur && header->filetype == 0xC && header->flags == 0 && header->reserved == 0) {
+			if (getKernelVersion() >= KernelVersion::BigSur && mh->filetype == 0xC && mh->flags == 0 && mh->reserved == 0) {
 				DBGLOG("mach", "found kernel nouveau mach-o header address at %llx", tmp);
 				m_kernel_collection = kernel_collection = true;
 				break;
 			}
-			auto segmentCommand = reinterpret_cast<segment_command_64 *>(header + 1);
-			if (!strncmp(segmentCommand->segname, "__TEXT", sizeof(segmentCommand->segname))) {
+#endif
+			
+			// Search for __TEXT segment load command.
+			// 10.5 and older have __PAGEZERO first and __TEXT second.
+			bool foundHeader = false;
+			size_t headerSize = sizeof(mach_header_native);
+
+			// point to the first load command
+			auto addr    = reinterpret_cast<uint8_t *>(tmp) + headerSize;
+			auto endaddr = reinterpret_cast<uint8_t *>(tmp) + HeaderSize;
+
+			for (uint32_t i = 0; i < mh->ncmds; i++) {
+				auto loadCmd = reinterpret_cast<load_command *>(addr);
+				if (!isAligned(loadCmd) || addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
+					break;
+				}
+
+				if (loadCmd->cmd == SegmentTypeNative) {
+					auto segCmd = reinterpret_cast<segment_command_native *>(loadCmd);
+					if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
+						foundHeader = true;
+						break;
+					}
+				}
+				addr += loadCmd->cmdsize;
+			}
+			
+			if (foundHeader) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
 				break;
 			}
 		}
 
-		tmp -= KASLRAlignment;
+		// 10.5 and older require 4K granularity for searching
+		tmp -= getKernelVersion() >= KernelVersion::SnowLeopard ? KASLRAlignment : PAGE_SIZE;
 	}
 
 	m_kernel_base = tmp;
@@ -299,8 +329,8 @@ kern_return_t MachInfo::setKernelWriting(bool enable, IOSimpleLock *lock) {
 }
 
 mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
-	if (!linkedit_buf) {
-		SYSLOG("mach", "no loaded linkedit buffer found");
+	if (!sym_buf) {
+		SYSLOG("mach", "no loaded symbols buffer found");
 		return 0;
 	}
 
@@ -317,12 +347,13 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 	// symbols and strings offsets into LINKEDIT
 	// we just read the __LINKEDIT but fileoff values are relative to the full Mach-O
 	// subtract the base of LINKEDIT to fix the value into our buffer
+	//
+	// 32-bit MH_OBJECT does not have __LINKEDIT
+	auto nlist = reinterpret_cast<nlist_native *>(sym_buf + (symboltable_fileoff - sym_fileoff));
+	auto strlist = reinterpret_cast<char *>(sym_buf + (stringtable_fileoff - sym_fileoff));
+	auto endaddr = sym_buf + sym_size;
 
-	auto nlist = reinterpret_cast<nlist_64 *>(linkedit_buf + (symboltable_fileoff - linkedit_fileoff));
-	auto strlist = reinterpret_cast<char *>(linkedit_buf + (stringtable_fileoff - linkedit_fileoff));
-	auto endaddr = linkedit_buf + linkedit_size;
-
-	if (reinterpret_cast<uint8_t *>(nlist) >= linkedit_buf && reinterpret_cast<uint8_t *>(strlist) >= linkedit_buf) {
+	if (reinterpret_cast<uint8_t *>(nlist) >= sym_buf && reinterpret_cast<uint8_t *>(strlist) >= sym_buf) {
 		auto symlen = strlen(symbol) + 1;
 		for (uint32_t i = 0; i < symboltable_nr_symbols; i++, nlist++) {
 			if (reinterpret_cast<uint8_t *>(nlist+1) <= endaddr) {
@@ -336,12 +367,12 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 					return nlist->n_value + kaslr_slide;
 				}
 			} else {
-				SYSLOG("mach", "symbol at %u out of %u exceeds linkedit bounds", i, symboltable_nr_symbols);
+				SYSLOG("mach", "symbol at %u out of %u exceeds symbol table bounds", i, symboltable_nr_symbols);
 				break;
 			}
 		}
 	} else {
-		SYSLOG("mach", "invalid symbol/string tables point behind linkedit");
+		SYSLOG("mach", "invalid symbol/string tables point behind symbol table");
 	}
 
 	return 0;
@@ -364,7 +395,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 		DBGLOG("mach", "readMachHeader got magic %08X", *magicPtr);
 
 		switch (*magicPtr) {
-			case MH_MAGIC_64:
+			case MachMagicNative:
 				fat_offset = off;
 				return KERN_SUCCESS;
 			case FAT_CIGAM:
@@ -377,7 +408,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 				bool swapBytes = *magicPtr == FAT_CIGAM;
 				uint32_t num = reinterpret_cast<fat_header *>(buffer)->nfat_arch;
 				if (swapBytes) num = OSSwapInt32(num);
-				if (static_cast<uint64_t>(num) * sizeof(fat_arch) > HeaderSize - sizeof(fat_arch)) {
+				if (static_cast<size_t>(num) * sizeof(fat_arch) > HeaderSize - sizeof(fat_arch)) {
 					SYSLOG("mach", "invalid fat arch count %u", num);
 					return KERN_FAILURE;
 				}
@@ -386,14 +417,14 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					auto arch = reinterpret_cast<fat_arch *>(buffer + i * sizeof(fat_arch) + sizeof(fat_header));
 					cpu_type_t cpu = arch->cputype;
 					if (swapBytes) cpu = OSSwapInt32(cpu);
-					if (cpu == CPU_TYPE_X86_64) {
+					if (cpu == MachCpuTypeNative) {
 						uint32_t offset = arch->offset;
 						if (swapBytes) offset = OSSwapInt32(offset);
 						return readMachHeader(buffer, vnode, ctxt, offset);
 					}
 				}
 
-				SYSLOG("mach", "magic failed to find a x86_64 mach");
+				SYSLOG("mach", "magic failed to find a %s mach", Configuration::currentArch);
 				return KERN_FAILURE;
 			}
 #ifdef LILU_COMPRESSION_SUPPORT
@@ -442,35 +473,37 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 	return KERN_FAILURE;
 }
 
-kern_return_t MachInfo::readLinkedit(vnode_t vnode, vfs_context_t ctxt) {
+kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 	// we know the location of linkedit and offsets into symbols and their strings
 	// now we need to read linkedit into a buffer so we can process it later
 	// __LINKEDIT total size is around 1MB
 	// we should free this buffer later when we don't need anymore to solve symbols
-	linkedit_buf = Buffer::create<uint8_t>(linkedit_size);
-	if (!linkedit_buf) {
-		SYSLOG("mach", "Could not allocate enough memory (%lld) for __LINKEDIT segment", linkedit_size);
+	//
+	// on 32-bit MH_OBJECT, symbols are not contained within a segment
+	sym_buf = Buffer::create<uint8_t>(sym_size);
+	if (!sym_buf) {
+		SYSLOG("mach", "Could not allocate enough memory (%lld) for symbols", sym_size);
 		return KERN_FAILURE;
 	}
 
 #ifdef LILU_COMPRESSION_SUPPORT
 	if (file_buf) {
-		if (file_buf_size >= linkedit_size && file_buf_size - linkedit_size >= linkedit_fileoff) {
-			lilu_os_memcpy(linkedit_buf, file_buf + linkedit_fileoff, linkedit_size);
+		if (file_buf_size >= sym_size && file_buf_size - sym_size >= sym_fileoff) {
+			lilu_os_memcpy(sym_buf, file_buf + sym_fileoff, sym_size);
 			return KERN_SUCCESS;
 		}
-		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", linkedit_fileoff, linkedit_size, file_buf_size);
+		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", sym_fileoff, sym_size, file_buf_size);
 	} else
 #endif /* LILU_COMPRESSION_SUPPORT */
 	{
-		int error = FileIO::readFileData(linkedit_buf, fat_offset + linkedit_fileoff, linkedit_size, vnode, ctxt);
+		int error = FileIO::readFileData(sym_buf, fat_offset + sym_fileoff, sym_size, vnode, ctxt);
 		if (!error)
 			return KERN_SUCCESS;
-		SYSLOG("mach", "linkedit read failed with %d error", error);
+		SYSLOG("mach", "symbols read failed with %d error", error);
 	}
 
-	Buffer::deleter(linkedit_buf);
-	linkedit_buf = nullptr;
+	Buffer::deleter(sym_buf);
+	sym_buf = nullptr;
 
 	return KERN_FAILURE;
 }
@@ -592,8 +625,8 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 							SYSLOG("mach", "found section %s size %u in segment %lu is invalid", sectionName, sno, vmsegment);
 							return;
 						}
-						vmsegment = scmd->vmaddr;
-						vmsection = sect->addr;
+						vmsegment = (vm_address_t)scmd->vmaddr;
+						vmsection = (vm_address_t)sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
 						DBGLOG("mach", "found section %s size %u in segment %lu", sectionName, sno, vmsegment);
@@ -622,8 +655,8 @@ void MachInfo::freeFileBufferResources() {
 }
 
 void MachInfo::processMachHeader(void *header) {
-	mach_header_64 *mh = static_cast<mach_header_64 *>(header);
-	size_t headerSize = sizeof(mach_header_64);
+	auto mh = static_cast<mach_header_native *>(header);
+	size_t headerSize = sizeof(mach_header_native);
 
 	// point to the first load command
 	auto addr    = static_cast<uint8_t *>(header) + headerSize;
@@ -643,16 +676,16 @@ void MachInfo::processMachHeader(void *header) {
 			return;
 		}
 
-		if (loadCmd->cmd == LC_SEGMENT_64) {
-			segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+		if (loadCmd->cmd == SegmentTypeNative) {
+			auto segCmd = reinterpret_cast<segment_command_native *>(loadCmd);
 			// use this one to retrieve the original vm address of __TEXT so we can compute kernel aslr slide
 			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found TEXT");
 				disk_text_addr = segCmd->vmaddr;
 			} else if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found LINKEDIT");
-				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size = segCmd->filesize;
+				sym_fileoff = segCmd->fileoff;
+				sym_size = (size_t)segCmd->filesize;
 			}
 		}
 		// table information available at LC_SYMTAB command
@@ -662,9 +695,23 @@ void MachInfo::processMachHeader(void *header) {
 			symboltable_fileoff = symtab_cmd->symoff;
 			symboltable_nr_symbols = symtab_cmd->nsyms;
 			stringtable_fileoff = symtab_cmd->stroff;
+			stringtable_size = symtab_cmd->strsize;
 		}
 		addr += loadCmd->cmdsize;
 	}
+	
+#if defined(__i386__)
+	// 32-bit MH_OBJECT does not have a __LINKEDIT segment for symbols
+	if (mh->filetype == MH_OBJECT && symboltable_fileoff && !sym_fileoff) {
+		if (symboltable_fileoff < stringtable_fileoff) {
+			sym_fileoff = symboltable_fileoff;
+			sym_size = (stringtable_fileoff - symboltable_fileoff) + stringtable_size;
+		} else {
+			sym_fileoff = stringtable_fileoff;
+			sym_size = (symboltable_fileoff - stringtable_fileoff) + (symboltable_nr_symbols * sizeof(struct nlist));
+		}
+	}
+#endif
 }
 
 void MachInfo::updatePrelinkInfo() {
@@ -756,6 +803,11 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 }
 
 kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
+#if defined (__i386__)
+	// KC is not supported on 32-bit.
+	return KERN_FAILURE;
+	
+#elif defined (__x86_64__)
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
@@ -804,11 +856,11 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 			auto segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			DBGLOG("mach", "%s has segment is %s from " PRIKADDR " to " PRIKADDR, objectId, segCmd->segname,
 				   CASTKADDR(segCmd->vmaddr), CASTKADDR(segCmd->vmaddr + segCmd->vmsize));
-			if (!linkedit_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-				linkedit_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
-				linkedit_fileoff = segCmd->fileoff;
-				linkedit_size = segCmd->vmsize;
-				linkedit_buf_ro = true;
+			if (!sym_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+				sym_buf = reinterpret_cast<uint8_t *>(segCmd->vmaddr);
+				sym_fileoff = segCmd->fileoff;
+				sym_size = (size_t)segCmd->vmsize;
+				sym_buf_ro = true;
 			} else if (segCmd->vmaddr + segCmd->vmsize > last_addr) {
 				// We exclude __LINKEDIT here as it is much farther from the rest of the segments,
 				// and we will unlikely need to patch it anyway. Doing this makes it much safer
@@ -825,8 +877,8 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 		addr += loadCmd->cmdsize;
 	}
 
-	if (!linkedit_buf || !symboltable_fileoff) {
-		SYSLOG("mach", "failed to find kc linkedit %d symtab %d", linkedit_buf != nullptr, symboltable_fileoff != 0);
+	if (!sym_buf || !symboltable_fileoff) {
+		SYSLOG("mach", "failed to find kc linkedit %d symtab %d", sym_buf != nullptr, symboltable_fileoff != 0);
 		return KERN_FAILURE;
 	}
 
@@ -838,7 +890,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	kaslr_slide_set = true;
 	prelink_slid = true;
 	running_mh = inner;
-	memory_size = last_addr - reinterpret_cast<mach_vm_address_t>(inner);
+	memory_size = (size_t)(last_addr - reinterpret_cast<mach_vm_address_t>(inner));
 	if (slide != 0 || isKernel) {
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
 		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
@@ -849,6 +901,10 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 		DBGLOG("mach", "activating slots for %s in " PRIKADDR " - " PRIKADDR, objectId, CASTKADDR(address_slots), CASTKADDR(address_slots_end));
 	}
 	return KERN_SUCCESS;
+
+#else
+#error Unsupported arch.
+#endif
 }
 
 mach_vm_address_t MachInfo::getAddressSlot() {
@@ -875,13 +931,13 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
-	if (kernel_collection && !linkedit_buf)
+	if (kernel_collection && !sym_buf)
 		return kcGetRunningAddresses(slide);
 
 	if (base != 0) {
 		// get the vm address of __TEXT segment
-		auto mh = reinterpret_cast<mach_header_64 *>(base);
-		auto headerSize = sizeof(mach_header_64);
+		auto mh = reinterpret_cast<mach_header_native *>(base);
+		auto headerSize = sizeof(mach_header_native);
 
 		load_command *loadCmd;
 		auto addr = reinterpret_cast<uint8_t *>(base) + headerSize;
@@ -899,20 +955,38 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 				return KERN_FAILURE;
 			}
 
-			if (loadCmd->cmd == LC_SEGMENT_64) {
-				segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+			if (loadCmd->cmd == SegmentTypeNative) {
+				auto segCmd = reinterpret_cast<segment_command_native *>(loadCmd);
 				if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 					running_text_addr = segCmd->vmaddr;
 					running_mh = mh;
 					break;
 				}
+#if defined(__i386__)
+				// MH_OBJECT has a single unnamed segment
+				else if (mh->filetype == MH_OBJECT && !strncmp(segCmd->segname, "", sizeof(segCmd->segname))) {
+					for (uint32_t j = 0; j < segCmd->nsects; j++) {
+						auto sect = reinterpret_cast<section *>(segCmd + 1) + j;
+						
+						if (!strncmp(sect->sectname, "__text", sizeof(sect->sectname))) {
+							running_text_addr = sect->addr;
+							running_mh = mh;
+							break;
+						}
+					}
+				}
+#endif
 			}
 			addr += loadCmd->cmdsize;
 		}
 	}
 
 	// compute kaslr slide
-	if (running_text_addr && running_mh) {
+	if (
+#if defined(__x86_64__)
+			running_text_addr &&
+#endif
+			running_mh) {
 		if (!slide) // This is kernel image
 			kaslr_slide = running_text_addr - disk_text_addr;
 		else // This is kext image
@@ -944,8 +1018,8 @@ void MachInfo::getRunningPosition(uint8_t * &header, size_t &size) {
 uint64_t *MachInfo::getUUID(void *header) {
 	if (!header) return nullptr;
 
-	auto mh = static_cast<mach_header_64 *>(header);
-	size_t size = sizeof(mach_header_64);
+	auto mh = static_cast<mach_header_native *>(header);
+	size_t size = sizeof(mach_header_native);
 
 	auto *addr = static_cast<uint8_t *>(header) + size;
 	auto endaddr = static_cast<uint8_t *>(header) + HeaderSize;
@@ -972,6 +1046,10 @@ uint64_t *MachInfo::getUUID(void *header) {
 }
 
 bool MachInfo::loadUUID(void *header) {
+	// Versions older than 10.5 may not have UUIDs on system binaries.
+	if (getKernelVersion() < KernelVersion::Leopard)
+		return true;
+	
 	auto p = getUUID(header);
 	if (p) {
 		self_uuid[0] = p[0];
@@ -983,6 +1061,10 @@ bool MachInfo::loadUUID(void *header) {
 
 bool MachInfo::isCurrentBinary(mach_vm_address_t base) {
 	if (kernel_collection)
+		return true;
+	
+	// Versions older than 10.5 may not have UUIDs on system binaries.
+	if (getKernelVersion() < KernelVersion::Leopard)
 		return true;
 
 	auto binaryBase = reinterpret_cast<void *>(base ? base : findKernelBase());

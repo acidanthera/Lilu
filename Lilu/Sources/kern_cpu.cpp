@@ -55,7 +55,7 @@ void CPUInfo::init() {
 
 	// Last but not least detect CPU generation
 	uint32_t generation = 0;
-	if (PE_parse_boot_argn(Configuration::bootargCpu, &generation, sizeof(generation))) {
+	if (lilu_get_boot_args(Configuration::bootargCpu, &generation, sizeof(generation))) {
 		DBGLOG("cpu", "found CPU generation override %u", generation);
 		if (generation < static_cast<uint32_t>(CPUInfo::CpuGeneration::MaxGeneration)) {
 			bdi.cpuGeneration = static_cast<CPUInfo::CpuGeneration>(generation);
@@ -148,6 +148,7 @@ CPUInfo::CpuGeneration CPUInfo::getGeneration(uint32_t *ofamily, uint32_t *omode
 }
 
 bool CPUInfo::getCpuTopology(CpuTopology &topology) {
+#if __MAC_OS_X_VERSION_MIN_REQUIRED > __MAC_10_4
 	// Obtain power management callbacks
 	if (getKernelVersion() < KernelVersion::Lion) {
 		SYSLOG("cpu", "cannot use pmKextRegister before 10.7");
@@ -204,6 +205,10 @@ bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 	}
 
 	return true;
+#else
+	SYSLOG("cpu", "cannot use pmKextRegister on this platform");
+	return false;
+#endif
 }
 
 bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, uint32_t *c, uint32_t *d) {
@@ -215,11 +220,21 @@ bool CPUInfo::getCpuid(uint32_t no, uint32_t count, uint32_t *a, uint32_t *b, ui
 
 	// At least pass zeroes on failure
 	if (supported) {
+#if defined(__i386__)
+		asm ("xchg %%ebx, %q1\n"
+			 "cpuid\n"
+			 "xchg %%ebx, %q1"
+			 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
+			 : "0" (no), "2" (count));
+#elif defined(__x86_64__)
 		asm ("xchgq %%rbx, %q1\n"
 			 "cpuid\n"
 			 "xchgq %%rbx, %q1"
 			 : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
 			 : "0" (no), "2" (count));
+#else
+#error Unsupported arch.
+#endif
 	}
 
 	if (a) *a = eax;

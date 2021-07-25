@@ -113,7 +113,13 @@ public:
 		uint32_t section;
 	};
 
-	static_assert(sizeof(BinaryModPatch) == 56, "BinaryModPatch ABI compatibility failure");
+#if defined(__i386__)
+	static_assert(sizeof(BinaryModPatch) == 36, "BinaryModPatch 32-bit ABI compatibility failure");
+#elif defined(__x86_64__)
+	static_assert(sizeof(BinaryModPatch) == 56, "BinaryModPatch 64-bit ABI compatibility failure");
+#else
+#error Unsupported arch.
+#endif
 
 	/**
 	 *  Structure describing the modifications for the binary
@@ -253,7 +259,7 @@ private:
 	using t_getTaskMap = vm_map_t (*)(task_t);
 	using t_getMapMin = vm_map_offset_t (*)(vm_map_t);
 	using t_vmMapSwitchProtect = void (*)(vm_map_t, boolean_t);
-	using t_vmMapCheckProtection = boolean_t (*)(vm_map_t, vm_offset_t, vm_offset_t, vm_prot_t);
+	using t_vmMapCheckProtection = boolean_t (*)(vm_map_t, vm_map_offset_t, vm_map_offset_t, vm_prot_t);
 	using t_vmMapReadUser = kern_return_t (*)(vm_map_t, vm_map_address_t, const void *, vm_size_t);
 	using t_vmMapWriteUser = kern_return_t (*)(vm_map_t, const void *, vm_map_address_t, vm_size_t);
 
@@ -452,7 +458,7 @@ private:
 
 	evector<LookupStorage *, LookupStorage::deleter> lookupStorage;
 	Lookup lookup;
-
+	
 	/**
 	 *  Restrict 64-bit entry overlapping DYLD_SHARED_CACHE to enforce manual library loading
 	 */

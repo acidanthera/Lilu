@@ -25,7 +25,7 @@ void lilu_os_log(const char *format, ...) {
 	vsnprintf(tmp, sizeof(tmp), format, va);
 	va_end(va);
 
-	if (ml_get_interrupts_enabled())
+	if (lilu_get_interrupts_enabled())
 		IOLog("%s", tmp);
 
 #ifdef DEBUG
@@ -45,7 +45,7 @@ void lilu_os_log(const char *format, ...) {
 	}
 #endif
 
-	if (ml_get_interrupts_enabled() && ADDPR(debugPrintDelay) > 0)
+	if (lilu_get_interrupts_enabled() && ADDPR(debugPrintDelay) > 0)
 		IOSleep(ADDPR(debugPrintDelay));
 }
 
@@ -92,6 +92,31 @@ extern "C" void lilu_os_free(void *addr) {
 	// kern_os_free does not check its argument for nullptr
 	if (addr) kern_os_free(addr);
 }
+
+#if defined(__i386__)
+size_t lilu_strlcpy(char *dst, const char *src, size_t siz) {
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
+
+	// Copy as many bytes as will fit.
+	if (n != 0 && --n != 0) {
+		do {
+			if ((*d++ = *s++) == 0)
+				break;
+		} while (--n != 0);
+	}
+
+	// Not enough room in dst, add null terminator and traverse rest of src.
+	if (n == 0) {
+		if (siz != 0)
+			*d = '\0'; // null terminate dst.
+		while (*s++);
+	}
+
+	return(s - src - 1); // count does not include null terminator.
+}
+#endif
 
 bool Page::alloc() {
 	if (p && vm_deallocate(kernel_map, reinterpret_cast<vm_address_t>(p), PAGE_SIZE) != KERN_SUCCESS)

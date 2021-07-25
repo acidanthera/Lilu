@@ -236,7 +236,22 @@ install_compiled_sdk() {
     return 1
   fi
 
-  "${XCODEBUILD}" -configuration Debug || ret=$?
+  if [ -n "${ACID32}" ]; then
+    echo "-> ACID32 specified, installing clang32..."
+    src=$("${CURL}" -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/clang32-bootstrap.sh) && eval "$src" || ret=$?
+
+    if [ $ret -ne 0 ]; then
+      echo "ERROR: Failed to install clang32 with code ${ret}!"
+      return 1
+    fi
+  fi
+
+  if [ -n "${ACID32}" ]; then
+    "${XCODEBUILD}" -configuration Debug -arch ACID32 -arch x86_64 || ret=$?
+  else
+    "${XCODEBUILD}" -configuration Debug -arch x86_64 || ret=$?
+  fi
+
   if [ $ret -ne 0 ]; then
     echo "ERROR: Failed to compile the latest version with code ${ret}!"
     return 1

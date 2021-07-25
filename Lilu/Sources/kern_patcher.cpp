@@ -239,15 +239,28 @@ void KernelPatcher::setupKextListening() {
 		return;
 	}
 
-	KernelPatcher::RouteRequest requests[] = {
-		{ "__ZN6OSKext6unloadEv", onOSKextUnload, orgOSKextUnload },
-		{ "__ZN6OSKext23saveLoadedKextPanicListEv", onOSKextSaveLoadedKextPanicList, orgOSKextSaveLoadedKextPanicList }
-	};
+#if defined(__i386__)
+	if (getKernelVersion() >= KernelVersion::SnowLeopard) {
+#endif
+		KernelPatcher::RouteRequest requests[] = {
+			{ "__ZN6OSKext6unloadEv", onOSKextUnload, orgOSKextUnload },
+			{ "__ZN6OSKext23saveLoadedKextPanicListEv", onOSKextSaveLoadedKextPanicList, orgOSKextSaveLoadedKextPanicList }
+		};
 
-	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
-		SYSLOG("patcher", "failed to route kext listener functions");
-		return;
+		if (!routeMultiple(KernelID, requests, arrsize(requests))) {
+			SYSLOG("patcher", "failed to route kext listener functions");
+			return;
+		}
+#if defined(__i386__)
+	} else {
+		// 10.5 and older do not have the OSKext class
+		KernelPatcher::RouteRequest request("_kmod_create_internal", onKmodCreateInternal, orgKmodCreateInternal);
+		if (!routeMultiple(KernelID, &request, 1)) {
+			SYSLOG("patcher", "failed to route kext listener function");
+			return;
+		}
 	}
+#endif
 
 	if (getError() == Error::NoError) {
 		// Allow static functions to access the patcher body
@@ -386,7 +399,7 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		DBGLOG("patcher", "will use absolute jumping to " PRIKADDR, CASTKADDR(to));
 		absolute = true;
 	}
-
+	
 	if (jumpType == JumpType::Long) {
 		absolute = true;
 	} else if (jumpType == JumpType::Short && absolute) {
@@ -452,13 +465,26 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		disp = Patch::create<Patch::Variant::U64>(addressSlot, to);
 	} else if (absolute) {
 		patch.l.opcode = LongJumpPrefix;
+#if defined(__i386__)
+		patch.l.argument = static_cast<uint32_t>(from + MediumJump);
+		patch.l.disp = static_cast<uint32_t>(to);
+#elif defined(__x86_64__)
 		patch.l.argument = 0;
 		patch.l.disp = to;
+#else
+#error Unsupported arch
+#endif
 		patch.sourceIt<decltype(patch.l)>(from);
 
 		opcode = Patch::create<Patch::Variant::U16>(from + offsetof(FunctionPatch, l.opcode), patch.l.opcode);
 		argument = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, l.argument), patch.l.argument);
+#if defined(__i386__)
+		disp = Patch::create<Patch::Variant::U32>(from + offsetof(FunctionPatch, l.disp), patch.l.disp);
+#elif defined(__x86_64__)
 		disp = Patch::create<Patch::Variant::U64>(from + offsetof(FunctionPatch, l.disp), patch.l.disp);
+#else
+#error Unsupported arch
+#endif
 	} else {
 		patch.s.opcode = SmallJumpPrefix;
 		patch.s.argument = newArgument;
@@ -497,9 +523,11 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 			opcode->patch();
 			argument->patch();
 		}
+#if defined(__x86_64__)
 	} else if ((from & (sizeof(unsigned __int128)-1)) == 0) {
 		auto p = reinterpret_cast<_Atomic(unsigned __int128) *>(from);
 		atomic_store(p, patch.value128);
+#endif
 	} else {
 		disp->patch();
 		opcode->patch();
@@ -627,9 +655,17 @@ uint8_t KernelPatcher::tempExecutableMemory[TempExecutableMemorySize] __attribut
 mach_vm_address_t KernelPatcher::readChain(mach_vm_address_t from, JumpType &jumpType) {
 	// Note, unaligned access for simplicity
 	if (*reinterpret_cast<decltype(&LongJumpPrefix)>(from) == LongJumpPrefix) {
+#if defined(__i386__)
+		auto disp = *reinterpret_cast<uint32_t *>(from + sizeof(LongJumpPrefix));
+		jumpType = JumpType::Long;
+		return *reinterpret_cast<mach_vm_address_t *>(disp);
+#elif defined(__x86_64__)
 		auto disp = *reinterpret_cast<int32_t *>(from + sizeof(LongJumpPrefix));
 		jumpType = disp != 0 ? JumpType::Medium : JumpType::Long;
 		return *reinterpret_cast<mach_vm_address_t *>(from + MediumJump + disp);
+#else
+#error Unsupported arch
+#endif
 	}
 	if (*reinterpret_cast<decltype(&SmallJumpPrefix)>(from) == SmallJumpPrefix) {
 		jumpType = JumpType::Short;
@@ -723,31 +759,62 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 		that->processAlreadyLoadedKexts();
 		that->waitingForAlreadyLoadedKexts = false;
 	} else {
-		kmod_info_t *newKmod = *that->kextKmods;
-		if (newKmod) {
-			uint64_t kmodAddr = (uint64_t)newKmod->address;
-			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR(kmodAddr), KMOD_MAX_NAME, newKmod->name);
-			
-			// We may add khandlers items inside the handler
-			for (size_t i = 0; i < that->khandlers.size(); i++) {
-				auto handler = that->khandlers[i];
-				if (!strncmp(handler->id, newKmod->name, KMOD_MAX_NAME)) {
-					DBGLOG("patcher", "caught the right kext at " PRIKADDR ", invoking handler", CASTKADDR(kmodAddr));
-					if (!that->kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
-						SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", newKmod->name, CASTKADDR(kmodAddr));
-						continue;
-					}
-					handler->address = kmodAddr;
-					handler->size = newKmod->size;
-					handler->handler(handler);
-					// Remove the item
-					if (!that->khandlers[i]->reloadable)
-						that->khandlers.erase(i);
-					break;
-				}
-			}
+		kmod_info_t *kmod = *that->kextKmods;
+		if (kmod) {
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR((uint64_t)kmod->address), KMOD_MAX_NAME, kmod->name);
+			that->processKext(kmod, false);
 		} else {
 			SYSLOG("patcher", "no kext is currently loaded, this should not happen");
+		}
+	}
+}
+
+#if defined(__i386__)
+
+kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id) {
+	if (!that)
+		return KERN_INVALID_ARGUMENT;
+	
+	kern_return_t result = FunctionCast(onKmodCreateInternal, that->orgKmodCreateInternal)(kmod, id);
+	if (result == KERN_SUCCESS) {
+		DBGLOG("patcher", "invoked at kext loading");
+		
+		if (that->waitingForAlreadyLoadedKexts) {
+			that->processAlreadyLoadedKexts();
+			that->waitingForAlreadyLoadedKexts = false;
+		} else {
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR((uint64_t)kmod->address), KMOD_MAX_NAME, kmod->name);
+			that->processKext(kmod, false);
+		}
+	}
+	
+	return result;
+}
+
+#endif
+
+void KernelPatcher::processKext(kmod_info_t *kmod, bool loaded) {
+	uint64_t kmodAddr = (uint64_t)kmod->address;
+
+	for (size_t i = 0; i < khandlers.size(); i++) {
+		auto handler = khandlers[i];
+		if (loaded && !handler->loaded)
+			continue;
+
+		if (!strncmp(handler->id, kmod->name, KMOD_MAX_NAME)) {
+			DBGLOG("patcher", "caught the right kext %s at " PRIKADDR ", invoking handler", kmod->name, CASTKADDR(kmodAddr));
+			if (!kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
+				SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", kmod->name, CASTKADDR(kmodAddr));
+				continue;
+			}
+			handler->address = kmodAddr;
+			handler->size = kmod->size;
+			handler->handler(handler);
+
+			// Remove the item
+			if (!khandlers[i]->reloadable)
+				khandlers.erase(i);
+			break;
 		}
 	}
 }
@@ -756,25 +823,7 @@ void KernelPatcher::processAlreadyLoadedKexts() {
 	DBGLOG("patcher", "processing already loaded kexts by iterating over all kmods");
 
 	for (kmod_info_t *kmod = *kextKmods; kmod; kmod = kmod->next) {
-		uint64_t kmodAddr = (uint64_t)kmod->address;
-
-		for (size_t j = 0; j < khandlers.size(); j++) {
-			auto handler = khandlers[j];
-			if (handler->loaded && !strncmp(handler->id, kmod->name, KMOD_MAX_NAME)) {
-				DBGLOG("patcher", "discovered the right kext %s at " PRIKADDR ", invoking handler", kmod->name, CASTKADDR(kmodAddr));
-				if (!kinfos[handler->index]->isCurrentBinary(kmodAddr)) {
-					SYSLOG("patcher", "uuid mismatch for %s at " PRIKADDR ", ignoring", kmod->name, CASTKADDR(kmodAddr));
-					continue;
-				}
-				handler->address = kmodAddr;
-				handler->size = kmod->size;
-				handler->handler(handler);
-				// Remove the item
-				if (!that->khandlers[j]->reloadable)
-					that->khandlers.erase(j);
-				break;
-			}
-		}
+		processKext(kmod, true);
 	}
 }
 #endif /* LILU_KEXTPATCH_SUPPORT */

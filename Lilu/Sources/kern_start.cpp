@@ -24,6 +24,16 @@
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
 
+#if defined(__i386__)
+kauth_listener_t kauth_listener_vnode;
+extern "C" int kauth_callback(kauth_cred_t credential, void *idata, kauth_action_t action, uintptr_t arg0, uintptr_t arg1, uintptr_t arg2, uintptr_t arg3) {
+	kauth_unlisten_scope(kauth_listener_vnode);
+	ADDPR(config).policyInit("kauth_listen: " KAUTH_SCOPE_VNODE);
+	
+	return KAUTH_RESULT_ALLOW;
+}
+#endif
+
 IOService *PRODUCT_NAME::probe(IOService *provider, SInt32 *score) {
 	setProperty("VersionInfo", kextVersion);
 	auto service = IOService::probe(provider, score);
@@ -35,6 +45,17 @@ bool PRODUCT_NAME::start(IOService *provider) {
 		SYSLOG("init", "failed to start the parent");
 		return false;
 	}
+	
+#if defined(__i386__)
+	// Use a kauth listener on 32-bit platforms to detect root mount.
+	if (ADDPR(config).startSuccess) {
+		kauth_listener_vnode = kauth_listen_scope(KAUTH_SCOPE_VNODE, kauth_callback, NULL);
+		if (!kauth_listener_vnode) {
+			SYSLOG("init", "failed to register kauth listener");
+			return false;
+		}
+	}
+#endif
 
 	return ADDPR(config).startSuccess;
 }
@@ -129,6 +150,7 @@ bool Configuration::performInit() {
 	return performCommonInit();
 }
 
+#if defined(__x86_64__)
 int Configuration::policyCheckRemount(kauth_cred_t, mount *, label *) {
 	ADDPR(config).policyInit("mac_mount_check_remount");
 	return 0;
@@ -144,6 +166,7 @@ void Configuration::policyInitBSD(mac_policy_conf *conf) {
 	if (getKernelVersion() >= KernelVersion::BigSur)
 		ADDPR(config).policyInit("init bsd");
 }
+#endif
 
 #ifdef DEBUG
 
@@ -222,10 +245,10 @@ bool Configuration::getBootArguments() {
 	isUserDisabled = checkKernelArgument(bootargUserOff) ||
 		getKernelVersion() <= KernelVersion::SnowLeopard || getKernelVersion() >= KernelVersion::BigSur;
 
-	PE_parse_boot_argn(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+	lilu_get_boot_args(bootargDelay, &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
 #ifdef DEBUG
-	PE_parse_boot_argn(bootargDump, &debugDumpTimeout, sizeof(debugDumpTimeout));
+	lilu_get_boot_args(bootargDump, &debugDumpTimeout, sizeof(debugDumpTimeout));
 	// Slightly out of place, but we need to do that as early as possible.
 	initCustomDebugSupport();
 #endif
@@ -281,18 +304,20 @@ bool Configuration::getBootArguments() {
 
 	readArguments = true;
 
-	DBGLOG("config", "version %s, args: disabled %d, debug %d, slow %d, decompress %d",
-		   kextVersion, isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
+	DBGLOG("config", "version %s (%s), args: disabled %d, debug %d, slow %d, decompress %d",
+		   kextVersion, currentArch, isDisabled, ADDPR(debugEnabled), preferSlowMode, allowDecompress);
 
 	if (isDisabled) {
 		SYSLOG("config", "found a disabling argument or no arguments, exiting");
 	} else {
+#if defined(__x86_64__)
 		// Decide on booter
 		if (!preferSlowMode) {
 			policyOps.mpo_cred_check_label_update_execve = reinterpret_cast<mpo_cred_check_label_update_execve_t *>(policyCredCheckLabelUpdateExecve);
 		} else {
 			policyOps.mpo_mount_check_remount = policyCheckRemount;
 		}
+#endif
 	}
 
 	return !isDisabled;
@@ -308,6 +333,7 @@ bool Configuration::registerPolicy() {
 		return false;
 	}
 
+#if defined(__x86_64__)
 	if (getKernelVersion() >= KernelVersion::BigSur) {
 		if (performEarlyInit()) {
 			startSuccess = true;
@@ -323,6 +349,7 @@ bool Configuration::registerPolicy() {
 		policyLock = nullptr;
 		return false;
 	}
+#endif
 
 	startSuccess = true;
 	return true;

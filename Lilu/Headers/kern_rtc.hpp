@@ -11,6 +11,7 @@
 #include <Headers/kern_util.hpp>
 #include <IOKit/IOService.h>
 #include <IOKit/acpi/IOACPIPlatformDevice.h>
+#include <IOKit/IOUserClient.h>
 
 class RTCStorage {
 	/**
@@ -73,6 +74,12 @@ public:
 	static constexpr uint8_t RTC_DAY = 0x07;
 	static constexpr uint8_t RTC_MON = 0x08;
 	static constexpr uint8_t RTC_YEAR = 0x09;
+	
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_10_5
+	using t_UserClientExternalMethod = IOReturn (*)(IORegistryEntry *service, uint32_t selector, IOExternalMethodArguments * arguments,
+																									IOExternalMethodDispatch * dispatch, OSObject * target, void * reference);
+	static constexpr size_t UserClientExternalMethodIndex = 0x129;
+#endif
 
 	/**
 	 *  Attempt to connect to active RTC service
@@ -129,8 +136,15 @@ public:
 		IOService *rtcDev = nullptr;
 		auto matching = IOService::nameMatching(name);
 		if (matching) {
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_10_6
+			rtcDev = IOService::waitForService(matching);
+			if (rtcDev)
+				rtcDev->retain();
+#else
 			rtcDev = IOService::waitForMatchingService(matching);
 			matching->release();
+#endif
+
 		} else {
 			SYSLOG("rtc", "failed to allocate rtc device matching");
 		}

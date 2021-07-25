@@ -15,7 +15,7 @@ DeviceInfo *globalDeviceInfo;
 
 void DeviceInfo::updateLayoutId() {
 	reportedLayoutId = DefaultReportedLayoutId;
-	if (PE_parse_boot_argn(ReportedLayoutIdArg, &reportedLayoutId, sizeof(reportedLayoutId))) {
+	if (lilu_get_boot_args(ReportedLayoutIdArg, &reportedLayoutId, sizeof(reportedLayoutId))) {
 		DBGLOG("dev", "found boot-arg layout id override to %u", reportedLayoutId);
 	} else if (audioBuiltinAnalog && WIOKit::getOSDataValue(audioBuiltinAnalog, ReportedLayoutIdName, reportedLayoutId)) {
 		DBGLOG("dev", "found property layout id override to %u", reportedLayoutId);
@@ -32,7 +32,7 @@ void DeviceInfo::updateFramebufferId() {
 	else
 		reportedFramebufferName = ReportedFrameIdLegacyName;
 
-	if (PE_parse_boot_argn(ReportedFrameIdArg, &reportedFramebufferId, sizeof(reportedFramebufferId))) {
+	if (lilu_get_boot_args(ReportedFrameIdArg, &reportedFramebufferId, sizeof(reportedFramebufferId))) {
 		DBGLOG("dev", "found boot-arg frame id override to %08X", reportedFramebufferId);
 	} else if (checkKernelArgument(ReportedVesaIdArg)) {
 		DBGLOG("dev", "found vesa boot-arg frame id");
@@ -539,7 +539,7 @@ void BaseDeviceInfo::updateModelInfo() {
 
 		data = OSDynamicCast(OSData, entry->getProperty("board-id"));
 		if (data && data->getLength() > 0)
-			lilu_os_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
+			lilu_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
 
 		if (boardIdentifier[0] != '\0')
 			DBGLOG("dev", "got %s board-id from /efi/platform", boardIdentifier);
@@ -560,7 +560,7 @@ void BaseDeviceInfo::updateModelInfo() {
 			if (boardIdentifier[0] == '\0') {
 				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
 				if (data && data->getLength() > 0)
-					lilu_os_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
+					lilu_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
 
 				if (boardIdentifier[0] != '\0') {
 					DBGLOG("dev", "got %s board-id from /", boardIdentifier);
@@ -576,7 +576,7 @@ void BaseDeviceInfo::updateModelInfo() {
 			if (modelReady && modelIdentifier[0] == '\0') {
 				auto data = OSDynamicCast(OSData, entry->getProperty("model"));
 				if (data && data->getLength() > 0)
-					lilu_os_strlcpy(modelIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(modelIdentifier));
+					lilu_strlcpy(modelIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(modelIdentifier));
 
 				if (modelIdentifier[0] != '\0')
 					DBGLOG("dev", "got %s model from /", modelIdentifier);

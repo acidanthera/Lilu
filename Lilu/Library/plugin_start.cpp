@@ -54,7 +54,7 @@ void PRODUCT_NAME::stop(IOService *provider) {
 
 EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 	// This is an ugly hack necessary on some systems where buffering kills most of debug output.
-	PE_parse_boot_argn("liludelay", &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
+	lilu_get_boot_args("liludelay", &ADDPR(debugPrintDelay), sizeof(ADDPR(debugPrintDelay)));
 
 	auto error = lilu.requestAccess();
 	if (error == LiluAPI::Error::NoError) {
@@ -74,17 +74,17 @@ EXPORT extern "C" kern_return_t ADDPR(kern_start)(kmod_info_t *, void *) {
 		lilu.releaseAccess();
 	} else {
 		SYSLOG("init", "failed to call parent %d", error);
-
-		for (size_t i = 0; i < ADDPR(config).debugArgNum; i++) {
-			if (checkKernelArgument(ADDPR(config).debugArg[i])) {
-				ADDPR(debugEnabled) = true;
-				break;
-			}
-		}
-
-		if (checkKernelArgument("-liludbgall"))
-			ADDPR(debugEnabled) = true;
 	}
+	
+	for (size_t i = 0; i < ADDPR(config).debugArgNum; i++) {
+		if (checkKernelArgument(ADDPR(config).debugArg[i])) {
+			ADDPR(debugEnabled) = true;
+			break;
+		}
+	}
+
+	if (checkKernelArgument("-liludbgall"))
+		ADDPR(debugEnabled) = true;
 
 	// Report success but actually do not start and let I/O Kit unload us.
 	// This works better and increases boot speed in some cases.

@@ -268,7 +268,7 @@ boolean_t UserPatcher::codeSignValidateRangeWrapper(void *blobs, memory_object_t
 	boolean_t res = FunctionCast(codeSignValidateRangeWrapper, that->orgCodeSignValidateRangeWrapper)(blobs, pager, range_offset, data, data_size, tainted);
 
 	if (res)
-		that->performPagePatch(data, data_size);
+		that->performPagePatch(data, (size_t)data_size);
 
 	return res;
 }
@@ -297,7 +297,7 @@ void UserPatcher::onPath(const char *path, uint32_t len) {
 
 						auto pend = new PendingUser;
 						if (pend != nullptr) {
-							lilu_os_strlcpy(pend->path, path, MAXPATHLEN);
+							lilu_strlcpy(pend->path, path, MAXPATHLEN);
 							pend->pathLen = len;
 							// This should not happen after we added task_set_main_thread_qos hook, which gets always called
 							// unlike proc_exec_switch_task. Increasing pending count to 32 should accomodate for most CPUs.
@@ -358,7 +358,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			size_t restrSize = tmpHeader.magic == MH_MAGIC ? sizeof(restrictSegment32) : sizeof(restrictSegment64);
 
 			struct {
-				uintptr_t off;
+				vm_map_offset_t off;
 				vm_prot_t val;
 			} prots[3] {};
 			size_t orgBound = hdrSize + tmpHeader.sizeofcmds;
@@ -382,7 +382,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			// Enable writing for the calculated regions
 			for (size_t i = 0; i < 3; i++) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
-					auto res = vmProtect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
+					auto res = vmProtect(taskPort, (vm_offset_t)prots[i].off, PAGE_SIZE, FALSE, prots[i].val|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to change memory protection (%lu, %d)", i, res);
 						return true;
@@ -418,7 +418,7 @@ bool UserPatcher::injectRestrict(vm_map_t taskPort) {
 			// Restore protection flags
 			for (size_t i = 0; i < 3; i++) {
 				if (prots[i].off && !(prots[i].val & VM_PROT_WRITE)) {
-					res = vmProtect(taskPort, prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
+					res = vmProtect(taskPort, (vm_offset_t)prots[i].off, PAGE_SIZE, FALSE, prots[i].val);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to restore memory protection (%lu, %d)", i, res);
 						return true;
@@ -489,7 +489,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 			uint32_t *entry32 = nullptr;
 			uint64_t *entry64 = nullptr;
 			bool vmEp = true;
-			uintptr_t vmBase = 0;
+			uint64_t vmBase = 0;
 
 			uint8_t *currPtr = tmpBufferData + hdrSize;
 			for (uint32_t i = 0; i < machHeader->ncmds; i++) {
@@ -519,8 +519,8 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 				currPtr += cmd->cmdsize;
 			}
 
-			uintptr_t orgEp = baseAddr - (vmEp ? vmBase : 0);
-			uintptr_t dstEp = newEp + (vmEp ? vmBase : 0);
+			uint64_t orgEp = baseAddr - (vmEp ? vmBase : 0);
+			uint64_t dstEp = newEp + (vmEp ? vmBase : 0);
 			if (entry64) {
 				orgEp += *entry64;
 				*entry64 = dstEp;
@@ -547,7 +547,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 				// Note, that we don't restore memory protection if we fail somewhere (no need to push something non-critical)
 				// Enable writing for the calculated regions
 				if (!(prots[i] & VM_PROT_WRITE)) {
-					auto res = vmProtect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]|VM_PROT_WRITE);
+					auto res = vmProtect(taskPort, (vm_offset_t)baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]|VM_PROT_WRITE);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to change memory protection (%lu, %d)", i, res);
 						return false;
@@ -566,7 +566,7 @@ bool UserPatcher::injectPayload(vm_map_t taskPort, uint8_t *payload, size_t size
 			// Restore protection flags
 			for (size_t i = 0; i < arrsize(prots); i++) {
 				if (!(prots[i] & VM_PROT_WRITE)) {
-					res = vmProtect(taskPort, baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]);
+					res = vmProtect(taskPort, (vm_offset_t)baseAddr + i * PAGE_SIZE, PAGE_SIZE, FALSE, prots[i]);
 					if (res != KERN_SUCCESS) {
 						SYSLOG("user", "failed to restore memory protection (%lu, %d)", i, res);
 						return true;
@@ -661,7 +661,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 							bool comparison = !memcmp(tmp, applyChanges? patch.find : patch.replace, patch.size);
 							DBGLOG("user", "%d/%d found %X %X %X %X", applyChanges, comparison, tmp[0], tmp[1], tmp[2], tmp[3]);
 							if (comparison) {
-								r = vmProtect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE);
+								r = vmProtect(taskPort, (vm_offset_t)(place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_WRITE|VM_PROT_EXECUTE);
 								if (r == KERN_SUCCESS) {
 									DBGLOG("user", "obtained write permssions");
 
@@ -670,7 +670,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 									if (r != KERN_SUCCESS)
 										SYSLOG("user", "patching %llX -> res %d", place, r);
 
-									r = vmProtect(taskPort, (place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_EXECUTE);
+									r = vmProtect(taskPort, (vm_offset_t)(place & -PAGE_SIZE), PAGE_SIZE, FALSE, VM_PROT_READ|VM_PROT_EXECUTE);
 									if (r == KERN_SUCCESS)
 										DBGLOG("user", "restored write permssions");
 									else
@@ -725,16 +725,16 @@ size_t UserPatcher::mapAddresses(const char *mapBuf, MapEntry *mapEntries, size_
 					i += strlen("__TEXT");
 					const char *arrow = strstr(&ptr[i], "->", strlen("->"));
 					if (arrow) {
-						currEntry->startTEXT = strtouq(text + strlen("__TEXT") + 1, nullptr, 16);
-						currEntry->endTEXT = strtouq(arrow + strlen("->") + 1, nullptr, 16);
+						currEntry->startTEXT = lilu_strtou(text + strlen("__TEXT") + 1, nullptr, 16);
+						currEntry->endTEXT = lilu_strtou(arrow + strlen("->") + 1, nullptr, 16);
 
 						const char *data = strstr(&ptr[i], "__DATA", strlen("__DATA"));
 						if (data) {
 							i += strlen("__DATA");
 							arrow = strstr(&ptr[i], "->", strlen("->"));
 							if (arrow) {
-								currEntry->startDATA = strtouq(data + strlen("__DATA") + 1, nullptr, 16);
-								currEntry->endDATA = strtouq(arrow + strlen("->") + 1, nullptr, 16);
+								currEntry->startDATA = lilu_strtou(data + strlen("__DATA") + 1, nullptr, 16);
+								currEntry->endDATA = lilu_strtou(arrow + strlen("->") + 1, nullptr, 16);
 							}
 						}
 
@@ -873,8 +873,8 @@ bool UserPatcher::loadFilesForPatching() {
 
 							if (skip == 0) {
 								off_t sectOff = start - reinterpret_cast<uint8_t *>(sectionptr);
-								vm_address_t vmpage = (vmsection + sectOff) & -PAGE_SIZE;
-								off_t pageOff = vmpage - vmsection;
+								vm_address_t vmpage = (vmsection + (vm_address_t)sectOff) & -PAGE_SIZE;
+								vm_address_t pageOff = vmpage - vmsection;
 								off_t valueOff = reinterpret_cast<uintptr_t>(start - pageOff - reinterpret_cast<uintptr_t>(sectionptr));
 								off_t segOff = vmsection-vmsegment+sectOff;
 
