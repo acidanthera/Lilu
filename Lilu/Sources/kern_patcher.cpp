@@ -761,7 +761,8 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 	} else {
 		kmod_info_t *kmod = *that->kextKmods;
 		if (kmod) {
-			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR((uint64_t)kmod->address), KMOD_MAX_NAME, kmod->name);
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s (start func is " PRIKADDR ")",
+						 CASTKADDR((uint64_t)kmod->address), KMOD_MAX_NAME, kmod->name, CASTKADDR((uint64_t)kmod->start));
 			that->processKext(kmod, false);
 		} else {
 			SYSLOG("patcher", "no kext is currently loaded, this should not happen");
@@ -783,7 +784,8 @@ kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id)
 			that->processAlreadyLoadedKexts();
 			that->waitingForAlreadyLoadedKexts = false;
 		} else {
-			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s", CASTKADDR((uint64_t)kmod->address), KMOD_MAX_NAME, kmod->name);
+			DBGLOG("patcher", "newly loaded kext is " PRIKADDR " and its name is %.*s (start func is " PRIKADDR ")",
+						 CASTKADDR((uint64_t)kmod->address), KMOD_MAX_NAME, kmod->name, CASTKADDR((uint64_t)kmod->start));
 			that->processKext(kmod, false);
 		}
 	}

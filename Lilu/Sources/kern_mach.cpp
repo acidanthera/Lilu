@@ -971,10 +971,16 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 						if (!strncmp(sect->sectname, "__text", sizeof(sect->sectname))) {
 							running_text_addr = sect->addr;
 							running_mh = mh;
+							
+							// MH_OBJECT may have a file offset, align to the next page and add to the slide.
+							slide += alignValue(sect->offset);
 							break;
 						}
 					}
 				}
+				
+				if (running_text_addr)
+					break;
 #endif
 			}
 			addr += loadCmd->cmdsize;
