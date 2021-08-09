@@ -1192,4 +1192,38 @@ public:
 	static OSObjectWrapper *of(void *object);
 };
 
+namespace Value {
+	template <typename T>
+	struct Value {
+		T value;
+
+		explicit Value(T value) : value(value) {}
+
+	#if __cplusplus >= 201703L
+		// Available as of C++17
+		template<typename... Ts>
+		bool isOneOf(Ts... args) {
+			return ((value == args) || ...);
+		}
+
+		// Available as of C++17
+		template <typename... Ts>
+		bool isNotOneOf(Ts... args) {
+			return ((value != args) && ...);
+		}
+	#endif
+	};
+	
+	template <typename T>
+	static Value<T> of(T value) {
+		return Value<T>(value);
+	}
+}
+
+static inline uint64_t MachAbsoluteTime2Nanoseconds(uint64_t abstime) {
+	uint64_t ns = 0;
+	absolutetime_to_nanoseconds(abstime, &ns);
+	return ns;
+}
+
 #endif /* kern_util_hpp */
