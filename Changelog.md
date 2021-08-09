@@ -1,5 +1,10 @@
 Lilu Changelog
 ==============
+#### v1.5.6
+- Added the circular buffer API.
+- Added convenient helpers to check a value (available as of C++17).
+- Added the `OSObjectWrapper` API to wrap a non-`OSObject` value.
+
 #### v1.5.5
 - Added a variant of `KernelPatcher::findAndReplace` that requires both `find` and `replace` buffers to have the same length.
 - Added support for macOS 10.4 and newer
