@@ -139,3 +139,42 @@ void Page::deleter(Page *i) {
 		vm_deallocate(kernel_map, reinterpret_cast<vm_address_t>(i->p), PAGE_SIZE);
 	delete i;
 }
+
+/**
+ *  Meta Class Definitions
+ */
+OSDefineMetaClassAndStructors(OSObjectWrapper, OSObject);
+
+/**
+ *  Initialize the wrapper with the given object
+ *
+ *  @param object The wrapped object that is not an `OSObject`
+ *  @return `true` on success, `false` otherwise.
+ */
+bool OSObjectWrapper::init(void *object) {
+	if (!super::init())
+		return false;
+	
+	this->object = object;
+	return true;
+}
+
+/**
+ *  Create a wrapper for the given object that is not an `OSObject`
+ *
+ *  @param object A non-null object
+ *  @return A non-null wrapper on success, `nullptr` otherwise.
+ *  @warning The caller is responsbile for managing the lifecycle of the given object.
+ */
+OSObjectWrapper *OSObjectWrapper::of(void *object) {
+	auto instance = OSTypeAlloc(OSObjectWrapper);
+	if (instance == nullptr)
+		return nullptr;
+	
+	if (!instance->init(object)) {
+		instance->release();
+		return nullptr;
+	}
+	
+	return instance;
+}

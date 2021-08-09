@@ -12,6 +12,7 @@
 #include <Headers/kern_compat.hpp>
 
 #include <libkern/libkern.h>
+#include <libkern/c++/OSObject.h>
 #include <libkern/OSDebug.h>
 #include <mach/vm_types.h>
 #include <mach/vm_prot.h>
@@ -1144,6 +1145,51 @@ public:
 		IORecursiveLockUnlock(lock);
 		return true;
 	}
+};
+
+/**
+ *  Wrap an object that is not an instance of OSObject
+ */
+class OSObjectWrapper: public OSObject {
+	/**
+	 *  Constructors & Destructors
+	 */
+	OSDeclareDefaultStructors(OSObjectWrapper);
+	
+	using super = OSObject;
+	
+	/**
+	 *  Wrapped object
+	 */
+	void *object;
+	
+public:
+	/**
+	 *  Initialize the wrapper with the given object
+	 *
+	 *  @param object The wrapped object that is not an `OSObject`
+	 *  @return `true` on success, `false` otherwise.
+	 */
+	bool init(void *object);
+	
+	/**
+	 *  Reinterpret the wrapped object as the given type
+	 *
+	 *  @return The wrapped object of the given type.
+	 */
+	template <typename T>
+	T *reinterpretWrappedObjectAs() {
+		return reinterpret_cast<T*>(object);
+	}
+	
+	/**
+	 *  Create a wrapper for the given object that is not an `OSObject`
+	 *
+	 *  @param object A non-null object
+	 *  @return A non-null wrapper on success, `nullptr` otherwise.
+	 *  @warning The caller is responsbile for managing the lifecycle of the given object.
+	 */
+	static OSObjectWrapper *of(void *object);
 };
 
 #endif /* kern_util_hpp */
