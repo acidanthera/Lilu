@@ -1170,7 +1170,7 @@ public:
 	 *  @param object The wrapped object that is not an `OSObject`
 	 *  @return `true` on success, `false` otherwise.
 	 */
-	bool init(void *object);
+	EXPORT bool init(void *object);
 	
 	/**
 	 *  Reinterpret the wrapped object as the given type
@@ -1189,7 +1189,7 @@ public:
 	 *  @return A non-null wrapper on success, `nullptr` otherwise.
 	 *  @warning The caller is responsbile for managing the lifecycle of the given object.
 	 */
-	static OSObjectWrapper *of(void *object);
+	EXPORT static OSObjectWrapper *of(void *object);
 };
 
 namespace Value {
