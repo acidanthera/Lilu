@@ -954,32 +954,32 @@ private:
 	/**
 	 *  The internal storage
 	 */
-	T *storage;
+	T *storage {nullptr};
 	
 	/**
 	 *  The buffer capacity
 	 */
-	IOItemCount size;
+	IOItemCount size {0};
 	
 	/**
 	 *  The current index for the next read operation
 	 */
-	IOItemCount indexr;
+	IOItemCount indexr {0};
 	
 	/**
 	 *  The current index for the next write operation
 	 */
-	IOItemCount indexw;
+	IOItemCount indexw {0};
 	
 	/**
 	 *  The current number of elements in the buffer
 	 */
-	IOItemCount count;
+	IOItemCount count {0};
 	
 	/**
 	 *  The recursive mutex lock that protects the buffer
 	 */
-	IORecursiveLock *lock;
+	IORecursiveLock *lock {nullptr};
 	
 public:
 	/**
@@ -1161,7 +1161,7 @@ class OSObjectWrapper: public OSObject {
 	/**
 	 *  Wrapped object
 	 */
-	void *object;
+	void *object {nullptr};
 	
 public:
 	/**
