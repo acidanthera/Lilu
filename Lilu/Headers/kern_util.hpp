@@ -1047,7 +1047,7 @@ public:
 	}
 	
 	/**
-	 *  Destory the given circular buffer
+	 *  Destroy the given circular buffer
 	 *
 	 *  @param buffer A non-null circular buffer returned by `CircularBuffer::withCapacity()`.
 	 */
