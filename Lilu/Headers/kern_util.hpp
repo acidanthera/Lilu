@@ -1027,25 +1027,23 @@ public:
 	 *  @warning The caller must invoke `CircularBuffer::destory()` to release the returned buffer.
 	 */
 	static CircularBuffer<T> *withCapacity(IOItemCount size) {
-		auto storage = IONewZero(T, size);
+		auto storage = Buffer::create<T>(size);
 		if (storage == nullptr)
 			return nullptr;
 		
 		auto instance = new CircularBuffer<T>();
-		if (instance == nullptr)
-			goto error1;
+		if (instance == nullptr) {
+			Buffer::deleter(storage);
+			return nullptr;
+		}
 		
-		if (!instance->init(storage, size))
-			goto error2;
+		if (!instance->init(storage, size)) {
+			delete instance;
+			Buffer::deleter(storage);
+			return nullptr;
+		}
 		
 		return instance;
-		
-	error2:
-		delete instance;
-		
-	error1:
-		IODelete(storage, T, size);
-		return nullptr;
 	}
 	
 	/**
@@ -1054,7 +1052,7 @@ public:
 	 *  @param buffer A non-null circular buffer returned by `CircularBuffer::withCapacity()`.
 	 */
 	static inline void destory(CircularBuffer<T> *buffer NONNULL) {
-		IOSafeDeleteNULL(buffer->storage, T, buffer->size);
+		Buffer::deleter(buffer->storage);
 		buffer->deinit();
 		delete buffer;
 	}
