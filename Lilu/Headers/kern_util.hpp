@@ -1065,7 +1065,7 @@ public:
 	 */
 	static void safeDeleter(CircularBuffer<T> *&buffer) {
 		if (buffer != nullptr) {
-			destory(buffer);
+			deleter(buffer);
 			buffer = nullptr;
 		}
 	}
