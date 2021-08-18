@@ -166,8 +166,8 @@ bool OSObjectWrapper::init(void *object) {
  *  @return A non-null wrapper on success, `nullptr` otherwise.
  *  @warning The caller is responsbile for managing the lifecycle of the given object.
  */
-OSObjectWrapper *OSObjectWrapper::of(void *object) {
-	auto instance = OSTypeAlloc(OSObjectWrapper);
+OSObjectWrapper *OSObjectWrapper::with(void *object) {
+	auto instance = new OSObjectWrapper;
 	if (instance == nullptr)
 		return nullptr;
 	

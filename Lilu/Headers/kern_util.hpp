@@ -1112,7 +1112,7 @@ public:
 	 *  @param element The element to write
 	 *  @return `true` on success, `false` if the buffer is full.
 	 */
-	bool write(const T &element) {
+	bool push(const T &element) {
 		IORecursiveLockLock(lock);
 		if (isFull()) {
 			IORecursiveLockUnlock(lock);
@@ -1132,7 +1132,7 @@ public:
 	 *  @param element The element read from the buffer
 	 *  @return `true` on success, `false` if the buffer is empty.
 	 */
-	bool read(T& element) {
+	bool pop(T& element) {
 		IORecursiveLockLock(lock);
 		if (isEmpty()) {
 			IORecursiveLockUnlock(lock);
@@ -1178,8 +1178,8 @@ public:
 	 *  @return The wrapped object of the given type.
 	 */
 	template <typename T>
-	T *reinterpretWrappedObjectAs() {
-		return reinterpret_cast<T*>(object);
+	T *get() {
+		return reinterpret_cast<T *>(object);
 	}
 	
 	/**
@@ -1189,7 +1189,7 @@ public:
 	 *  @return A non-null wrapper on success, `nullptr` otherwise.
 	 *  @warning The caller is responsbile for managing the lifecycle of the given object.
 	 */
-	EXPORT static OSObjectWrapper *of(void *object);
+	EXPORT static OSObjectWrapper *with(void *object);
 };
 
 namespace Value {
@@ -1218,12 +1218,6 @@ namespace Value {
 	static Value<T> of(T value) {
 		return Value<T>(value);
 	}
-}
-
-static inline uint64_t MachAbsoluteTime2Nanoseconds(uint64_t abstime) {
-	uint64_t ns = 0;
-	absolutetime_to_nanoseconds(abstime, &ns);
-	return ns;
 }
 
 #endif /* kern_util_hpp */
