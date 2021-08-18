@@ -1051,7 +1051,7 @@ public:
 	 *
 	 *  @param buffer A non-null circular buffer returned by `CircularBuffer::withCapacity()`.
 	 */
-	static inline void destory(CircularBuffer<T> *buffer NONNULL) {
+	static inline void deleter(CircularBuffer<T> *buffer NONNULL) {
 		Buffer::deleter(buffer->storage);
 		buffer->deinit();
 		delete buffer;
@@ -1063,7 +1063,7 @@ public:
 	 *  @param buffer A nullable circular buffer returned by `CircularBuffer::withCapacity()`.
 	 *  @note This function mimics the macro `OSSafeReleaseNULL()`.
 	 */
-	static inline void safeDestory(CircularBuffer<T> *&buffer) {
+	static inline void safeDeleter(CircularBuffer<T> *&buffer) {
 		if (buffer != nullptr) {
 			destory(buffer);
 			buffer = nullptr;
