@@ -1150,7 +1150,7 @@ public:
 /**
  *  Wrap an object that is not an instance of OSObject
  */
-class OSObjectWrapper: public OSObject {
+class EXPORT OSObjectWrapper: public OSObject {
 	/**
 	 *  Constructors & Destructors
 	 */
