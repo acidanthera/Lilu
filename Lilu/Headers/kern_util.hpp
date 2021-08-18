@@ -1051,7 +1051,7 @@ public:
 	 *
 	 *  @param buffer A non-null circular buffer returned by `CircularBuffer::withCapacity()`.
 	 */
-	static inline void deleter(CircularBuffer<T> *buffer NONNULL) {
+	static void deleter(CircularBuffer<T> *buffer NONNULL) {
 		Buffer::deleter(buffer->storage);
 		buffer->deinit();
 		delete buffer;
@@ -1063,7 +1063,7 @@ public:
 	 *  @param buffer A nullable circular buffer returned by `CircularBuffer::withCapacity()`.
 	 *  @note This function mimics the macro `OSSafeReleaseNULL()`.
 	 */
-	static inline void safeDeleter(CircularBuffer<T> *&buffer) {
+	static void safeDeleter(CircularBuffer<T> *&buffer) {
 		if (buffer != nullptr) {
 			destory(buffer);
 			buffer = nullptr;
@@ -1075,7 +1075,7 @@ public:
 	 *
 	 *  @return `true` if the buffer is empty, `false` otherwise.
 	 */
-	inline bool isEmpty() {
+	bool isEmpty() {
 		IORecursiveLockLock(lock);
 		bool retVal = (count == 0) && (indexr == indexw);
 		IORecursiveLockUnlock(lock);
@@ -1087,7 +1087,7 @@ public:
 	 *
 	 *  @return `true` if the buffer is full, `false` otherwise.
 	 */
-	inline bool isFull() {
+	bool isFull() {
 		IORecursiveLockLock(lock);
 		bool retVal = (count == size) && (indexr == indexw);
 		IORecursiveLockUnlock(lock);
@@ -1099,7 +1099,7 @@ public:
 	 *
 	 *  @return The current number of elements in the buffer.
 	 */
-	inline IOItemCount getCount() {
+	IOItemCount getCount() {
 		IORecursiveLockLock(lock);
 		IOItemCount retVal = count;
 		IORecursiveLockUnlock(lock);
@@ -1112,11 +1112,12 @@ public:
 	 *  @param element The element to write
 	 *  @return `true` on success, `false` if the buffer is full.
 	 */
-	inline bool write(const T &element) {
-		if (isFull())
-			return false;
-		
+	bool write(const T &element) {
 		IORecursiveLockLock(lock);
+		if (isFull()) {
+			IORecursiveLockUnlock(lock);
+			return false;
+		}
 		storage[indexw] = element;
 		indexw += 1;
 		indexw %= size;
@@ -1131,11 +1132,12 @@ public:
 	 *  @param element The element read from the buffer
 	 *  @return `true` on success, `false` if the buffer is empty.
 	 */
-	inline bool read(T& element) {
-		if (isEmpty())
-			return false;
-		
+	bool read(T& element) {
 		IORecursiveLockLock(lock);
+		if (isEmpty()) {
+			IORecursiveLockUnlock(lock);
+			return false;
+		}
 		element = storage[indexr];
 		indexr += 1;
 		indexr %= size;
