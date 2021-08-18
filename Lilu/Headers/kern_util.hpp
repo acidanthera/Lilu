@@ -993,9 +993,6 @@ public:
 	bool init(T *buffer, IOItemCount capacity) {
 		storage = buffer;
 		size = capacity;
-		indexr = 0;
-		indexw = 0;
-		count = 0;
 		lock = IORecursiveLockAlloc();
 		return lock != nullptr;
 	}
