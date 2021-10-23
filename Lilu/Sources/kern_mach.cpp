@@ -1000,6 +1000,14 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		kaslr_slide_set = true;
 
 		DBGLOG("mach", "aslr/load slide is 0x%llx", kaslr_slide);
+				
+#if defined(__x86_64__)
+		address_slots = reinterpret_cast<mach_vm_address_t>(running_mh + 1) + running_mh->sizeofcmds;
+		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
+		while (*reinterpret_cast<uint32_t *>(address_slots_end) == 0) {
+			address_slots_end += PAGE_SIZE;
+		}
+#endif
 	} else {
 		SYSLOG("mach", "couldn't find the running addresses");
 		return KERN_FAILURE;

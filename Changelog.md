@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.5.7
+- Added address slot support for all 64-bit macOS version
+
 #### v1.5.6
 - Added the circular buffer API.
 - Added convenient helpers to check a value (available as of C++17).
