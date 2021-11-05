@@ -44,8 +44,14 @@ extern "C"
 	}
 }
 
+#define super IOService
+OSDefineMetaClassAndStructors(FirmwareManager, super)
+
 bool FirmwareManager::init(OSDictionary * dictionary)
 {
+	if ( !super::init() )
+		return false;
+
 	mFirmwareName = NULL;
 	mUncompressedFirmwareLock = IOLockAlloc();
 	mUncompressedFirmwareData = NULL;
@@ -56,6 +62,7 @@ void FirmwareManager::free()
 {
 	removeFirmware();
 	IOLockFree(mUncompressedFirmwareLock);
+	super::free();
 }
 
 int FirmwareManager::decompressFirmware(OSData * firmware)
