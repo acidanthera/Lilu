@@ -50,6 +50,7 @@
 		419163CC268FEC5900E58711 /* hde32.h in Headers */ = {isa = PBXBuildFile; fileRef = 419163C9268FEC5800E58711 /* hde32.h */; };
 		419163CD268FEC5900E58711 /* hde32.c in Sources */ = {isa = PBXBuildFile; fileRef = 419163CA268FEC5900E58711 /* hde32.c */; };
 		6F86FA742526419900D37571 /* kern_version.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6F86FA732526419900D37571 /* kern_version.hpp */; };
+		BCA242A32734D72A008E14A0 /* kern_fwmgr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BCA242A22734D72A008E14A0 /* kern_fwmgr.cpp */; };
 		CE1096261F22876B00B623FC /* umm_malloc.c in Sources */ = {isa = PBXBuildFile; fileRef = CE10961E1F22876B00B623FC /* umm_malloc.c */; };
 		CE1096271F22876B00B623FC /* umm_malloc.h in Headers */ = {isa = PBXBuildFile; fileRef = CE10961F1F22876B00B623FC /* umm_malloc.h */; };
 		CE2687F5213BC02900E17BDD /* kern_ubsan.c in Sources */ = {isa = PBXBuildFile; fileRef = CE2687F4213BC02900E17BDD /* kern_ubsan.c */; };
@@ -150,6 +151,9 @@
 		419163C9268FEC5800E58711 /* hde32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hde32.h; sourceTree = "<group>"; };
 		419163CA268FEC5900E58711 /* hde32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hde32.c; sourceTree = "<group>"; };
 		6F86FA732526419900D37571 /* kern_version.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = kern_version.hpp; sourceTree = "<group>"; };
+		BCA242A02734D687008E14A0 /* MacKernelSDK */ = {isa = PBXFileReference; lastKnownFileType = folder; path = MacKernelSDK; sourceTree = "<group>"; };
+		BCA242A12734D6AE008E14A0 /* kern_fwmgr.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_fwmgr.hpp; sourceTree = "<group>"; };
+		BCA242A22734D72A008E14A0 /* kern_fwmgr.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = kern_fwmgr.cpp; path = Lilu/Sources/kern_fwmgr.cpp; sourceTree = "<group>"; };
 		CE10961E1F22876B00B623FC /* umm_malloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = umm_malloc.c; sourceTree = "<group>"; };
 		CE10961F1F22876B00B623FC /* umm_malloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = umm_malloc.h; sourceTree = "<group>"; };
 		CE22EA372037A4BB002A88A5 /* kern_cpu.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = kern_cpu.hpp; sourceTree = "<group>"; };
@@ -309,6 +313,7 @@
 		1C748C1D1C21952C0024EED2 = {
 			isa = PBXGroup;
 			children = (
+				BCA242A02734D687008E14A0 /* MacKernelSDK */,
 				CE2E7BCB1E2C6DCA009AC62A /* PrivateHeaders */,
 				CE2E7B861E2C6A73009AC62A /* Headers */,
 				CE2E7BE21E2C73B1009AC62A /* Library */,
@@ -366,6 +371,7 @@
 				CE2E7B921E2C6A73009AC62A /* kern_util.hpp */,
 				6F86FA732526419900D37571 /* kern_version.hpp */,
 				CE405ED41E4A005400AA0B3D /* plugin_start.hpp */,
+				BCA242A12734D6AE008E14A0 /* kern_fwmgr.hpp */,
 			);
 			name = Headers;
 			path = Lilu/Headers;
@@ -397,6 +403,7 @@
 				CE2687F4213BC02900E17BDD /* kern_ubsan.c */,
 				CE2E7BAD1E2C6BAA009AC62A /* kern_user.cpp */,
 				CE2E7BAE1E2C6BAA009AC62A /* kern_util.cpp */,
+				BCA242A22734D72A008E14A0 /* kern_fwmgr.cpp */,
 			);
 			name = Sources;
 			sourceTree = "<group>";
@@ -633,6 +640,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CE2E7BB51E2C6BAA009AC62A /* kern_policy.cpp in Sources */,
+				BCA242A32734D72A008E14A0 /* kern_fwmgr.cpp in Sources */,
 				1C3E7B261C84B65400A6448A /* X86DisassemblerDecoder.c in Sources */,
 				CE2E7BB41E2C6BAA009AC62A /* kern_patcher.cpp in Sources */,
 				CE335AE52097444900C60A5F /* kern_rtc.cpp in Sources */,
