@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.5.8
+- Fixed kernel panic on macOS 10.15 and earlier introduced in 1.5.7
+
 #### v1.5.7
 - Added address slot support for all 64-bit macOS version
 
