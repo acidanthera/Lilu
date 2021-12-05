@@ -13,6 +13,7 @@ Please note that improperly written immature plugins will not be listed there.
 [BrightnessKeys](https://github.com/acidanthera/BrightnessKeys) | Automatic handling of brightness keys based on ACPI Specification
 [BlueToolFixup](https://github.com/acidanthera/BrcmPatchRAM) | Forces BlueTool to skip attempting a firmware update, allowing for some Broadcom chipsets to work on Monterey. It also properly sets the transport
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
+[CpuTopologySync](https://github.com/acidanthera/CpuTopologySync) | Rebuild asymmetric CPU topology on macOS
 [CpuTscSync](https://github.com/lvs1974/CpuTscSync) | Сombining functionality of VoodooTSCSync and disabling xcpm_urgency if TSC is not in sync
 [DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
