@@ -13,7 +13,6 @@ Please note that improperly written immature plugins will not be listed there.
 [BrightnessKeys](https://github.com/acidanthera/BrightnessKeys) | Automatic handling of brightness keys based on ACPI Specification
 [BlueToolFixup](https://github.com/acidanthera/BrcmPatchRAM) | Forces BlueTool to skip attempting a firmware update, allowing for some Broadcom chipsets to work on Monterey. It also properly sets the transport
 [CPUFriend](https://github.com/PMheart/CPUFriend) | Dynamic power management data injection
-[CpuTopologySync](https://github.com/acidanthera/CpuTopologySync) | Rebuild asymmetric CPU topology on macOS
 [CpuTscSync](https://github.com/lvs1974/CpuTscSync) | Сombining functionality of VoodooTSCSync and disabling xcpm_urgency if TSC is not in sync
 [DebugEnhancer](https://github.com/acidanthera/DebugEnhancer) | Enable debug output in the macOS kernel
 [DiskArbitrationFixup](https://github.com/Goldfish64/DiskArbitrationFixup) | Disable the uninitialised disk message at disk insertion
@@ -44,6 +43,7 @@ Plugins which functionality was merged into other plugins:
 [BrcmWLFixup](https://github.com/PMheart/BrcmWLFixup) | Superseded by [AirportBrcmFixup](https://github.com/lvs1974/AirportBrcmFixup)
 [BT4LEContinuityFixup](https://github.com/acidanthera/BT4LEContinuityFixup) | Superseded by [OpenCore](https://github.com/acidanthera/OpenCorePkg)  `ExtendBTFeatureFlags` quirk
 [CoreDisplayFixup](https://github.com/PMheart/CoreDisplayFixup) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
+[CpuTopologySync](https://github.com/acidanthera/CpuTopologySync) | Superseded by [OpenCore](https://github.com/acidanthera/OpenCorePkg)  `ProvideCurrentCpuInfo` quirk
 [MacProMemoryNotificationDisabler](https://github.com/IOIIIO/MacProMemoryNotificationDisabler) | Superseded by [RestrictEvents](https://github.com/acidanthera/RestrictEvents)
 [NoVPAJpeg](https://github.com/vulgo/NoVPAJpeg) | Superseded by [WhateverGreen](https://github.com/acidanthera/WhateverGreen)
 [NightShiftUnlocker](https://github.com/Austere-J/NightShiftUnlocker) | Superseded by [FeatureUnlock](https://github.com/acidanthera/FeatureUnlock)
