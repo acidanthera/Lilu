@@ -384,7 +384,7 @@ public:
 	 *
 	 *  @return wrapper pointer or 0 on success
 	 */
-	EXPORT mach_vm_address_t routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true);
+	EXPORT mach_vm_address_t routeFunction(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true) DEPRECATE("Use routeMultiple where possible");
 
 	/**
 	 *  Route function to function with long jump
@@ -397,7 +397,7 @@ public:
 	 *
 	 *  @return wrapper pointer or 0 on success
 	 */
-	EXPORT mach_vm_address_t routeFunctionLong(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true);
+	EXPORT mach_vm_address_t routeFunctionLong(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true) DEPRECATE("Use routeMultiple where possible");
 
 	/**
 	 *  Route function to function with short jump
@@ -410,7 +410,7 @@ public:
 	 *
 	 *  @return wrapper pointer or 0 on success
 	 */
-	EXPORT mach_vm_address_t routeFunctionShort(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true);
+	EXPORT mach_vm_address_t routeFunctionShort(mach_vm_address_t from, mach_vm_address_t to, bool buildWrapper=false, bool kernelRoute=true, bool revertible=true) DEPRECATE("Use routeMultiple where possible");
 
 	/**
 	 *  Route block at assembly level
