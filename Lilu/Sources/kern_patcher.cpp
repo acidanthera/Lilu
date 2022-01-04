@@ -427,7 +427,10 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 			PANIC("patcher", "current plugin has short jump type on a multiroute function, this is not allowed");
 
 		// Make sure to use just 6 bytes for medium routes instead of 14.
-		if (prevJump == JumpType::Medium && info) {
+		if (prevJump == JumpType::Medium) {
+			// If this happens, we can corrupt memory. Force everyone use new APIs.
+			if (!info)
+				PANIC("patcher", "trying to use long jump on top of slotted jump, please use routeMultipleLong");
 			addressSlot = info->getAddressSlot();
 			DBGLOG("patcher", "using slotted jumping for previous via " PRIKADDR, CASTKADDR(addressSlot));
 			// If this happens, then we should allow slotted jumping only for Auto type.
