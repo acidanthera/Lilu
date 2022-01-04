@@ -254,19 +254,9 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	}
 
 	if (entitlementRequestedCallbacks.size() > 0) {
-		auto entitlement = patcher.solveSymbol(KernelPatcher::KernelID, "__ZN12IOUserClient21copyClientEntitlementEP4taskPKc");
-
-		if (entitlement) {
-			orgCopyClientEntitlement = reinterpret_cast<t_copyClientEntitlement>(patcher.routeFunctionLong(entitlement, reinterpret_cast<mach_vm_address_t>(copyClientEntitlement), true));
-			if (patcher.getError() == KernelPatcher::Error::NoError)
-				DBGLOG("api", "hooked copy user entitlement");
-			else
-				SYSLOG("api", "failed to hook copy user entitlement");
-		} else {
-			SYSLOG("api", "failed to solve copy user entitlement");
-		}
-
-		patcher.clearError();
+		KernelPatcher::RouteRequest req{"__ZN12IOUserClient21copyClientEntitlementEP4taskPKc", copyClientEntitlement, orgCopyClientEntitlement};
+		if (!patcher.routeMultiple(KernelPatcher::KernelID, &req, 1))
+			SYSLOG("api", "failed to hook copy user entitlement");
 	}
 
 #ifdef LILU_KEXTPATCH_SUPPORT

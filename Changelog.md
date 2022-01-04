@@ -6,6 +6,7 @@ Lilu Changelog
 - Added shared patcher instance grabbing API
 - Fixed memory corruption when mixing cs_validate_range/page mid/long routes (thx @Goshin)
 - Enforced all routes to be slotted after one slotted route
+- Refactored all internal routes to use new RouteRequest API
 
 #### v1.5.7
 - Added address slot support for all 64-bit macOS version
