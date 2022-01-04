@@ -1053,30 +1053,13 @@ vm_prot_t UserPatcher::getPageProtection(vm_map_t map, vm_map_address_t addr) {
 
 bool UserPatcher::hookMemoryAccess() {
 	// 10.12 and newer
-	mach_vm_address_t kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_range");
-
-	if (patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidateRangeWrapper = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidateRangeWrapper), true, true);
-
-		if (patcher->getError() != KernelPatcher::Error::NoError) {
-			SYSLOG("user", "failed to hook _cs_validate_range");
-			patcher->clearError();
+	KernelPatcher::RouteRequest rangeRoute {"_cs_validate_range", codeSignValidateRangeWrapper, orgCodeSignValidateRangeWrapper};
+	if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &rangeRoute, 1)) {
+		KernelPatcher::RouteRequest pageRoute {"_cs_validate_page", codeSignValidatePageWrapper, orgCodeSignValidatePageWrapper};
+		if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &pageRoute, 1)) {
+			SYSLOG("user", "failed to resolve _cs_validate function");
 			return false;
 		}
-	} else if (static_cast<void>(patcher->clearError()),
-			   static_cast<void>(kern = patcher->solveSymbol(KernelPatcher::KernelID, "_cs_validate_page")),
-			   patcher->getError() == KernelPatcher::Error::NoError) {
-		orgCodeSignValidatePageWrapper = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(codeSignValidatePageWrapper), true, true);
-
-		if (patcher->getError() != KernelPatcher::Error::NoError) {
-			SYSLOG("user", "failed to hook _cs_validate_page");
-			patcher->clearError();
-			return false;
-		}
-	} else {
-		SYSLOG("user", "failed to resolve _cs_validate function");
-		patcher->clearError();
-		return false;
 	}
 
 	orgCurrentMap = reinterpret_cast<t_currentMap>(patcher->solveSymbol(KernelPatcher::KernelID, "_current_map"));
@@ -1139,42 +1122,24 @@ bool UserPatcher::hookMemoryAccess() {
 	}
 
 	if (patchDyldSharedCache) {
-		kern = patcher->solveSymbol(KernelPatcher::KernelID, "_vm_shared_region_map_file");
-
-		if (patcher->getError() == KernelPatcher::Error::NoError) {
-			orgVmSharedRegionMapFile = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionMapFile), true, true);
-
-			if (patcher->getError() != KernelPatcher::Error::NoError) {
-				SYSLOG("user", "failed to hook _vm_shared_region_map_file");
-				patcher->clearError();
-				return false;
-			}
-
-		} else {
-			SYSLOG("user", "failed to resolve _vm_shared_region_map_file");
-			patcher->clearError();
+		KernelPatcher::RouteRequest mapRoute {"_vm_shared_region_map_file", vmSharedRegionMapFile, orgVmSharedRegionMapFile};
+		if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &mapRoute, 1)) {
+			SYSLOG("user", "failed to hook _vm_shared_region_map_file");
 			return false;
 		}
-
-		kern = patcher->solveSymbol(KernelPatcher::KernelID, "_vm_shared_region_slide");
-
-		if (patcher->getError() == KernelPatcher::Error::NoError) {
-			// 10.14 takes an extra argument here.
-			if (getKernelVersion() >= KernelVersion::Mojave)
-				orgVmSharedRegionSlideMojave = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlideMojave), true, true);
-			else
-				orgVmSharedRegionSlide = patcher->routeFunctionLong(kern, reinterpret_cast<mach_vm_address_t>(vmSharedRegionSlide), true, true);
-
-			if (patcher->getError() != KernelPatcher::Error::NoError) {
+		
+		if (getKernelVersion() >= KernelVersion::Mojave) {
+			KernelPatcher::RouteRequest sharedRegionRoute {"_vm_shared_region_slide", vmSharedRegionSlideMojave, orgVmSharedRegionSlideMojave};
+			if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &sharedRegionRoute, 1)) {
 				SYSLOG("user", "failed to hook _vm_shared_region_slide");
-				patcher->clearError();
 				return false;
 			}
-
 		} else {
-			SYSLOG("user", "failed to resolve _vm_shared_region_slide");
-			patcher->clearError();
-			return false;
+			KernelPatcher::RouteRequest sharedRegionRoute {"_vm_shared_region_slide", vmSharedRegionSlide, orgVmSharedRegionSlide};
+			if (!patcher->routeMultipleLong(KernelPatcher::KernelID, &sharedRegionRoute, 1)) {
+				SYSLOG("user", "failed to hook _vm_shared_region_slide");
+				return false;
+			}
 		}
 	}
 
