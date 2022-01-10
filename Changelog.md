@@ -1,13 +1,15 @@
 Lilu Changelog
 ==============
-#### v1.5.8
-- Fixed kernel panic on macOS 10.15 and earlier introduced in 1.5.7
-- Added Alder Lake CPU model support
-- Added shared patcher instance grabbing API
+#### v1.5.9
 - Fixed memory corruption when mixing cs_validate_range/page mid/long routes (thx @Goshin)
 - Enforced all routes to be slotted after one slotted route
 - Refactored all internal routes to use new RouteRequest API
 - Deprecated routeFunction APIs as they are dangerous to use for multiple routes
+
+#### v1.5.8
+- Fixed kernel panic on macOS 10.15 and earlier introduced in 1.5.7
+- Added Alder Lake CPU model support
+- Added shared patcher instance grabbing API
 
 #### v1.5.7
 - Added address slot support for all 64-bit macOS version
