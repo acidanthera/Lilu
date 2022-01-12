@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.6.0
+- Dropped internal shared patcher instance grabbing API
+
 #### v1.5.9
 - Fixed memory corruption when mixing cs_validate_range/page mid/long routes (thx @Goshin)
 - Enforced all routes to be slotted after one slotted route

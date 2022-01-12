@@ -5,8 +5,6 @@
 //  Copyright © 2016-2017 vit9696. All rights reserved.
 //
 
-#define ACIDANTHERA_PRIVATE
-
 #include <libkern/c++/OSObject.h>
 
 #include <Headers/kern_config.hpp>
@@ -129,10 +127,6 @@ LiluAPI::Error LiluAPI::onPatcherLoad(t_patcherLoaded callback, void *user) {
 	}
 
 	return Error::NoError;
-}
-
-KernelPatcher &LiluAPI::getKernelPatcher() {
-	return ADDPR(config).kernelPatcher;
 }
 
 LiluAPI::Error LiluAPI::onKextLoad(KernelPatcher::KextInfo *infos, size_t num, t_kextLoaded callback, void *user) {

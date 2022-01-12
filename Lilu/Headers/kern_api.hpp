@@ -132,18 +132,6 @@ public:
 	 */
 	EXPORT Error onPatcherLoad(t_patcherLoaded callback, void *user=nullptr);
 
-#ifdef ACIDANTHERA_PRIVATE
-	/**
-	 *  Obtains kernel patcher shared instance.
-	 *
-	 *  WARNING: You can only safely use patcher within kext handling or patcher loading contexts. Using it outside
-	 *  is dangerous without extra knowledge.
-	 *
-	 *  @return KernelPatcher reference
-	 */
-	EXPORT KernelPatcher &getKernelPatcher();
-#endif
-	
 	/**
 	 *  Registers custom provided callbacks for later invocation on kernel patcher initialisation
 	 *  Enforced version, which panics on registration failure (assuming your code cannot continue otherwise)
