@@ -67,6 +67,7 @@
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 
 static inline char	*med3(char *, char *, char *, int (*)(const void *, const void *));
 static inline void	 swapfunc(char *, char *, int, int);
