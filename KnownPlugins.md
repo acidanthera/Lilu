@@ -32,6 +32,7 @@ Please note that improperly written immature plugins will not be listed there.
 [ThunderboltReset](https://github.com/osy86/ThunderboltReset) | Disable the ICM in the Alpine Ridge
 [VirtualSMC](https://github.com/acidanthera/VirtualSMC) | Advanced SMC emulation
 [WhateverGreen](https://github.com/acidanthera/WhateverGreen) | Various patches necessary for GPUs
+[IntelBTPatcher](https://github.com/OpenIntelWireless/IntelBluetoothFirmware) | Fix Intel Bluetooth on Bigsur, Catalina, Mojave, High sierra etc, tested with Bigsur and Catalina all working good.
 
 Plugins which functionality was merged into other plugins:
 
