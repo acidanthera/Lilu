@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.6.1
 - Allow loading on macOS 13 without `-lilubetaall`
+- Added Ventura dyld shared cache pathing 
 
 #### v1.6.0
 - Dropped internal shared patcher instance grabbing API
