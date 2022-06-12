@@ -758,7 +758,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
 	bool isHaswell = BaseDeviceInfo::get().cpuHasAvx2;
-	if (getKernelVersion() >= KernelVersion::BigSur) {
+	if (getKernelVersion() >= KernelVersion::Ventura) {
+		buffer = FileIO::readFileToBuffer(isHaswell ? venturaSharedCacheMapHaswell : venturaSharedCacheMapLegacy, bufferSize);
+	}
+	else if (getKernelVersion() >= KernelVersion::BigSur) {
 		buffer = FileIO::readFileToBuffer(isHaswell ? bigSurSharedCacheMapHaswell : bigSurSharedCacheMapLegacy, bufferSize);
 	}
 	else if (isHaswell && getKernelVersion() >= KernelVersion::Yosemite) {
