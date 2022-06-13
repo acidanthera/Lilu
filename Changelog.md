@@ -2,7 +2,8 @@ Lilu Changelog
 ==============
 #### v1.6.1
 - Allow loading on macOS 13 without `-lilubetaall`
-- Added Ventura dyld shared cache pathing 
+- Added Ventura dyld shared cache pathing
+- Changed SKL default ig-platform-id to KBL on macOS 13+
 
 #### v1.6.0
 - Dropped internal shared patcher instance grabbing API
