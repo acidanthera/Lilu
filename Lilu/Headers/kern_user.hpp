@@ -610,6 +610,26 @@ private:
 	 */
 	static constexpr const char *bigSurSharedCacheLegacy {"/System/Library/dyld/dyld_shared_cache_x86_64"};
 
+	/**
+	 *  DYLD shared cache map path on Haswell+ on Ventura
+	 */
+	static constexpr const char *venturaSharedCacheMapHaswell {"/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_x86_64h.map"};
+	
+	/**
+	 *  DYLD shared cache map path on older systems on Ventura
+	 */
+	static constexpr const char *venturaSharedCacheMapLegacy {"/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_x86_64.map"};
+
+	/**
+	 *  DYLD shared cache path on Haswell+ on Ventura
+	 */
+	static constexpr const char *venturaSharedCacheHaswell {"/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_x86_64h"};
+
+	/**
+	 *  DYLD shared cache path on older systems on Ventura
+	 */
+	static constexpr const char *venturaSharedCacheLegacy {"/System/Volumes/Preboot/Cryptexes/OS/System/Library/dyld/dyld_shared_cache_x86_64"};
+
 };
 
 #endif /* kern_user_hpp */

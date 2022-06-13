@@ -758,7 +758,10 @@ bool UserPatcher::loadDyldSharedCacheMapping() {
 	uint8_t *buffer {nullptr};
 	size_t bufferSize {0};
 	bool isHaswell = BaseDeviceInfo::get().cpuHasAvx2;
-	if (getKernelVersion() >= KernelVersion::BigSur) {
+	if (getKernelVersion() >= KernelVersion::Ventura) {
+		buffer = FileIO::readFileToBuffer(isHaswell ? venturaSharedCacheMapHaswell : venturaSharedCacheMapLegacy, bufferSize);
+	}
+	else if (getKernelVersion() >= KernelVersion::BigSur) {
 		buffer = FileIO::readFileToBuffer(isHaswell ? bigSurSharedCacheMapHaswell : bigSurSharedCacheMapLegacy, bufferSize);
 	}
 	else if (isHaswell && getKernelVersion() >= KernelVersion::Yosemite) {
@@ -1152,15 +1155,18 @@ void UserPatcher::activate() {
 
 const char *UserPatcher::getSharedCachePath() {
 	bool isHaswell = BaseDeviceInfo::get().cpuHasAvx2;
-	if (getKernelVersion() >= KernelVersion::BigSur)
+	if (getKernelVersion() >= KernelVersion::Ventura)
+		return isHaswell ? venturaSharedCacheHaswell : venturaSharedCacheLegacy;
+	else if (getKernelVersion() >= KernelVersion::BigSur)
 		return isHaswell ? bigSurSharedCacheHaswell : bigSurSharedCacheLegacy;
 	return isHaswell ? sharedCacheHaswell : sharedCacheLegacy;
 }
 
 bool UserPatcher::matchSharedCachePath(const char *path) {
 	if (getKernelVersion() >= KernelVersion::BigSur) {
-		auto len = strlen(bigSurSharedCacheLegacy);
-		if (strncmp(path, bigSurSharedCacheLegacy, len) != 0)
+		auto dyld_path = getKernelVersion() >= KernelVersion::Ventura ? venturaSharedCacheLegacy : bigSurSharedCacheLegacy;
+		auto len = strlen(dyld_path);
+		if (strncmp(path, dyld_path, len) != 0)
 			return false;
 		path += len;
 	} else {
