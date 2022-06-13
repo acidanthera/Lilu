@@ -56,7 +56,8 @@ void DeviceInfo::updateFramebufferId() {
 				else if (gen == CPUInfo::CpuGeneration::Haswell)
 					reportedFramebufferId = ConnectorLessHaswellPlatformId1;
 				else if (gen == CPUInfo::CpuGeneration::Skylake)
-					reportedFramebufferId = ConnectorLessSkylakePlatformId3;
+					// fake SKL as KBL on macOS 13+
+					reportedFramebufferId = getKernelVersion() >= KernelVersion::Ventura ? ConnectorLessKabyLakePlatformId2 : ConnectorLessSkylakePlatformId3;
 				else if (gen == CPUInfo::CpuGeneration::KabyLake)
 					reportedFramebufferId = ConnectorLessKabyLakePlatformId2;
 				else if (gen == CPUInfo::CpuGeneration::CoffeeLake)
@@ -78,7 +79,8 @@ void DeviceInfo::updateFramebufferId() {
 					else if (gen == CPUInfo::CpuGeneration::Broadwell)
 						reportedFramebufferId = 0x16260006;
 					else if (gen == CPUInfo::CpuGeneration::Skylake)
-						reportedFramebufferId = 0x19160000;
+						// fake SKL as KBL on macOS 13+
+						reportedFramebufferId = getKernelVersion() >= KernelVersion::Ventura ? 0x591B0000 : 0x19160000;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
 						reportedFramebufferId = 0x591B0000;
 					else if (gen == CPUInfo::CpuGeneration::CoffeeLake || gen == CPUInfo::CpuGeneration::CometLake)
@@ -99,7 +101,8 @@ void DeviceInfo::updateFramebufferId() {
 					else if (gen == CPUInfo::CpuGeneration::Broadwell)
 						reportedFramebufferId = 0x16220007;  /* for now */
 					else if (gen == CPUInfo::CpuGeneration::Skylake)
-						reportedFramebufferId = DefaultAppleSkylakePlatformId;
+						// fake SKL as KBL on macOS 13+
+						reportedFramebufferId = getKernelVersion() >= KernelVersion::Ventura ? DefaultAppleKabyLakePlatformId : DefaultAppleSkylakePlatformId;
 					else if (gen == CPUInfo::CpuGeneration::KabyLake)
 						reportedFramebufferId = DefaultAppleKabyLakePlatformId;
 					else if (gen == CPUInfo::CpuGeneration::CoffeeLake || gen == CPUInfo::CpuGeneration::CometLake)
