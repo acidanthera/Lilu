@@ -608,11 +608,7 @@ public:
 	/**
 	 *  Simple find and replace with masking in kernel memory.
 	 */
-	static inline bool findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count=0, size_t skip=0) {
-		if (dataSize < findSize) return false;
-
-		return findAndReplaceWithMaskInternal(data, dataSize, find, findSize, findMask, findMaskSize, replace, replaceSize, replaceMask, replaceMaskSize, count, skip);
-	}
+	EXPORT static bool findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count=0, size_t skip=0);
 
 	/**
 	 *  Simple find and replace in kernel memory.

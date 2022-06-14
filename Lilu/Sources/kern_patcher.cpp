@@ -648,7 +648,9 @@ bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, si
 	return false;
 }
 
-bool KernelPatcher::findAndReplaceWithMaskInternal(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
+bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
+	if (dataSize < findSize) return false;
+	
 	uint8_t *d = (uint8_t *) data;
 	const uint8_t *repl = (const uint8_t *) replace;
 	const uint8_t *replMsk = (const uint8_t *) replaceMask;
