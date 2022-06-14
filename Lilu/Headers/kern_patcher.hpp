@@ -592,13 +592,18 @@ public:
 	}
 
 	/**
-	 *  Find one pattern with optional masking within a block of memory.
+	 *  Find one pattern with optional masking within a block of memory
+	 *
+	 *  @param pattern           pattern to search
+	 *  @param patternMask           pattern mask
+	 *  @param patternSize           size of pattern
+	 *  @param data           a block of memory
+	 *  @param dataSize           size of memory
+	 *  @param dataOffset           data offset, to be set by this function
+	 *
+	 *  @return true if pattern is found in data
 	 */
-	static inline bool findPattern(const void *pattern, const void *patternMask, size_t patternSize, const void *data, size_t dataSize, size_t *dataOffset) {
-		if (dataSize < patternSize) return false;
-
-		return findPatternInternal(pattern, patternMask, patternSize, data, dataSize, dataOffset);
-	}
+	EXPORT static bool findPattern(const void *pattern, const void *patternMask, size_t patternSize, const void *data, size_t dataSize, size_t *dataOffset);
 
 	/**
 	 *  Simple find and replace with masking in kernel memory.
@@ -716,20 +721,6 @@ private:
 	 *  @return false if it at least one error happened
 	 */
 	bool routeMultipleInternal(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false, JumpType jumpType=JumpType::Auto);
-
-	/**
-	 *  Find one pattern with optional masking within a block of memory
-	 *
-	 *  @param pattern           pattern to search
-	 *  @param patternMask           pattern mask
-	 *  @param patternSize           size of pattern
-	 *  @param data           a block of memory
-	 *  @param dataSize           size of memory
-	 *  @param dataOffset           data offset, to be set by this function
-	 *
-	 *  @return true if pattern is found in data
-	 */
-	static bool findPatternInternal(const void *pattern, const void *patternMask, size_t patternSize, const void *data, size_t dataSize, size_t *dataOffset);
 
 	/**
 	 *  Simple find and replace with masking in kernel memory

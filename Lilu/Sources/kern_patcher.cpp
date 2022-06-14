@@ -602,10 +602,9 @@ bool KernelPatcher::routeMultipleShort(size_t id, RouteRequest *requests, size_t
 	return routeMultipleInternal(id, requests, num, start, size, kernelRoute, force, JumpType::Short);
 }
 
-bool KernelPatcher::findPatternInternal(const void *pattern, const void *patternMask, size_t patternSize, const void *data, size_t dataSize, size_t *dataOffset) {
-	assert(dataSize >= patternSize);
-
-	if (patternSize == 0) return false;
+bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, size_t patternSize, const void *data, size_t dataSize, size_t *dataOffset) {
+	if (patternSize == 0 || dataSize < patternSize)
+		return false;
 
 	size_t currOffset = *dataOffset;
 	size_t lastOffset = dataSize - patternSize;
