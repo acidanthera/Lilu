@@ -1181,8 +1181,15 @@ bool UserPatcher::matchSharedCachePath(const char *path) {
 		path++;
 
 	// Skip suffix matching on macOS 12 and newer
-	if (getKernelVersion() >= KernelVersion::Monterey && path[0] == '.' && path[1] >= '1' && path[1] <= '9')
-		path += 2;
+	if (getKernelVersion() >= KernelVersion::Monterey) {
+		if (path[0] == '.')
+			path += 1;
+		if (getKernelVersion() >= KernelVersion::Ventura && path[0] == '0')
+			path += 1;
+		if (path[0] >= '1' && path[0] <= '9')
+			path += 1;
+	}
+		
 
 	return path[0] == '\0';
 }
