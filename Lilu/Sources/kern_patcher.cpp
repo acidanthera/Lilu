@@ -602,6 +602,107 @@ bool KernelPatcher::routeMultipleShort(size_t id, RouteRequest *requests, size_t
 	return routeMultipleInternal(id, requests, num, start, size, kernelRoute, force, JumpType::Short);
 }
 
+bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, size_t patternSize, const void *data, size_t dataSize, size_t *dataOffset) {
+	if (patternSize == 0 || dataSize < patternSize)
+		return false;
+
+	size_t currOffset = *dataOffset;
+	size_t lastOffset = dataSize - patternSize;
+
+	const uint8_t *d = (const uint8_t *) data;
+	const uint8_t *ptn = (const uint8_t *) pattern;
+	const uint8_t *ptnMask = (const uint8_t *) patternMask;
+
+	if (patternMask == nullptr) {
+		while (currOffset <= lastOffset) {
+			size_t i;
+			for (i = 0; i < patternSize; i++) {
+				if (d[currOffset + i] != ptn[i])
+					break;
+			}
+
+			if (i == patternSize) {
+				*dataOffset = currOffset;
+				return true;
+			}
+
+			currOffset++;
+		}
+	} else {
+		while (currOffset <= lastOffset) {
+			size_t i;
+			for (i = 0; i < patternSize; i++) {
+				if ((d[currOffset + i] & ptnMask[i]) != ptn[i])
+					break;
+			}
+
+			if (i == patternSize) {
+				*dataOffset = currOffset;
+				return true;
+			}
+
+			currOffset++;
+		}
+	}
+
+	return false;
+}
+
+bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
+	if (dataSize < findSize) return false;
+	
+	uint8_t *d = (uint8_t *) data;
+	const uint8_t *repl = (const uint8_t *) replace;
+	const uint8_t *replMsk = (const uint8_t *) replaceMask;
+
+	size_t replCount = 0;
+	size_t dataOffset = 0;
+
+	while (true) {
+		bool found = findPattern(find, findMask, findSize, data, dataSize, &dataOffset);
+		if (!found) break;
+
+		// dataOffset + findSize - 1 is guaranteed to be a valid offset here. As
+		// dataSize can at most be SIZE_T_MAX, the maximum valid offset is
+		// SIZE_T_MAX - 1. In consequence, dataOffset + findSize cannot wrap around.
+
+		// skip this finding if requested
+		if (skip > 0) {
+			skip--;
+			dataOffset += findSize;
+			continue;
+		}
+
+		if (UNLIKELY(MachInfo::setKernelWriting(true, KernelPatcher::kernelWriteLock) != KERN_SUCCESS)) {
+			SYSLOG("patcher", "failed to obtain write permissions for f/r");
+			return false;
+		}
+
+		// perform replacement
+		if (replaceMask == nullptr) {
+			lilu_os_memcpy(&d[dataOffset], replace, replaceSize);
+		} else {
+			for (size_t i = 0; i < findSize; i++)
+				d[dataOffset + i] = (d[dataOffset + i] & ~replMsk[i]) | (repl[i] & replMsk[i]);
+		}
+
+		if (UNLIKELY(MachInfo::setKernelWriting(false, KernelPatcher::kernelWriteLock) != KERN_SUCCESS)) {
+			SYSLOG("patcher", "failed to restore write permissions for f/r");
+		}
+
+		replCount++;
+		dataOffset += replaceSize;
+
+		// check replace count if requested
+		if (count > 0) {
+			count--;
+			if (count == 0)
+				break;
+		}
+	}
+
+	return replCount > 0;
+}
 
 bool KernelPatcher::routeMultipleInternal(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start, size_t size, bool kernelRoute, bool force, JumpType jump) {
 	bool errorsFound = false;
