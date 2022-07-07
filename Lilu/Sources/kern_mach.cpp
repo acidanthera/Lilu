@@ -828,7 +828,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
-				if (!strncmp(segCmd->segname, "__PRELINK_TEXT", sizeof(segCmd->segname))) {
+				if (!strncmp(segCmd->segname, "__TEXT_EXEC", sizeof(segCmd->segname))) {
 					inner = reinterpret_cast<mach_header_64 *>(segCmd->vmaddr);
 					break;
 				}
