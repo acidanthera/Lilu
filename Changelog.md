@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.6.2
+- Fixed KC segment name, which also fixed kernel panic on macOS 13 b3
+
 #### v1.6.1
 - Allow loading on macOS 13 without `-lilubetaall`
 - Added Ventura dyld shared cache pathing
