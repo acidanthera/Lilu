@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.6.2
 - Fixed KC segment name, which also fixed kernel panic on macOS 13 b3
+- Disable EFI64 runtime APIs when `-legacy` is used on 32-bit kernels
 
 #### v1.6.1
 - Allow loading on macOS 13 without `-lilubetaall`

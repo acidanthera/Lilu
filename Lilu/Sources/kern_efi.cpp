@@ -139,11 +139,18 @@ void EfiRuntimeServices::activate() {
 	if (efi) {
 		auto abi = OSDynamicCast(OSData, efi->getProperty("firmware-abi"));
 		if (abi && abi->isEqualTo("EFI64", sizeof("EFI64"))) {
-			services = new EfiRuntimeServices;
-			services->is32BitEFI = false;
-			services->setRuntimeServices();
-			
 #if defined(__i386__)
+			// If kernel is forced to pure 32-bit mode, do not load EFI64 services.
+			if (!checkKernelArgument("-legacy")) {
+#endif
+				services = new EfiRuntimeServices;
+				services->is32BitEFI = false;
+				services->setRuntimeServices();
+#if defined(__i386__)
+			} else {
+				SYSLOG("efi", "EFI64 not supported due to -legacy");
+			}
+			
 		} else if (abi && abi->isEqualTo("EFI32", sizeof("EFI32"))) {
 			services = new EfiRuntimeServices;
 			services->is32BitEFI = true;
