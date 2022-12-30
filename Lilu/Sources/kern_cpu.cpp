@@ -134,6 +134,9 @@ void CPUInfo::init() {
 			case CPU_MODEL_ALDERLAKE_S:
 				bdi.cpuGeneration = CpuGeneration::AlderLake;
 				break;
+			case CPU_MODEL_RAPTORLAKE_S:
+				bdi.cpuGeneration = CpuGeneration::RaptorLake;
+				break;
 			default:
 				bdi.cpuGeneration = CpuGeneration::Unknown;
 				break;
