@@ -272,6 +272,10 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 						// To distinguish the devices we use audio card presence as a marker.
 						DBGLOG("dev", "marking audio device as HDEF at %s", safeString(v.audio->getName()));
 						audioBuiltinAnalog = v.audio;
+						
+						if (v.video && v.vendor == WIOKit::VendorID::ATIAMD) {
+							videoBuiltin = v.video;
+						}
 					}
 				}
 			}

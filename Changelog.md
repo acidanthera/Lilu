@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.6.4
+- Added AMD IGPU detection
+
 #### v1.6.3
 - Added Raptor Lake CPU definitions
 
