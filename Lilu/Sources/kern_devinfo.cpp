@@ -274,11 +274,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 						audioBuiltinAnalog = v.audio;
 						
 						if (v.video && v.vendor == WIOKit::VendorID::ATIAMD) {
-							v.audio = nullptr;
-							
-							DBGLOG("dev", "marking counterpart video device as gpu at %s", safeString(v.video->getName()));
-							if (!videoExternal.push_back(v))
-								SYSLOG("dev", "failed to push video gpu");
+							videoBuiltin = v.video;
 						}
 					}
 				}
