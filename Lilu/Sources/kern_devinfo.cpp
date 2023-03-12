@@ -206,9 +206,12 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				continue;
 
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
-				DBGLOG("dev", "found IGPU device %s", safeString(name));
-				videoBuiltin = obj;
-				requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
+					DBGLOG("dev", "found IGPU device %s", safeString(name));
+					videoBuiltin = obj;
+					requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
+				  } else if (vendor == WIOKit::VendorID::ATIAMD && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
+					DBGLOG("dev", "found AMD iGPU device %s", safeString(name));
+					videoBuiltin = obj;
 			} else if (code == WIOKit::ClassCode::HDADevice || code == WIOKit::ClassCode::HDAMmDevice) {
 				if (vendor == WIOKit::VendorID::Intel && name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
 					DBGLOG("dev", "found HDAU device %s", safeString(name));
@@ -272,10 +275,6 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 						// To distinguish the devices we use audio card presence as a marker.
 						DBGLOG("dev", "marking audio device as HDEF at %s", safeString(v.audio->getName()));
 						audioBuiltinAnalog = v.audio;
-						
-						if (v.video && v.vendor == WIOKit::VendorID::ATIAMD) {
-							videoBuiltin = v.video;
-						}
 					}
 				}
 			}
