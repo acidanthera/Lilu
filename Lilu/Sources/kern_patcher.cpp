@@ -411,7 +411,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 			kcType = "AuxKC";
 		}
 
-		SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %c range %llX ~ %llX", kcType, offset, offset + initial_size);
+		SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %s range %llX ~ %llX", kcType, offset, offset + initial_size);
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
