@@ -401,7 +401,7 @@ public:
 	/**
 	 *  Called at KC FileSet loading if KC listening is enabled
 	 */
-	static OSReturn onOSKextLoadKCFileSet(void *thisKext, const char *filepath, kc_kind_t type);
+	static OSReturn onOSKextLoadKCFileSet(const char *filepath, kc_kind_t type);
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
