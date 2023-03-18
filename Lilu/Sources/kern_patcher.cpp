@@ -404,7 +404,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	kern_return_t ret = -1;
 
 	if (that) {
-		char * kcType = "Unknown KC";
+		const char * kcType = "Unknown KC";
 		if (control == that->kcControls[kc_kind::KCKindPageable]) {
 			kcType = "SysKC";
 		} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
