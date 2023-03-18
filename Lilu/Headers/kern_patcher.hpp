@@ -411,7 +411,7 @@ public:
 	/**
 	 *  Called during KC FileSet loading if KC listening is enabled
 	 */
-	static void * onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size)
+	static void * onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size);
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

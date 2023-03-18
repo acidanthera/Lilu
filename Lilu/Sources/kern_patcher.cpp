@@ -368,7 +368,6 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 		SYSLOG("patcher", "Loading KC FileSet type %d", type);
 		that->curLoadingKCKind = type;
 		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(filepath, type);
-		SYSLOG("patcher", "Stored fileset_control of KC type %d: %p", that->curLoadingKCKind, that->kcControls[that->curLoadingKCKind]);
 		that->curLoadingKCKind = kc_kind::KCKindNone;
 	}
 
@@ -379,7 +378,6 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 	void * ret = nullptr;
 
 	if (that) {
-		SYSLOG("patcher", "ubc_getobject_from_filename called! %d", that->curLoadingKCKind);
 		ret = FunctionCast(onUbcGetobjectFromFilename, that->orgUbcGetobjectFromFilename)(filename, vpp, file_size);
 		if (that->curLoadingKCKind == kc_kind::KCKindPageable || that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
 			SYSLOG("patcher", "Storing fileset_control of KC type %d: %p", that->curLoadingKCKind, ret);
