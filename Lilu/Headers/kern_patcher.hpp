@@ -467,7 +467,7 @@ public:
 		boolean_t               copy,
 		vm_prot_t               cur_protection,
 		vm_prot_t               max_protection,
-		vm_inherit_t            inheritance)
+		vm_inherit_t            inheritance);
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
