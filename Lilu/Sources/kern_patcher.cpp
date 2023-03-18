@@ -368,6 +368,7 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 		SYSLOG("patcher", "Loading KC FileSet type %d", type);
 		that->curLoadingKCKind = type;
 		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(filepath, type);
+		SYSLOG("patcher", "Stored fileset_control of KC type %d: %p", that->curLoadingKCKind, that->kcControls[that->curLoadingKCKind]);
 		that->curLoadingKCKind = kc_kind::KCKindNone;
 	}
 
