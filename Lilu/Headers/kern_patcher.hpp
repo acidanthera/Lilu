@@ -22,17 +22,50 @@ union OSKextLoadedKextSummaryHeaderAny;
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 #ifdef LILU_KCINJECT_SUPPORT
-	/**
-	 *  Taken from pexpert/pexpert/pexpert.h
-	 */
-	typedef enum kc_kind {
-		KCKindNone      = -1,
-		KCKindUnknown   = 0,
-		KCKindPrimary   = 1,
-		KCKindPageable  = 2,
-		KCKindAuxiliary = 3,
-		KCNumKinds      = 4,
-	} kc_kind_t;
+/**
+ *  Taken from pexpert/pexpert/pexpert.h
+ */
+typedef enum kc_kind {
+	KCKindNone      = -1,
+	KCKindUnknown   = 0,
+	KCKindPrimary   = 1,
+	KCKindPageable  = 2,
+	KCKindAuxiliary = 3,
+	KCNumKinds      = 4,
+} kc_kind_t;
+
+/**
+ *  Taken from osfmk/mach/vm_statistics.h
+ */
+typedef struct {
+	unsigned int
+	    vmkf_atomic_entry:1,
+	    vmkf_permanent:1,
+	    vmkf_guard_after:1,
+	    vmkf_guard_before:1,
+	    vmkf_submap:1,
+	    vmkf_already:1,
+	    vmkf_beyond_max:1,
+	    vmkf_no_pmap_check:1,
+	    vmkf_map_jit:1,
+	    vmkf_iokit_acct:1,
+	    vmkf_keep_map_locked:1,
+	    vmkf_fourk:1,
+	    vmkf_overwrite_immutable:1,
+	    vmkf_remap_prot_copy:1,
+	    vmkf_cs_enforcement_override:1,
+	    vmkf_cs_enforcement:1,
+	    vmkf_nested_pmap:1,
+	    vmkf_no_copy_on_read:1,
+	    vmkf_32bit_map_va:1,
+	    vmkf_copy_single_object:1,
+	    vmkf_copy_pageable:1,
+	    vmkf_copy_same_map:1,
+	    vmkf_translated_allow_execute:1,
+	    __vmkf_unused:9;
+} vm_map_kernel_flags_t;
+
+typedef uint16_t vm_tag_t;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
@@ -412,6 +445,29 @@ public:
 	 *  Called during KC FileSet loading if KC listening is enabled
 	 */
 	static void * onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size);
+
+	/**
+	 *  A pointer to vm_map_enter_mem_object_control
+	 */
+	mach_vm_address_t orgVmMapEnterMemObjectControl {};
+
+	/**
+	 *  Called during KC FileSet content access if KC listening is enabled
+	 */
+	static kern_return_t onVmMapEnterMemObjectControl(
+		vm_map_t                target_map,
+		vm_map_offset_t         *address,
+		vm_map_size_t           initial_size,
+		vm_map_offset_t         mask,
+		int                     flags,
+		vm_map_kernel_flags_t   vmk_flags,
+		vm_tag_t                tag,
+		memory_object_control_t control,
+		vm_object_offset_t      offset,
+		boolean_t               copy,
+		vm_prot_t               cur_protection,
+		vm_prot_t               max_protection,
+		vm_inherit_t            inheritance)
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -872,7 +928,7 @@ private:
 	/**
 	 *  The "memory control objects" of SysKC and AuxKC
 	 */
-	void *kcControls[3] = {nullptr};
+	void *kcControls[4] = {nullptr};
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

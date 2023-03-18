@@ -365,7 +365,6 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 
 	if (that) {
 		PANIC_COND(that->curLoadingKCKind != kc_kind::KCKindNone, "patcher", "OSKext::loadKCFileSet entered twice");
-		SYSLOG("patcher", "Loading KC FileSet type %d", type);
 		that->curLoadingKCKind = type;
 		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(filepath, type);
 		that->curLoadingKCKind = kc_kind::KCKindNone;
@@ -380,9 +379,42 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 	if (that) {
 		ret = FunctionCast(onUbcGetobjectFromFilename, that->orgUbcGetobjectFromFilename)(filename, vpp, file_size);
 		if (that->curLoadingKCKind == kc_kind::KCKindPageable || that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
-			SYSLOG("patcher", "Storing fileset_control of KC type %d: %p", that->curLoadingKCKind, ret);
 			that->kcControls[that->curLoadingKCKind] = ret;
 		}
+	}
+
+	return ret;
+}
+
+kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
+	vm_map_t                target_map,
+	vm_map_offset_t         *address,
+	vm_map_size_t           initial_size,
+	vm_map_offset_t         mask,
+	int                     flags,
+	vm_map_kernel_flags_t   vmk_flags,
+	vm_tag_t                tag,
+	memory_object_control_t control,
+	vm_object_offset_t      offset,
+	boolean_t               copy,
+	vm_prot_t               cur_protection,
+	vm_prot_t               max_protection,
+	vm_inherit_t            inheritance)
+{
+	kern_return_t ret = -1;
+
+	if (that) {
+		char * kcType = "Unknown KC";
+		if (control == that->kcControls[kc_kind::KCKindPageable]) {
+			kcType = "SysKC";
+		} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
+			kcType = "AuxKC";
+		}
+
+		SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %c range %llX ~ %llX", kcType, offset, offset + initial_size);
+		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
+			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
+			   control, offset, copy, cur_protection, max_protection, inheritance);
 	}
 
 	return ret;
@@ -392,6 +424,7 @@ void KernelPatcher::setupKCListening() {
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
+		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
