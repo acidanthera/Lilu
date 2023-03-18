@@ -21,6 +21,20 @@ namespace Patch { union All; void deleter(All * NONNULL); }
 union OSKextLoadedKextSummaryHeaderAny;
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
+#ifdef LILU_KCINJECT_SUPPORT
+	/**
+	 *  Taken from pexpert/pexpert/pexpert.h
+	 */
+	typedef enum kc_kind {
+		KCKindNone      = -1,
+		KCKindUnknown   = 0,
+		KCKindPrimary   = 1,
+		KCKindPageable  = 2,
+		KCKindAuxiliary = 3,
+		KCNumKinds      = 4,
+	} kc_kind_t;
+#endif /* LILU_KCINJECT_SUPPORT */
+
 class KernelPatcher {
 public:
 
@@ -372,6 +386,23 @@ public:
 	 */
 	EXPORT void applyLookupPatch(const LookupPatch *patch, uint8_t *startingAddress, size_t maxSize);
 #endif /* LILU_KEXTPATCH_SUPPORT */
+
+#ifdef LILU_KCINJECT_SUPPORT
+	/**
+	 *  Hook KC FileSet loading and access functions to allow injecting into SysKC/AuxKC
+	 */
+	EXPORT void setupKCListening();
+
+	/**
+	 *  A pointer to OSKext::loadKCFileSet()
+	 */
+	mach_vm_address_t orgOSKextLoadKCFileSet {};
+
+	/**
+	 *  Called at KC FileSet loading if KC listening is enabled
+	 */
+	static OSReturn onOSKextLoadKCFileSet(void *thisKext, const char *filepath, kc_kind_t type);
+#endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
 	 *  Route function to function
@@ -821,6 +852,13 @@ private:
 	bool isKextUnloading {false};
 
 #endif /* LILU_KEXTPATCH_SUPPORT */
+
+#ifdef LILU_KCINJECT_SUPPORT
+	/**
+	 *  The type of KC OSKext::loadKCFileSet is currently loading, if any
+	 */
+	kc_kind_t curLoadingKCKind = kc_kind::KCKindNone;
+#endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
 	 *  Current error code

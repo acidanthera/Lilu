@@ -359,6 +359,33 @@ void KernelPatcher::setupKextListening() {
 }
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
+#ifdef LILU_KCINJECT_SUPPORT
+OSReturn KernelPatcher::onOSKextLoadKCFileSet(void *thisKext, const char *filepath, kc_kind_t type) {
+	OSReturn status = kOSReturnError;
+
+	if (that) {
+		PANIC_COND(that->curLoadingKCKind != kc_kind::KCKindNone, "patcher", "OSKext::loadKCFileSet entered twice");
+		SYSLOG("patcher", "Loading KC FileSet type %d", type);
+		that->curLoadingKCKind = type;
+		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(thisKext, filepath, type);
+		that->curLoadingKCKind = kc_kind::KCKindNone;
+	}
+
+	return status;
+}
+
+void KernelPatcher::setupKCListening() {
+	KernelPatcher::RouteRequest requests[] = {
+		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
+	};
+
+	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
+		SYSLOG("patcher", "failed to route KC listener functions");
+		return;
+	}
+}
+#endif /* LILU_KCINJECT_SUPPORT */
+
 void KernelPatcher::freeFileBufferResources() {
 	if (kinfos.size() > KernelID)
 		kinfos[KernelID]->freeFileBufferResources();
