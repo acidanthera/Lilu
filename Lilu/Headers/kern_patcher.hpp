@@ -402,6 +402,16 @@ public:
 	 *  Called at KC FileSet loading if KC listening is enabled
 	 */
 	static OSReturn onOSKextLoadKCFileSet(const char *filepath, kc_kind_t type);
+
+	/**
+	 *  A pointer to ubc_getobject_from_filename
+	 */
+	mach_vm_address_t orgUbcGetobjectFromFilename {};
+
+	/**
+	 *  Called during KC FileSet loading if KC listening is enabled
+	 */
+	static void * onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size)
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -858,6 +868,11 @@ private:
 	 *  The type of KC OSKext::loadKCFileSet is currently loading, if any
 	 */
 	kc_kind_t curLoadingKCKind = kc_kind::KCKindNone;
+
+	/**
+	 *  The "memory control objects" of SysKC and AuxKC
+	 */
+	void *kcControls[3] = {nullptr};
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

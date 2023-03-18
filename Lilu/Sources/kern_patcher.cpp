@@ -374,9 +374,24 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 	return status;
 }
 
+void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size) {
+	void * ret = nullptr;
+
+	if (that) {
+		ret = FunctionCast(onUbcGetobjectFromFilename, that->orgUbcGetobjectFromFilename)(filename, vpp, file_size);
+		if (that->curLoadingKCKind == kc_kind::KCKindPageable || that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
+			SYSLOG("patcher", "Storing fileset_control of KC type %d: %p", that->curLoadingKCKind, ret);
+			that->kcControls[that->curLoadingKCKind] = ret;
+		}
+	}
+
+	return ret;
+}
+
 void KernelPatcher::setupKCListening() {
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
+		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
