@@ -406,20 +406,16 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	if (that) {
 		const char * kcType = nullptr;
 		if (target_map == *that->gKextMap) {
-			kcType = "Unknown KC";
+			kcType = "Unknown";
 			if (control == that->kcControls[kc_kind::KCKindPageable]) {
-				kcType = "SysKC";
+				kcType = "Sys";
 			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
-				kcType = "AuxKC";
+				kcType = "Aux";
 			}
 		}
 
-		if (control == that->kcControls[kc_kind::KCKindPageable]) {
-			SYSLOG("patcher", "SysKC target_map = %p", target_map);
-		}
-
 		if (kcType != nullptr) {
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %s range %llX ~ %llX", kcType, offset, offset + initial_size);
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
@@ -441,13 +437,8 @@ kern_return_t KernelPatcher::onVmMapRemove(
 	kern_return_t ret = -1;
 
 	if (that) {
-		const char * mapType = nullptr;
 		if (map == *that->gKextMap) {
-			mapType = "g_kext_map";
-		}
-
-		if (mapType != nullptr) {
-			SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from %s", start, end, mapType);
+			SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from g_kext_map", start, end);
 		}
 		ret = FunctionCast(onVmMapRemove, that->orgVmMapRemove)(map, start, end, flags);
 	}
@@ -461,7 +452,6 @@ void KernelPatcher::setupKCListening() {
 		SYSLOG("user", "failed to resolve _g_kext_map symbol");
 		return;
 	}
-	SYSLOG("patcher", "gKextMap: %p %p", gKextMap, *gKextMap);
 
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
