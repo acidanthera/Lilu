@@ -405,13 +405,17 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 
 	if (that) {
 		const char * kcType = nullptr;
-		if (target_map == that->gKextMap) {
+		if (target_map == *that->gKextMap) {
 			kcType = "Unknown KC";
 			if (control == that->kcControls[kc_kind::KCKindPageable]) {
 				kcType = "SysKC";
 			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
 				kcType = "AuxKC";
 			}
+		}
+
+		if (control == that->kcControls[kc_kind::KCKindPageable]) {
+			SYSLOG("patcher", "SysKC target_map = %p", target_map);
 		}
 
 		if (kcType != nullptr) {
@@ -438,7 +442,7 @@ kern_return_t KernelPatcher::onVmMapRemove(
 
 	if (that) {
 		const char * mapType = nullptr;
-		if (map == that->gKextMap) {
+		if (map == *that->gKextMap) {
 			mapType = "g_kext_map";
 		}
 
@@ -452,11 +456,12 @@ kern_return_t KernelPatcher::onVmMapRemove(
 }
 
 void KernelPatcher::setupKCListening() {
-	gKextMap = reinterpret_cast<vm_map_t>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
+	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
 	if (gKextMap == nullptr) {
 		SYSLOG("user", "failed to resolve _g_kext_map symbol");
 		return;
 	}
+	SYSLOG("patcher", "gKextMap: %p %p", gKextMap, *gKextMap);
 
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
