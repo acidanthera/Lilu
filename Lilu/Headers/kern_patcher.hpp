@@ -437,7 +437,7 @@ public:
 	static OSReturn onOSKextLoadKCFileSet(const char *filepath, kc_kind_t type);
 
 	/**
-	 *  A pointer to ubc_getobject_from_filename
+	 *  A pointer to ubc_getobject_from_filename()
 	 */
 	mach_vm_address_t orgUbcGetobjectFromFilename {};
 
@@ -447,7 +447,7 @@ public:
 	static void * onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size);
 
 	/**
-	 *  A pointer to vm_map_enter_mem_object_control
+	 *  A pointer to vm_map_enter_mem_object_control()
 	 */
 	mach_vm_address_t orgVmMapEnterMemObjectControl {};
 
@@ -468,6 +468,20 @@ public:
 		vm_prot_t               cur_protection,
 		vm_prot_t               max_protection,
 		vm_inherit_t            inheritance);
+	
+	/**
+	 *  A pointer to vm_map_remove()
+	 */
+	mach_vm_address_t orgVmMapRemove {};
+
+	/**
+	 *  Called during vm map remove if KC listening is enabled
+	 */
+	static kern_return_t onVmMapRemove(
+		vm_map_t        map,
+		vm_map_offset_t start,
+		vm_map_offset_t end,
+		boolean_t       flags);
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -929,6 +943,11 @@ private:
 	 *  The "memory control objects" of SysKC and AuxKC
 	 */
 	void *kcControls[4] = {nullptr};
+
+	/**
+	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()
+	 */
+	vm_map_t *gKextMap = nullptr;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

@@ -420,11 +420,39 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	return ret;
 }
 
+kern_return_t KernelPatcher::onVmMapRemove(
+	vm_map_t        map,
+	vm_map_offset_t start,
+	vm_map_offset_t end,
+	boolean_t       flags)
+{
+	kern_return_t ret = -1;
+
+	if (that) {
+		const char * mapType = "unknown map";
+		if (map == *that->gKextMap) {
+			mapType = "g_kext_map";
+		}
+
+		SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from %s", start, end, mapType);
+		ret = FunctionCast(onVmMapRemove, that->orgVmMapRemove)(map, start, end, flags);
+	}
+
+	return ret;
+}
+
 void KernelPatcher::setupKCListening() {
+	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
+	if (gKextMap == nullptr) {
+		SYSLOG("user", "failed to resolve _g_kext_map symbol");
+		return;
+	}
+
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
+		{ "_vm_map_remove", onVmMapRemove, orgVmMapRemove },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
