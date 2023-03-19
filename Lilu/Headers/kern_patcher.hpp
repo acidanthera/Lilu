@@ -935,6 +935,16 @@ private:
 
 #ifdef LILU_KCINJECT_SUPPORT
 	/**
+	 *  Kernel function prototypes
+	 */
+	using t_vmMapKcfilesetSegment = kern_return_t (*)(vm_map_offset_t*, vm_map_offset_t, void*, vm_object_offset_t, vm_prot_t);
+
+	/**
+	 *  Original kernel function trampolines
+	 */
+	t_vmMapKcfilesetSegment orgVmMapKcfilesetSegment {nullptr};
+
+	/**
 	 *  The type of KC OSKext::loadKCFileSet is currently loading, if any
 	 */
 	kc_kind_t curLoadingKCKind = kc_kind::KCKindNone;

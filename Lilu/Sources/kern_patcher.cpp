@@ -381,6 +381,21 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		if (that->curLoadingKCKind == kc_kind::KCKindPageable || that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
 			that->kcControls[that->curLoadingKCKind] = ret;
 		}
+
+		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
+			uint8_t *auxKC = nullptr;
+			that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&auxKC, (vm_map_offset_t)*file_size, ret, 0, (VM_PROT_READ || VM_PROT_WRITE));
+
+			if (auxKC == nullptr) {
+				SYSLOG("patcher", "Failed to map auxKC");
+				return ret;
+			}
+			SYSLOG("patcher", "Mapped auxKC at %p", auxKC);
+			SYSLOG("patcher", "%x %x %x %x %x %x %x %x", auxKC[0], auxKC[1], auxKC[2], auxKC[3],
+			                                             auxKC[4], auxKC[5], auxKC[6], auxKC[7]);
+
+			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);
+		}
 	}
 
 	return ret;
@@ -448,8 +463,16 @@ kern_return_t KernelPatcher::onVmMapRemove(
 
 void KernelPatcher::setupKCListening() {
 	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
-	if (gKextMap == nullptr) {
-		SYSLOG("user", "failed to resolve _g_kext_map symbol");
+	if (getError() != Error::NoError) {
+		SYSLOG("patcher", "failed to resolve _g_kext_map symbol");
+		clearError();
+		return;
+	}
+
+	orgVmMapKcfilesetSegment = reinterpret_cast<t_vmMapKcfilesetSegment>(solveSymbol(KernelPatcher::KernelID, "_vm_map_kcfileset_segment"));
+	if (getError() != Error::NoError) {
+		DBGLOG("patcher", "failed to resolve _vm_map_kcfileset_segment");
+		clearError();
 		return;
 	}
 
