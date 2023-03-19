@@ -404,17 +404,25 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	kern_return_t ret = -1;
 
 	if (that) {
-		const char * kcType = "Unknown KC";
-		if (control == that->kcControls[kc_kind::KCKindPageable]) {
-			kcType = "SysKC";
-		} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
-			kcType = "AuxKC";
+		const char * kcType = nullptr;
+		if (target_map == that->gKextMap) {
+			kcType = "Unknown KC";
+			if (control == that->kcControls[kc_kind::KCKindPageable]) {
+				kcType = "SysKC";
+			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
+				kcType = "AuxKC";
+			}
 		}
 
-		SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %s range %llX ~ %llX", kcType, offset, offset + initial_size);
+		if (kcType != nullptr) {
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %s range %llX ~ %llX", kcType, offset, offset + initial_size);
+		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
+		if (kcType != nullptr) {
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Returning address %p", *address);
+		}
 	}
 
 	return ret;
@@ -429,12 +437,14 @@ kern_return_t KernelPatcher::onVmMapRemove(
 	kern_return_t ret = -1;
 
 	if (that) {
-		const char * mapType = "unknown map";
-		if (map == *that->gKextMap) {
+		const char * mapType = nullptr;
+		if (map == that->gKextMap) {
 			mapType = "g_kext_map";
 		}
 
-		SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from %s", start, end, mapType);
+		if (mapType != nullptr) {
+			SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from %s", start, end, mapType);
+		}
 		ret = FunctionCast(onVmMapRemove, that->orgVmMapRemove)(map, start, end, flags);
 	}
 
@@ -442,7 +452,7 @@ kern_return_t KernelPatcher::onVmMapRemove(
 }
 
 void KernelPatcher::setupKCListening() {
-	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
+	gKextMap = reinterpret_cast<vm_map_t>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
 	if (gKextMap == nullptr) {
 		SYSLOG("user", "failed to resolve _g_kext_map symbol");
 		return;
