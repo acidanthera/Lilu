@@ -151,7 +151,7 @@ class MachInfo {
 	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
 
 	MachInfo(bool isKernelOrKC, const char *id) : isKernelOrKC(isKernelOrKC), objectId(id) {
-		DBGLOG("mach", "MachInfo isKernelOrKC %d object constructed", asKernel);
+		DBGLOG("mach", "MachInfo isKernelOrKC %d object constructed", isKernelOrKC);
 	}
 	MachInfo(const MachInfo &) = delete;
 	MachInfo &operator =(const MachInfo &) = delete;
