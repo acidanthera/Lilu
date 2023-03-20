@@ -85,6 +85,15 @@ void MachInfo::deinit() {
 	}
 }
 
+kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize) {
+	kernel_collection = true;
+	file_buf = kcBuf;
+	file_buf_size = bufSize;
+
+	updatePrelinkInfo();
+	return KERN_SUCCESS;
+}
+
 kern_return_t MachInfo::initFromMemory() {
 	// Before 11.0 __LINKEDIT is dropped from memory unless keepsyms=1 argument is specified.
 	// With 11.0 for all kernel collections (KC) __LINKEDIT is preserved for both kexts and kernels.
@@ -94,7 +103,7 @@ kern_return_t MachInfo::initFromMemory() {
 
 	// We can still launch macOS 11 with prelinkedkernel, in which case memory init will not be available.
 	findKernelBase();
-	DBGLOG_COND(isKernel, "mach", "memory init mode - %d", kernel_collection);
+	DBGLOG_COND(isKernelOrKC, "mach", "memory init mode - %d", kernel_collection);
 	if (!kernel_collection)
 		return KERN_FAILURE;
 
@@ -178,7 +187,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 				DBGLOG("mach", "readMachHeader for %s", path);
 				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
 				if (readError == KERN_SUCCESS && loadUUID(machHeader) &&
-					(!isKernel || isCurrentBinary())) {
+					(!isKernelOrKC || isCurrentBinary())) {
 					DBGLOG("mach", "found executable at path: %s", path);
 					found = true;
 					break;
@@ -715,7 +724,7 @@ void MachInfo::processMachHeader(void *header) {
 }
 
 void MachInfo::updatePrelinkInfo() {
-	if (!prelink_dict && isKernel && file_buf) {
+	if (!prelink_dict && isKernelOrKC && file_buf) {
 		vm_address_t tmpSeg, tmpSect;
 		void *tmpSectPtr;
 		size_t tmpSectSize;
@@ -820,7 +829,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	mach_header_64 *inner = nullptr;
 
 	// __LINKEDIT is present in the inner kernel only.
-	if (isKernel) {
+	if (isKernelOrKC) {
 		auto addr = reinterpret_cast<uint8_t *>(mh) + sizeof(mach_header_64);
 		DBGLOG("mach", "looking up inner kernel in %u commands at " PRIKADDR, mh->ncmds, CASTKADDR(mh));
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
@@ -891,7 +900,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	prelink_slid = true;
 	running_mh = inner;
 	memory_size = (size_t)(last_addr - reinterpret_cast<mach_vm_address_t>(inner));
-	if (slide != 0 || isKernel) {
+	if (slide != 0 || isKernelOrKC) {
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
 		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
 		while (*reinterpret_cast<uint32_t *>(address_slots_end) == 0) {

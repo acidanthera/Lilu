@@ -384,7 +384,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
 			vm_size_t oldAuxKcSize = (vm_size_t)*file_size;
-			void *auxKC = (void*)that->orgGetAddressFromKextMap(oldAuxKcSize);
+			uint8_t *auxKC = (uint8_t*)that->orgGetAddressFromKextMap(oldAuxKcSize);
 			if (auxKC == nullptr || 
 			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&auxKC, (vm_map_offset_t)oldAuxKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
 				SYSLOG("patcher", "Failed to map auxKC");
@@ -393,11 +393,11 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			SYSLOG("patcher", "Mapped auxKC at %p", auxKC);
 
 			vm_size_t patchedAuxKCSize = oldAuxKcSize + 128 * 1024 * 1024;
-			void *patchedAuxKC = IOMalloc(patchedAuxKCSize);
+			uint8_t *patchedAuxKC = (uint8_t*)IOMalloc(patchedAuxKCSize);
 			memcpy(patchedAuxKC, auxKC, oldAuxKcSize);
 
-			MachInfo* auxKCInfo = MachInfo::create();
-			auxKCInfo->processMachHeader(patchedAuxKC);
+			MachInfo* auxKCInfo = MachInfo::create(true);
+			auxKCInfo->initFromKCBuffer(patchedAuxKC, patchedAuxKCSize);
 
 			IOFree(patchedAuxKC, patchedAuxKCSize);
 			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);

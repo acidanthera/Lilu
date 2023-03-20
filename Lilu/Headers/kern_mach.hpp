@@ -127,6 +127,13 @@ class MachInfo {
 	kern_return_t readSymbols(vnode_t vnode, vfs_context_t ctxt);
 
 	/**
+	 *  Retrieve necessary mach-o header information from the mach header
+	 *
+	 *  @param header read header sized no less than HeaderSize
+	 */
+	void processMachHeader(void *header);
+
+	/**
 	 *  Load kext info dictionary and addresses if they were not loaded previously
 	 */
 	void updatePrelinkInfo();
@@ -143,8 +150,8 @@ class MachInfo {
 	 */
 	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
 
-	MachInfo(bool asKernel, const char *id) : isKernel(asKernel), objectId(id) {
-		DBGLOG("mach", "MachInfo asKernel %d object constructed", asKernel);
+	MachInfo(bool isKernelOrKC, const char *id) : isKernelOrKC(isKernelOrKC), objectId(id) {
+		DBGLOG("mach", "MachInfo isKernelOrKC %d object constructed", asKernel);
 	}
 	MachInfo(const MachInfo &) = delete;
 	MachInfo &operator =(const MachInfo &) = delete;
@@ -183,9 +190,9 @@ public:
 	static constexpr size_t HeaderSize {PAGE_SIZE_64*2};
 
 	/**
-	 *  Representation mode (kernel/kext)
+	 *  Representation mode (kernel or KC/kext)
 	 */
-	EXPORT const bool isKernel;
+	EXPORT const bool isKernelOrKC;
 
 	/**
 	 *  Specified file identifier
@@ -339,11 +346,11 @@ public:
 	}
 
 	/**
-	 *  Retrieve necessary mach-o header information from the mach header
+	 *  Resolve mach data in a KC via buffer
 	 *
-	 *  @param header read header sized no less than HeaderSize
+	 *  @return KERN_SUCCESS if loaded
 	 */
-	EXPORT void processMachHeader(void *header);
+	kern_return_t initFromKCBuffer(uint8_t *kcBuf, uint32_t bufSize);
 };
 
 #endif /* kern_mach_hpp */
