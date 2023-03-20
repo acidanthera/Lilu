@@ -127,13 +127,6 @@ class MachInfo {
 	kern_return_t readSymbols(vnode_t vnode, vfs_context_t ctxt);
 
 	/**
-	 *  Retrieve necessary mach-o header information from the mach header
-	 *
-	 *  @param header read header sized no less than HeaderSize
-	 */
-	void processMachHeader(void *header);
-
-	/**
 	 *  Load kext info dictionary and addresses if they were not loaded previously
 	 */
 	void updatePrelinkInfo();
@@ -344,6 +337,13 @@ public:
 	off_t getFatOffset() {
 		return fat_offset;
 	}
+
+	/**
+	 *  Retrieve necessary mach-o header information from the mach header
+	 *
+	 *  @param header read header sized no less than HeaderSize
+	 */
+	EXPORT void processMachHeader(void *header);
 };
 
 #endif /* kern_mach_hpp */
