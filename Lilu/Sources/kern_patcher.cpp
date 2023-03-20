@@ -383,7 +383,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		}
 
 		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
-			uint8_t *auxKC = (uint8_t*)that->orgGetAddressFromKextMap(*file_size);
+			uint8_t *auxKC = (uint8_t*)that->orgGetAddressFromKextMap((vm_size_t)*file_size);
 			if (auxKC == nullptr || 
 			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&auxKC, (vm_map_offset_t)*file_size, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
 				SYSLOG("patcher", "Failed to map auxKC");
