@@ -397,7 +397,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			memcpy(patchedAuxKC, auxKC, oldAuxKcSize);
 
 			MachInfo* auxKCInfo = MachInfo::create(true);
-			auxKCInfo->initFromKCBuffer(patchedAuxKC, patchedAuxKCSize);
+			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize);
 
 			IOFree(patchedAuxKC, patchedAuxKCSize);
 			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);
