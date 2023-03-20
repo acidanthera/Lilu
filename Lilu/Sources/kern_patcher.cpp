@@ -429,15 +429,13 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		}
 
 		if (kcType != nullptr) {
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: %llX %llX %llX %llX %llX %llX %llX", target_map, address, initial_size, mask, flags, vmk_flags, tag);
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: %llX %llX %llX %llX %llX %llX %llX", control, offset, copy, cur_protection, max_protection, inheritance);
+			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
 		if (kcType != nullptr) {
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
+			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
 		}
 	}
 
@@ -454,7 +452,7 @@ kern_return_t KernelPatcher::onVmMapRemove(
 
 	if (that) {
 		if (map == *that->gKextMap) {
-			SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from g_kext_map", start, end);
+			// SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from g_kext_map", start, end);
 		}
 		ret = FunctionCast(onVmMapRemove, that->orgVmMapRemove)(map, start, end, flags);
 	}
