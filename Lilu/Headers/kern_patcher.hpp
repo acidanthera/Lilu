@@ -938,11 +938,13 @@ private:
 	 *  Kernel function prototypes
 	 */
 	using t_vmMapKcfilesetSegment = kern_return_t (*)(vm_map_offset_t*, vm_map_offset_t, void*, vm_object_offset_t, vm_prot_t);
+	using t_getAddressFromKextMap = vm_offset_t (*)(vm_size_t);
 
 	/**
 	 *  Original kernel function trampolines
 	 */
 	t_vmMapKcfilesetSegment orgVmMapKcfilesetSegment {nullptr};
+	t_getAddressFromKextMap orgGetAddressFromKextMap {nullptr};
 
 	/**
 	 *  The type of KC OSKext::loadKCFileSet is currently loading, if any

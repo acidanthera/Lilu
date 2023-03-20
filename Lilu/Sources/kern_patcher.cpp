@@ -383,10 +383,9 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		}
 
 		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
-			uint8_t *auxKC = nullptr;
-			that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&auxKC, (vm_map_offset_t)0x1000, ret, 0, (VM_PROT_READ | VM_PROT_WRITE));
-
-			if (auxKC == nullptr) {
+			uint8_t *auxKC = (uint8_t*)that->orgGetAddressFromKextMap((vm_map_offset_t)*file_size);
+			if (auxKC == nullptr || 
+			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&auxKC, (vm_map_offset_t)*file_size, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
 				SYSLOG("patcher", "Failed to map auxKC");
 				return ret;
 			}
@@ -474,6 +473,13 @@ void KernelPatcher::setupKCListening() {
 	orgVmMapKcfilesetSegment = reinterpret_cast<t_vmMapKcfilesetSegment>(solveSymbol(KernelPatcher::KernelID, "_vm_map_kcfileset_segment"));
 	if (getError() != Error::NoError) {
 		DBGLOG("patcher", "failed to resolve _vm_map_kcfileset_segment");
+		clearError();
+		return;
+	}
+
+	orgGetAddressFromKextMap = reinterpret_cast<t_getAddressFromKextMap>(solveSymbol(KernelPatcher::KernelID, "_get_address_from_kext_map"));
+	if (getError() != Error::NoError) {
+		DBGLOG("patcher", "failed to resolve _get_address_from_kext_map");
 		clearError();
 		return;
 	}
