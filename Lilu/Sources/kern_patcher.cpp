@@ -399,8 +399,8 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			MachInfo* auxKCInfo = MachInfo::create(MachType::KextCollection);
 			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize, (uint32_t)oldAuxKcSize);
-			auxKCInfo->excludeKextFromKC("com.softraid.driver.SoftRAID");
-			auxKCInfo->overwritePrelinkInfo();
+			// auxKCInfo->excludeKextFromKC("com.softraid.driver.SoftRAID");
+			// auxKCInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindAuxiliary] = auxKCInfo;
 		}
 	}
