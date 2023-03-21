@@ -31,6 +31,7 @@
 #include <libkern/c++/OSArray.h>
 #include <libkern/c++/OSString.h>
 #include <libkern/c++/OSNumber.h>
+#include <libkern/c++/OSSerialize.h>
 
 kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *prelink, bool fsfallback) {
 	kern_return_t error = KERN_FAILURE;
@@ -85,20 +86,60 @@ void MachInfo::deinit() {
 	}
 }
 
-kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize) {
+kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize, uint32_t origKCSize) {
 	kernel_collection = true;
 	file_buf = kcBuf;
 	file_buf_size = bufSize;
+	file_buf_free_start = origKCSize;
 
 	updatePrelinkInfo();
+	return KERN_SUCCESS;
+}
+
+kern_return_t MachInfo::overwritePrelinkInfo() {
+	vm_address_t tmpSeg, tmpSect;
+	void *tmpSectPtr;
+	size_t tmpSectSize;
+	void *tmpSectionCmdPtr;
+	findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
+
+	OSSerialize *newPrelinkInfo = OSSerialize::withCapacity(1024 * 1024);
+	prelink_dict->serialize(newPrelinkInfo);
+	uint32_t infoLength = newPrelinkInfo->getLength();
+
+	if (file_buf_free_start + infoLength >= file_buf_size) {
+		SYSLOG("mach", "overwritePrelinkInfo: Ran out of free space");
+		return KERN_FAILURE;
+	}
+
+	memcpy(file_buf + file_buf_free_start, newPrelinkInfo->text(), infoLength);
+	section_64 *sectionCmdPtr = (section_64*)tmpSectionCmdPtr;
+	sectionCmdPtr->offset = file_buf_free_start;
+	sectionCmdPtr->size = infoLength;
+	file_buf_free_start += infoLength;
+	DBGLOG("mach", "overwritePrelinkInfo: Wrote %d bytes of prelink info", infoLegnth);
+	return KERN_SUCCESS;
+}
+
+kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
+	// Remove the kext from the prelink info
+	uint32_t imageIndex;
 	uint32_t imageSize;
 	mach_vm_address_t slide;
 	bool missing;
-	uint8_t *softRAID = findImage("com.softraid.driver.SoftRAID", imageSize, slide, missing);
-	DBGLOG("mach", "SoftRAID is at %p", softRAID);
-	if (softRAID != nullptr) {
-		DBGLOG("mach", "%x %x %x %x", softRAID[0], softRAID[1], softRAID[2], softRAID[3]);
-	}
+	uint8_t *imagePtr = findImage(kextName, imageIndex, imageSize, slide, missing);
+	DBGLOG("mach", "%s is at %p", kextName, imagePtr);
+	if (imagePtr == nullptr) return KERN_FAILURE;
+
+	static OSArray *imageArr = nullptr;
+	if (!imageArr) OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
+	if (!imageArr) return KERN_FAILURE;
+	imageArr->removeObject(imageIndex);
+
+	// Overwrite the kext image with zero
+	memset(imagePtr, 0, imageSize);
+
+	DBGLOG("mach", "%s is now blocked", kextName);
 	return KERN_SUCCESS;
 }
 
@@ -123,8 +164,9 @@ kern_return_t MachInfo::initFromPrelinked(MachInfo *prelink) {
 
 	// Attempt to get linkedit from prelink
 	if (prelink && objectId) {
+		uint32_t tmpImageIndex;
 		bool missing = false;
-		file_buf = prelink->findImage(objectId, file_buf_size, prelink_vmaddr, missing);
+		file_buf = prelink->findImage(objectId, tmpImageIndex, file_buf_size, prelink_vmaddr, missing);
 
 		if (file_buf && file_buf_size >= HeaderSize) {
 			processMachHeader(file_buf);
@@ -525,7 +567,7 @@ kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 	return KERN_FAILURE;
 }
 
-void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
+void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, void *&sectionCmdPtr, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
 	vmsegment = vmsection = 0;
 	sectionptr = 0;
 	sectionSize = 0;
@@ -575,7 +617,8 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					return;
 				}
 
-				findSectionBounds(static_cast<uint8_t *>(ptr) + off, sourceSize - off, vmsegment, vmsection, sectionptr, sectionSize, segmentName, sectionName, 0);
+				void *tmpSectionCmdPtr;
+				findSectionBounds(static_cast<uint8_t *>(ptr) + off, sourceSize - off, vmsegment, vmsection, sectionptr, sectionSize, tmpSectionCmdPtr, segmentName, sectionName, 0);
 				break;
 			}
 		}
@@ -617,6 +660,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						vmsection = sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
+						sectionCmdPtr = sect;
 						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
 						return;
 					}
@@ -646,6 +690,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						vmsection = (vm_address_t)sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
+						sectionCmdPtr = sect;
 						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
 						return;
 					}
@@ -736,7 +781,8 @@ void MachInfo::updatePrelinkInfo() {
 		vm_address_t tmpSeg, tmpSect;
 		void *tmpSectPtr;
 		size_t tmpSectSize;
-		findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_INFO", "__info");
+		void *tmpSectionCmdPtr;
+		findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
 		size_t startoff = tmpSectSize && static_cast<uint8_t *>(tmpSectPtr) >= file_buf ?
 		                static_cast<uint8_t *>(tmpSectPtr) - file_buf : file_buf_size;
 		if (tmpSectSize > 0 && file_buf_size > startoff && file_buf_size - startoff >= tmpSectSize) {
@@ -745,7 +791,7 @@ void MachInfo::updatePrelinkInfo() {
 			prelink_dict = OSDynamicCast(OSDictionary, objData);
 			if (prelink_dict) {
 				if (machType == MachType::Kernel) {
-					findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
+					findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSectionCmdPtr, "__PRELINK_TEXT", "__text");
 					if (tmpSectSize){
 						prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
 						prelink_vmaddr = tmpSect;
@@ -773,7 +819,7 @@ void MachInfo::updatePrelinkInfo() {
 	}
 }
 
-uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing) {
+uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageIndex, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing) {
 	updatePrelinkInfo();
 
 	if (prelink_dict) {
@@ -801,6 +847,7 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 							if (file_buf_size > startoff && file_buf_size - startoff >= imageSize) {
 								// Normally all the kexts are off by kaslr slide unless already slid
 								slide = !prelink_slid ? kaslr_slide : 0;
+								imageIndex = i;
 								return imageaddr;
 							} else {
 								SYSLOG("mach", "invalid addresses of kext %s at %u of %u prelink", identifier, i, imageNum);

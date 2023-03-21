@@ -397,7 +397,9 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			memcpy(patchedAuxKC, auxKC, oldAuxKcSize);
 
 			MachInfo* auxKCInfo = MachInfo::create(MachType::KextCollection);
-			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize);
+			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize, (uint32_t)oldAuxKcSize);
+			auxKCInfo->excludeKextFromKC("com.softraid.driver.SoftRAID");
+			auxKCInfo->overwritePrelinkInfo();
 
 			IOFree(patchedAuxKC, patchedAuxKCSize);
 			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);

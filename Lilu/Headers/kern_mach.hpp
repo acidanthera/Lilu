@@ -57,6 +57,7 @@ class MachInfo {
 	uint8_t *prelink_addr {nullptr};         // prelink text base address
 	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address (for kexts this is their actual slide)
 	uint32_t file_buf_size {0};              // read file data size
+	uint32_t file_buf_free_start {0};        // start of the free space inside the file (for injecting new prelink info / kexts)
 	uint8_t *sym_buf {nullptr};              // pointer to buffer (normally __LINKEDIT) containing symbols to solve
 	bool sym_buf_ro {false};                 // sym_buf is read-only (not copy).
 	uint64_t sym_fileoff {0};                // file offset of symbols (normally __LINKEDIT) so we can read
@@ -148,13 +149,14 @@ class MachInfo {
 	 *  Lookup mach image in prelinked image
 	 *
 	 *  @param identifier  identifier
+	 *  @param imageIndex  index of the image inside the prelink info
 	 *  @param imageSize   size of the returned buffer
 	 *  @param slide       actual slide for symbols (normally kaslr or 0)
 	 *  @param missing     set to true on successful prelink parsing when image is not needed
 	 *
 	 *  @return pointer to const buffer on success or nullptr
 	 */
-	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
+	uint8_t *findImage(const char *identifier, uint32_t &imageIndex, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
 
 	MachInfo(MachType machType, const char *id) : machType(machType), objectId(id) {
 		DBGLOG("mach", "MachInfo type %d object constructed", machType);
@@ -327,17 +329,18 @@ public:
 	/**
 	 *  Find section bounds in a passed binary for provided cpu
 	 *
-	 *  @param ptr         pointer to a complete mach-o binary
-	 *  @param sourceSize  size of the mach-o binary
-	 *  @param vmsegment   returned vm segment pointer
-	 *  @param vmsection   returned vm section pointer
-	 *  @param sectionptr  returned section pointer
-	 *  @param sectionSize returned section size or 0 on failure
-	 *  @param segmentName segment name
-	 *  @param sectionName section name
-	 *  @param cpu         cpu to look for in case of fat binaries
+	 *  @param ptr           pointer to a complete mach-o binary
+	 *  @param sourceSize    size of the mach-o binary
+	 *  @param vmsegment     returned vm segment pointer
+	 *  @param vmsection     returned vm section pointer
+	 *  @param sectionptr    returned section pointer
+	 *  @param sectionSize   returned section size or 0 on failure
+	 *  @param sectionCmdPtr pointer to the mach command of the returned section
+	 *  @param segmentName   segment name
+	 *  @param sectionName   section name
+	 *  @param cpu           cpu to look for in case of fat binaries
 	 */
-	EXPORT static void findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, const char *segmentName="__TEXT", const char *sectionName="__text", cpu_type_t cpu=CPU_TYPE_X86_64);
+	EXPORT static void findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, void *&sectionCmdPtr, const char *segmentName="__TEXT", const char *sectionName="__text", cpu_type_t cpu=CPU_TYPE_X86_64);
 
 	/**
 	 *  Request to free file buffer resources (not including linkedit symtable)
@@ -356,7 +359,21 @@ public:
 	 *
 	 *  @return KERN_SUCCESS if loaded
 	 */
-	kern_return_t initFromKCBuffer(uint8_t *kcBuf, uint32_t bufSize);
+	kern_return_t initFromKCBuffer(uint8_t *kcBuf, uint32_t bufSize, uint32_t origKCSize);
+
+	/**
+	 *  Exclude a kext from the KC
+	 *
+	 *  @return KERN_SUCCESS if the kext was found and excluded
+	 */
+	kern_return_t excludeKextFromKC(const char * kextName);
+
+	/**
+	 *  Overwrite the prelink info in the file buffer
+	 *
+	 *  @return KERN_SUCCESS if the prelink info was overwritten
+	 */
+	kern_return_t overwritePrelinkInfo();
 };
 
 #endif /* kern_mach_hpp */
