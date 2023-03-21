@@ -117,7 +117,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	sectionCmdPtr->offset = file_buf_free_start;
 	sectionCmdPtr->size = infoLength;
 	file_buf_free_start += infoLength;
-	DBGLOG("mach", "overwritePrelinkInfo: Wrote %d bytes of prelink info", infoLegnth);
+	DBGLOG("mach", "overwritePrelinkInfo: Wrote %d bytes of prelink info", infoLength);
 	return KERN_SUCCESS;
 }
 
