@@ -20,6 +20,12 @@
 #include <mach/vm_param.h>
 #include <libkern/c++/OSDictionary.h>
 
+enum MachType {
+	Kext = 0,
+	Kernel,
+	KextCollection
+};
+
 class MachInfo {
 #if defined(__i386__)
 	using mach_header_native = mach_header;
@@ -150,8 +156,8 @@ class MachInfo {
 	 */
 	uint8_t *findImage(const char *identifier, uint32_t &imageSize, mach_vm_address_t &slide, bool &missing);
 
-	MachInfo(bool isKernelOrKC, const char *id) : isKernelOrKC(isKernelOrKC), objectId(id) {
-		DBGLOG("mach", "MachInfo isKernelOrKC %d object constructed", isKernelOrKC);
+	MachInfo(MachType machType, const char *id) : machType(machType), objectId(id) {
+		DBGLOG("mach", "MachInfo type %d object constructed", machType);
 	}
 	MachInfo(const MachInfo &) = delete;
 	MachInfo &operator =(const MachInfo &) = delete;
@@ -190,9 +196,9 @@ public:
 	static constexpr size_t HeaderSize {PAGE_SIZE_64*2};
 
 	/**
-	 *  Representation mode (kernel or KC/kext)
+	 *  Representation mode
 	 */
-	EXPORT const bool isKernelOrKC;
+	EXPORT const MachType machType;
 
 	/**
 	 *  Specified file identifier
@@ -202,12 +208,12 @@ public:
 	/**
 	 *  MachInfo object generator
 	 *
-	 *  @param asKernel this MachInfo represents a kernel
+	 *  @param machType type of this MachInfo
 	 *  @param id       kinfo identifier (e.g. CFBundleIdentifier)
 	 *
 	 *  @return MachInfo object or nullptr
 	 */
-	static MachInfo *create(bool asKernel=false, const char *id=nullptr) { return new MachInfo(asKernel, id); }
+	static MachInfo *create(MachType machType=MachType::Kext, const char *id=nullptr) { return new MachInfo(machType, id); }
 	static void deleter(MachInfo *i NONNULL) { delete i; }
 
 	/**

@@ -104,7 +104,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 		prelink = prelinkInfo;
 
 	kern_return_t error;
-	auto info = MachInfo::create(isKernel, id);
+	auto info = MachInfo::create(isKernel ? MachType::Kernel : MachType::Kext, id);
 	if (!info) {
 		SYSLOG("patcher", "failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
@@ -396,7 +396,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			uint8_t *patchedAuxKC = (uint8_t*)IOMalloc(patchedAuxKCSize);
 			memcpy(patchedAuxKC, auxKC, oldAuxKcSize);
 
-			MachInfo* auxKCInfo = MachInfo::create(true);
+			MachInfo* auxKCInfo = MachInfo::create(MachType::KextCollection);
 			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize);
 
 			IOFree(patchedAuxKC, patchedAuxKCSize);

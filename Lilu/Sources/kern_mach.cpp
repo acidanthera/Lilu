@@ -187,7 +187,7 @@ kern_return_t MachInfo::initFromFileSystem(const char * const paths[], size_t nu
 				DBGLOG("mach", "readMachHeader for %s", path);
 				kern_return_t readError = readMachHeader(machHeader, vnode, ctxt);
 				if (readError == KERN_SUCCESS && loadUUID(machHeader) &&
-					(!isKernelOrKC || isCurrentBinary())) {
+					(machType == MachType::Kext || isCurrentBinary())) {
 					DBGLOG("mach", "found executable at path: %s", path);
 					found = true;
 					break;
@@ -724,7 +724,7 @@ void MachInfo::processMachHeader(void *header) {
 }
 
 void MachInfo::updatePrelinkInfo() {
-	if (!prelink_dict && isKernelOrKC && file_buf) {
+	if (!prelink_dict && machType != MachType::Kext && file_buf) {
 		vm_address_t tmpSeg, tmpSect;
 		void *tmpSectPtr;
 		size_t tmpSectSize;
@@ -829,7 +829,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	mach_header_64 *inner = nullptr;
 
 	// __LINKEDIT is present in the inner kernel only.
-	if (isKernelOrKC) {
+	if (machType != MachType::Kext) {
 		auto addr = reinterpret_cast<uint8_t *>(mh) + sizeof(mach_header_64);
 		DBGLOG("mach", "looking up inner kernel in %u commands at " PRIKADDR, mh->ncmds, CASTKADDR(mh));
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
@@ -900,7 +900,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	prelink_slid = true;
 	running_mh = inner;
 	memory_size = (size_t)(last_addr - reinterpret_cast<mach_vm_address_t>(inner));
-	if (slide != 0 || isKernelOrKC) {
+	if (slide != 0 || machType != MachType::Kext) {
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
 		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
 		while (*reinterpret_cast<uint32_t *>(address_slots_end) == 0) {
