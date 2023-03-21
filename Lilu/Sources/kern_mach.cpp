@@ -122,13 +122,62 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 }
 
 kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
+	DBGLOG("mach", "excludeKextFromKC: Blocking %s", kextName);
+
+	// Remove the related LC_FILESET_ENTRY command
+	auto header = (mach_header*)(file_buf);
+	auto orgCmd = (load_command*)(file_buf);
+
+	if (header->magic == MH_MAGIC_64) {
+		reinterpret_cast<uintptr_t &>(orgCmd) += sizeof(mach_header_64);
+	} else if (header->magic == MH_MAGIC) {
+		reinterpret_cast<uintptr_t &>(orgCmd) += sizeof(mach_header);
+	}
+
+	uint8_t *endaddr = file_buf + file_buf_free_start;
+	auto dstCmd = orgCmd;
+	for (uint32_t no = 0; no < header->ncmds; no++) {
+		if (!isAligned(orgCmd)) {
+			SYSLOG("mach", "excludeKextFromKC: Invalid command %u position for section lookup", no);
+			return;
+		}
+
+		if (reinterpret_cast<uint8_t *>(orgCmd) + sizeof(load_command) > endaddr || reinterpret_cast<uint8_t *>(orgCmd) + orgCmd->cmdsize > endaddr) {
+			SYSLOG("mach", "excludeKextFromKC: Header command %u exceeds header size for section lookup", no);
+			return;
+		}
+
+		// LC_FILESET_ENTRY
+		if (orgCmd->cmd == 0x80000035) {
+			auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
+			// If this the kext we are trying to exclude
+			if (!strncmp(kextName, (char*)fcmd + fcmd->stringOffset, fcmd->commandSize - fcmd->stringOffset)) {
+				SYSLOG("mach", "excludeKextFromKC: Skipping related LC_FILESET_ENTRY");
+				goto skipCommand;
+			}
+		}
+
+		if (orgCmd != dstCmd) {
+			memcpy(dstCmd, orgCmd, orgCmd->cmdsize);
+		}
+		reinterpret_cast<uintptr_t &>(dstCmd) += orgCmd->cmdsize;
+
+		skipCommand:
+		reinterpret_cast<uintptr_t &>(orgCmd) += orgCmd->cmdsize;
+	}
+
+	if (orgCmd == dstCmd) {
+		SYSLOG("mach", "excludeKextFromKC: Failed to locate related LC_FILESET_ENTRY");
+		return KERN_FAILURE;
+	}
+	header->ncmds--;
+
 	// Remove the kext from the prelink info
 	uint32_t imageIndex;
 	uint32_t imageSize;
 	mach_vm_address_t slide;
 	bool missing;
 	uint8_t *imagePtr = findImage(kextName, imageIndex, imageSize, slide, missing);
-	DBGLOG("mach", "%s is at %p", kextName, imagePtr);
 	if (imagePtr == nullptr) return KERN_FAILURE;
 
 	static OSArray *imageArr = nullptr;
@@ -137,9 +186,9 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	imageArr->removeObject(imageIndex);
 
 	// Overwrite the kext image with zero
-	// memset(imagePtr, 0, imageSize);
+	memset(imagePtr, 0, imageSize);
 
-	DBGLOG("mach", "%s is now blocked", kextName);
+	DBGLOG("mach", "excludeKextFromKC: %s is now blocked", kextName);
 	return KERN_SUCCESS;
 }
 

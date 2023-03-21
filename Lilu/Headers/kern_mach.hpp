@@ -26,6 +26,17 @@ enum MachType {
 	KextCollection
 };
 
+typedef struct {
+  uint32_t commandType;
+  uint32_t commandSize;
+  uint64_t virtualAddress; 
+  uint64_t fileOffset;     
+  uint32_t stringOffset;
+  uint32_t stringAddress32;
+  uint32_t reserved;       
+  char * payload[];      
+} fileset_entry_command;
+
 class MachInfo {
 #if defined(__i386__)
 	using mach_header_native = mach_header;
