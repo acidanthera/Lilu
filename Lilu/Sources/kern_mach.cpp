@@ -137,7 +137,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	imageArr->removeObject(imageIndex);
 
 	// Overwrite the kext image with zero
-	memset(imagePtr, 0, imageSize);
+	// memset(imagePtr, 0, imageSize);
 
 	DBGLOG("mach", "%s is now blocked", kextName);
 	return KERN_SUCCESS;
