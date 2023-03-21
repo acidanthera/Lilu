@@ -91,6 +91,10 @@ kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize) {
 	file_buf_size = bufSize;
 
 	updatePrelinkInfo();
+	uint32_t imageSize;
+	mach_vm_address_t slide;
+	bool missing;
+	DBGLOG("mach", "SoftRAID is at %p", findImage("com.softraid.driver.SoftRAID", imageSize, slide, missing));
 	return KERN_SUCCESS;
 }
 
@@ -736,6 +740,8 @@ void MachInfo::updatePrelinkInfo() {
 			auto objData = xmlData[tmpSectSize-1] == '\0' ? OSUnserializeXML(xmlData, nullptr) : nullptr;
 			prelink_dict = OSDynamicCast(OSDictionary, objData);
 			if (prelink_dict) {
+				// __PRELINK_TEXT is empty in KCs
+				if (machType != MachType::Kernel) return;
 				findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
 				if (tmpSectSize){
 					prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
