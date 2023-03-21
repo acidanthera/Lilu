@@ -957,6 +957,11 @@ private:
 	void *kcControls[4] = {nullptr};
 
 	/**
+	 *  MachInfo of SysKC and AuxKC
+	 */
+	MachInfo *kcMachInfos[4] = {nullptr};
+
+	/**
 	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()
 	 */
 	vm_map_t *gKextMap = nullptr;

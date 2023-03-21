@@ -395,14 +395,13 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			vm_size_t patchedAuxKCSize = oldAuxKcSize + 128 * 1024 * 1024;
 			uint8_t *patchedAuxKC = (uint8_t*)IOMalloc(patchedAuxKCSize);
 			memcpy(patchedAuxKC, auxKC, oldAuxKcSize);
+			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);
 
 			MachInfo* auxKCInfo = MachInfo::create(MachType::KextCollection);
 			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize, (uint32_t)oldAuxKcSize);
 			auxKCInfo->excludeKextFromKC("com.softraid.driver.SoftRAID");
 			auxKCInfo->overwritePrelinkInfo();
-
-			IOFree(patchedAuxKC, patchedAuxKCSize);
-			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);
+			that->kcMachInfos[kc_kind::KCKindAuxiliary] = auxKCInfo;
 		}
 	}
 
@@ -427,24 +426,33 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	kern_return_t ret = -1;
 
 	if (that) {
-		const char * kcType = nullptr;
+		const char * kcName = nullptr;
+		kc_kind kcType = kc_kind::KCKindNone;
 		if (target_map == *that->gKextMap) {
-			kcType = "Unknown";
+			kcName = "Unknown";
+			kcType = kc_kind::KCKindUnknown;
 			if (control == that->kcControls[kc_kind::KCKindPageable]) {
-				kcType = "Sys";
+				kcName = "Sys";
+				kcType = kc_kind::KCKindPageable;
 			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
-				kcType = "Aux";
+				kcName = "Aux";
+				kcType = kc_kind::KCKindAuxiliary;
 			}
 		}
 
-		if (kcType != nullptr) {
+		if (kcType != kc_kind::KCKindNone) {
 			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
-		if (kcType != nullptr) {
+		if (kcType != kc_kind::KCKindNone) {
 			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
+			if (that->kcMachInfos[kcType] != nullptr) {
+				uint8_t *patchedKC = that->kcMachInfos[kcType]->file_buf;
+				SYSLOG("patcher", "onVmMapEnterMemObjectControl: Copying %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
+				memcpy((void*)*address, patchedKC + offset, initial_size);
+			}
 		}
 	}
 

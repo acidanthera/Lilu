@@ -52,7 +52,6 @@ class MachInfo {
 	mach_vm_address_t running_text_addr {0}; // the address of running __TEXT segment
 	mach_vm_address_t disk_text_addr {0};    // the same address at from a file
 	mach_vm_address_t kaslr_slide {0};       // the kernel aslr slide, computed as the difference between above's addresses
-	uint8_t *file_buf {nullptr};             // read file data
 	OSDictionary *prelink_dict {nullptr};    // read prealinked kext dictionary
 	uint8_t *prelink_addr {nullptr};         // prelink text base address
 	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address (for kexts this is their actual slide)
@@ -191,6 +190,7 @@ class MachInfo {
 	kern_return_t initFromMemory();
 
 public:
+	EXPORT uint8_t *file_buf {nullptr};             // read file data
 
 	/**
 	 *  Each header is assumed to fit two pages
