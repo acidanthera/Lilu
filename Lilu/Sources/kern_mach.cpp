@@ -132,7 +132,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	if (imagePtr == nullptr) return KERN_FAILURE;
 
 	static OSArray *imageArr = nullptr;
-	if (!imageArr) OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
+	if (!imageArr) imageArr = OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
 	if (!imageArr) return KERN_FAILURE;
 	imageArr->removeObject(imageIndex);
 
