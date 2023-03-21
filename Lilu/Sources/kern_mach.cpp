@@ -139,12 +139,12 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	for (uint32_t no = 0; no < header->ncmds; no++) {
 		if (!isAligned(orgCmd)) {
 			SYSLOG("mach", "excludeKextFromKC: Invalid command %u position for section lookup", no);
-			return;
+			return KERN_FAILURE;
 		}
 
 		if (reinterpret_cast<uint8_t *>(orgCmd) + sizeof(load_command) > endaddr || reinterpret_cast<uint8_t *>(orgCmd) + orgCmd->cmdsize > endaddr) {
 			SYSLOG("mach", "excludeKextFromKC: Header command %u exceeds header size for section lookup", no);
-			return;
+			return KERN_FAILURE;
 		}
 
 		// LC_FILESET_ENTRY
