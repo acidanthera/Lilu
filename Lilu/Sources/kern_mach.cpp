@@ -107,7 +107,7 @@ kern_return_t MachInfo::initFromMemory() {
 
 	// We can still launch macOS 11 with prelinkedkernel, in which case memory init will not be available.
 	findKernelBase();
-	DBGLOG_COND(isKernelOrKC, "mach", "memory init mode - %d", kernel_collection);
+	DBGLOG_COND(machType != MachType::Kext, "mach", "memory init mode - %d", kernel_collection);
 	if (!kernel_collection)
 		return KERN_FAILURE;
 
