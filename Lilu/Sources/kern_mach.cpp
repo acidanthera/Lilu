@@ -94,7 +94,11 @@ kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize) {
 	uint32_t imageSize;
 	mach_vm_address_t slide;
 	bool missing;
-	DBGLOG("mach", "SoftRAID is at %p", findImage("com.softraid.driver.SoftRAID", imageSize, slide, missing));
+	uint8_t *softRAID = findImage("com.softraid.driver.SoftRAID", imageSize, slide, missing);
+	DBGLOG("mach", "SoftRAID is at %p", softRAID);
+	if (softRAID != nullptr) {
+		DBGLOG("mach", "%x %x %x %x", softRAID[0], softRAID[1], softRAID[2], softRAID[3]);
+	}
 	return KERN_SUCCESS;
 }
 
@@ -740,18 +744,22 @@ void MachInfo::updatePrelinkInfo() {
 			auto objData = xmlData[tmpSectSize-1] == '\0' ? OSUnserializeXML(xmlData, nullptr) : nullptr;
 			prelink_dict = OSDynamicCast(OSDictionary, objData);
 			if (prelink_dict) {
-				// __PRELINK_TEXT is empty in KCs
-				if (machType != MachType::Kernel) return;
-				findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
-				if (tmpSectSize){
-					prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
-					prelink_vmaddr = tmpSect;
-					// If _PrelinkLinkKASLROffsets is set, then addresses are already slid
-					prelink_slid = prelink_dict->getObject("_PrelinkLinkKASLROffsets");
-				} else {
-					SYSLOG("mach", "unable to get prelink offset");
-					prelink_dict->release();
-					prelink_dict = nullptr;
+				if (machType == MachType::Kernel) {
+					findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__PRELINK_TEXT", "__text");
+					if (tmpSectSize){
+						prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
+						prelink_vmaddr = tmpSect;
+						// If _PrelinkLinkKASLROffsets is set, then addresses are already slid
+						prelink_slid = prelink_dict->getObject("_PrelinkLinkKASLROffsets");
+					} else {
+						SYSLOG("mach", "unable to get prelink offset");
+						prelink_dict->release();
+						prelink_dict = nullptr;
+					}
+				} else if (machType == MachType::KextCollection) {
+					prelink_addr = file_buf;
+					prelink_vmaddr = 0;
+					prelink_slid = 0;
 				}
 			} else if (objData) {
 				SYSLOG("mach", "unable to parse prelink info section");
