@@ -402,7 +402,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			((mach_header*)auxKCInfo->file_buf)->sizeofcmds -= 0x40;
 			((mach_header*)auxKCInfo->file_buf)->ncmds--;
 			//auxKCInfo->excludeKextFromKC("com.softraid.driver.SoftRAID");
-			//auxKCInfo->overwritePrelinkInfo();
+			auxKCInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindAuxiliary] = auxKCInfo;
 			*file_size = patchedAuxKCSize;
 			IOSleep(10000);

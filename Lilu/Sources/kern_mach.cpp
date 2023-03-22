@@ -97,6 +97,14 @@ kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize, uint
 }
 
 kern_return_t MachInfo::overwritePrelinkInfo() {
+	OSArray *imageArr = nullptr;
+	if (!imageArr) imageArr = OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
+	if (!imageArr) return KERN_FAILURE;
+	imageArr->removeObject(0);
+	imageArr->removeObject(0);
+	imageArr->removeObject(0);
+	imageArr->removeObject(0);
+
 	vm_address_t tmpSeg, tmpSect;
 	void *tmpSectPtr;
 	size_t tmpSectSize;
