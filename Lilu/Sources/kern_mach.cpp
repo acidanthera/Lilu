@@ -174,7 +174,6 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 		return KERN_FAILURE;
 	}
 	header->ncmds--;
-	return KERN_SUCCESS;
 
 	// Remove the kext from the prelink info
 	uint32_t imageIndex;
