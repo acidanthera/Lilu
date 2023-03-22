@@ -173,7 +173,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	}
 	header->ncmds--;
 	return KERN_SUCCESS;
-
+/*
 	// Remove the kext from the prelink info
 	uint32_t imageIndex;
 	uint32_t imageSize;
@@ -192,6 +192,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 
 	DBGLOG("mach", "excludeKextFromKC: %s is now blocked", kextName);
 	return KERN_SUCCESS;
+*/
 }
 
 kern_return_t MachInfo::initFromMemory() {
