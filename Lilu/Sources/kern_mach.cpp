@@ -151,7 +151,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 		if (orgCmd->cmd == 0x80000035) {
 			auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
 			// If this is the kext we are trying to exclude
-			DBGLOG("excludeKextFromKC: Found %s entry with capacity of %d", (char*)fcmd + fcmd->stringOffset, fcmd->commandSize - fcmd->stringOffset);
+			DBGLOG("excludeKextFromKC: Found %s entry with capacity of %d", ((char*)fcmd + fcmd->stringOffset), fcmd->commandSize - fcmd->stringOffset);
 			if (!strncmp(kextName, (char*)fcmd + fcmd->stringOffset, fcmd->commandSize - fcmd->stringOffset)) {
 				DBGLOG("mach", "excludeKextFromKC: Skipping related LC_FILESET_ENTRY");
 				header->sizeofcmds -= orgCmd->cmdsize;
