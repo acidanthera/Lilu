@@ -686,8 +686,8 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					return;
 				}
 
-				void *tmpSectionCmdPtr;
-				findSectionBounds(static_cast<uint8_t *>(ptr) + off, sourceSize - off, vmsegment, vmsection, sectionptr, sectionSize, tmpSectionCmdPtr, segmentName, sectionName, 0);
+				void *tmpSegmentCmdPtr, *tmpSectionCmdPtr;
+				findSectionBounds(static_cast<uint8_t *>(ptr) + off, sourceSize - off, vmsegment, vmsection, sectionptr, sectionSize, tmpSegmentCmdPtr, tmpSectionCmdPtr, segmentName, sectionName, 0);
 				break;
 			}
 		}
