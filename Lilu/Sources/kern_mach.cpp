@@ -106,7 +106,8 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 
 	OSSerialize *newPrelinkInfo = OSSerialize::withCapacity(1024 * 1024);
 	prelink_dict->serialize(newPrelinkInfo);
-	uint32_t infoLength = newPrelinkInfo->getLength();
+	// Account for the \0 as well
+	uint32_t infoLength = newPrelinkInfo->getLength() + 1;
 
 	if (file_buf_free_start + infoLength >= file_buf_size) {
 		SYSLOG("mach", "overwritePrelinkInfo: Ran out of free space");
@@ -116,12 +117,14 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	memcpy(file_buf + file_buf_free_start, newPrelinkInfo->text(), infoLength);
 
 	segment_command_64 *segmentCmdPtr = (segment_command_64*)tmpSegmentCmdPtr;
+	if (segmentCmdPtr->filesize < infoLength) {
+		SYSLOG("mach", "overwritePrelinkInfo: filesize is smaller than the required space for new prelink info!");
+		return KERN_FAILURE;
+	}
 	segmentCmdPtr->fileoff = file_buf_free_start;
-	segmentCmdPtr->filesize = infoLength;
 
 	section_64 *sectionCmdPtr = (section_64*)tmpSectionCmdPtr;
 	sectionCmdPtr->offset = file_buf_free_start;
-	sectionCmdPtr->size = infoLength;
 
 	file_buf_free_start += infoLength;
 	DBGLOG("mach", "overwritePrelinkInfo: Wrote %d bytes of prelink info", infoLength);
