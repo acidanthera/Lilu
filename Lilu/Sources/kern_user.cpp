@@ -840,7 +840,7 @@ bool UserPatcher::loadFilesForPatching() {
 			vm_address_t vmsegment {0};
 			vm_address_t vmsection {0};
 			void *sectionptr {nullptr};
-			void *tmpSectionCmdPtr;
+			void *tmpSegmentCmdPtr, *tmpSectionCmdPtr;
 			size_t size {0};
 
 			DBGLOG("user", "have %lu mods for %s (read as %lu)", binaryMod[i]->count, binaryMod[i]->path, fileSize);
@@ -858,7 +858,7 @@ bool UserPatcher::loadFilesForPatching() {
 					continue;
 				}
 
-				MachInfo::findSectionBounds(buf, fileSize, vmsegment, vmsection, sectionptr, size, tmpSectionCmdPtr,
+				MachInfo::findSectionBounds(buf, fileSize, vmsegment, vmsection, sectionptr, size, tmpSegmentCmdPtr, tmpSectionCmdPtr,
 											fileSegments[patch.segment], fileSections[patch.segment], patch.cpu);
 
 				DBGLOG("user", "findSectionBounds returned vmsegment %llX vmsection %llX sectionptr %p size %lu", (uint64_t)vmsegment, (uint64_t)vmsection, sectionptr, size);

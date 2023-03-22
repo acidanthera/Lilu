@@ -108,8 +108,9 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	vm_address_t tmpSeg, tmpSect;
 	void *tmpSectPtr;
 	size_t tmpSectSize;
+	void *tmpSegmentCmdPtr;
 	void *tmpSectionCmdPtr;
-	findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
+	findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSegmentCmdPtr, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
 
 	OSSerialize *newPrelinkInfo = OSSerialize::withCapacity(1024 * 1024);
 	prelink_dict->serialize(newPrelinkInfo);
@@ -121,9 +122,15 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	}
 
 	memcpy(file_buf + file_buf_free_start, newPrelinkInfo->text(), infoLength);
+
+	segment_command_64 *segmentCmdPtr = (segment_command_64*)tmpSegmentCmdPtr;
+	segmentCmdPtr->fileoff = file_buf_free_start;
+	segmentCmdPtr->filesize = infoLength;
+
 	section_64 *sectionCmdPtr = (section_64*)tmpSectionCmdPtr;
 	sectionCmdPtr->offset = file_buf_free_start;
 	sectionCmdPtr->size = infoLength;
+
 	file_buf_free_start += infoLength;
 	DBGLOG("mach", "overwritePrelinkInfo: Wrote %d bytes of prelink info", infoLength);
 	return KERN_SUCCESS;
@@ -629,7 +636,7 @@ kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 	return KERN_FAILURE;
 }
 
-void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, void *&sectionCmdPtr, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
+void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, void *&segmentCmdPtr, void *&sectionCmdPtr, const char *segmentName, const char *sectionName, cpu_type_t cpu) {
 	vmsegment = vmsection = 0;
 	sectionptr = 0;
 	sectionSize = 0;
@@ -722,6 +729,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						vmsection = sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
+						segmentCmdPtr = cmd;
 						sectionCmdPtr = sect;
 						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
 						return;
@@ -752,6 +760,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 						vmsection = (vm_address_t)sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
+						segmentCmdPtr = cmd;
 						sectionCmdPtr = sect;
 						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
 						return;
@@ -843,8 +852,8 @@ void MachInfo::updatePrelinkInfo() {
 		vm_address_t tmpSeg, tmpSect;
 		void *tmpSectPtr;
 		size_t tmpSectSize;
-		void *tmpSectionCmdPtr;
-		findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
+		void *tmpSegmentCmdPtr, *tmpSectionCmdPtr;
+		findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSegmentCmdPtr, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
 		size_t startoff = tmpSectSize && static_cast<uint8_t *>(tmpSectPtr) >= file_buf ?
 		                static_cast<uint8_t *>(tmpSectPtr) - file_buf : file_buf_size;
 		if (tmpSectSize > 0 && file_buf_size > startoff && file_buf_size - startoff >= tmpSectSize) {
@@ -853,7 +862,7 @@ void MachInfo::updatePrelinkInfo() {
 			prelink_dict = OSDynamicCast(OSDictionary, objData);
 			if (prelink_dict) {
 				if (machType == MachType::Kernel) {
-					findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSectionCmdPtr, "__PRELINK_TEXT", "__text");
+					findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSegmentCmdPtr, tmpSectionCmdPtr, "__PRELINK_TEXT", "__text");
 					if (tmpSectSize){
 						prelink_addr = static_cast<uint8_t *>(tmpSectPtr);
 						prelink_vmaddr = tmpSect;
