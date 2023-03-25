@@ -443,6 +443,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		}
 
 		bool doOverride = kcType != kc_kind::KCKindNone && that->kcMachInfos[kcType] != nullptr;
+		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
 			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
@@ -453,8 +454,8 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		if (doOverride) {
 			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
 			uint8_t *patchedKC = that->kcMachInfos[kcType]->getFileBuf();
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Copying %sKC range %llX ~ %llX", kcName, offset, offset + initial_size);
-			memcpy((void*)*address, patchedKC + offset, (size_t)initial_size);
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Copying %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
+			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
 		}
 	}
 
