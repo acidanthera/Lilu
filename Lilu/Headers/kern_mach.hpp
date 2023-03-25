@@ -66,6 +66,7 @@ class MachInfo {
 	OSDictionary *prelink_dict {nullptr};    // read prealinked kext dictionary
 	uint8_t *prelink_addr {nullptr};         // prelink text base address
 	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address (for kexts this is their actual slide)
+	uint8_t *file_buf {nullptr};             // read file data
 	uint32_t file_buf_size {0};              // read file data size
 	uint32_t file_buf_free_start {0};        // start of the free space inside the file (for injecting new prelink info / kexts)
 	uint8_t *sym_buf {nullptr};              // pointer to buffer (normally __LINKEDIT) containing symbols to solve
@@ -201,8 +202,6 @@ class MachInfo {
 	kern_return_t initFromMemory();
 
 public:
-	EXPORT uint8_t *file_buf {nullptr};             // read file data
-
 	/**
 	 *  Each header is assumed to fit two pages
 	 */
@@ -386,6 +385,13 @@ public:
 	 *  @return KERN_SUCCESS if the prelink info was overwritten
 	 */
 	kern_return_t overwritePrelinkInfo();
+
+	/**
+	 *  Get file buffer of the initialised image
+	 */
+	uint8_t *getFileBuf() {
+		return file_buf;
+	}
 };
 
 #endif /* kern_mach_hpp */

@@ -452,7 +452,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 			   control, offset, copy, cur_protection, max_protection, inheritance);
 		if (doOverride) {
 			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
-			uint8_t *patchedKC = that->kcMachInfos[kcType]->file_buf;
+			uint8_t *patchedKC = that->kcMachInfos[kcType]->getFileBuf();
 			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Copying %sKC range %llX ~ %llX", kcName, offset, offset + initial_size);
 			memcpy((void*)*address, patchedKC + offset, (size_t)initial_size);
 		}
