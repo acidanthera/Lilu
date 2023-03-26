@@ -468,7 +468,8 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
 		if (doOverride) {
-			PANIC_COND(ret, "mach", "onVmMapEnterMemObjectControl: ret=%d with *address set to %llx", ret, *address);
+			PANIC_COND(realOffset == 0 && initial_size == 0x1d000, "patcher", "panik");
+			if (ret) SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
 			uint8_t *patchedKC = that->kcMachInfos[kcType]->getFileBuf();
 			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
 		}
