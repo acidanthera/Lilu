@@ -462,13 +462,13 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, offset, offset + initial_size);
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
 		if (doOverride) {
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
+			if (ret) SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
 			uint8_t *patchedKC = that->kcMachInfos[kcType]->getFileBuf();
 			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
 		}
