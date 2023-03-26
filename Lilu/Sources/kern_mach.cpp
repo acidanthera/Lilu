@@ -263,7 +263,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		error = kextInfo->readSymbols(NULLVP, nullptr);
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
-		uint32_t kmodOffset = kextInfo->solveSymbol("_kmod_info");
+		uint32_t kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
 		if (kmodOffset == 0) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
 			return KERN_FAILURE;
@@ -300,7 +300,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	header->ncmds++;
 	header->sizeofcmds += scmd->cmdsize;
 
-	uint32_t idLen = strlen(injectInfo->identifier) + 1;
+	uint32_t idLen = (uint32_t)(strlen(injectInfo->identifier) + 1);
 	fileset_entry_command *fcmd = (fileset_entry_command*)(scmd + 1);
 	fcmd->commandType = LC_FILESET_ENTRY;
 	fcmd->commandSize = sizeof(fileset_entry_command) + alignValue(idLen, 8U);
