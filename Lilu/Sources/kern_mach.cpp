@@ -215,13 +215,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	uint32_t executableSize = injectInfo->executableSize;
 
 	fat_header *machFatHeader = (fat_header*)executable;
-	if (machFatHeader->magic == FAT_MAGIC || machFatHeader->magic == FAT_CIGAM) {
+	if (machFatHeader->magic == FAT_CIGAM) {
 		bool foundBinary = false;
 		fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
-		for (uint32_t i = 0; i < machFatHeader->nfat_arch; i++) {
-			if (curFat->cputype == 0x01000007) {
-				executable = injectInfo->executable + curFat->offset;
-				executableSize = curFat->size;
+		for (uint32_t i = 0; i < OSSwapInt32(machFatHeader->nfat_arch); i++) {
+			if (curFat->cputype == OSSwapInt32(0x01000007)) {
+				executable = injectInfo->executable + OSSwapInt32(curFat->offset);
+				executableSize = OSSwapInt32(curFat->size);
 				foundBinary = true;
 				break;
 			}
