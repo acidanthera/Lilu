@@ -382,28 +382,30 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			that->kcControls[that->curLoadingKCKind] = ret;
 		}
 
-		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
-			vm_size_t oldAuxKcSize = (vm_size_t)*file_size;
-			uint8_t *auxKC = (uint8_t*)that->orgGetAddressFromKextMap(oldAuxKcSize);
-			if (auxKC == nullptr || 
-			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&auxKC, (vm_map_offset_t)oldAuxKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
-				SYSLOG("patcher", "Failed to map auxKC");
+		if (that->curLoadingKCKind == kc_kind::KCKindPageable) {
+			vm_size_t oldKcSize = (vm_size_t)*file_size;
+			uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
+			if (kcBuf == nullptr || 
+			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&kcBuf, (vm_map_offset_t)oldKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
+				SYSLOG("patcher", "Failed to map kcBuf");
 				return ret;
 			}
-			SYSLOG("patcher", "Mapped auxKC at %p", auxKC);
+			SYSLOG("patcher", "Mapped kcBuf at %p", kcBuf);
 
-			vm_size_t patchedAuxKCSize = oldAuxKcSize + 128 * 1024 * 1024;
-			uint8_t *patchedAuxKC = (uint8_t*)IOMalloc(patchedAuxKCSize);
-			memcpy(patchedAuxKC, auxKC, oldAuxKcSize);
-			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)auxKC, (vm_map_offset_t)auxKC + *file_size, 0);
+			vm_size_t patchedKCSize = oldKcSize + 128 * 1024 * 1024;
+			uint8_t *patchedKCBuf = (uint8_t*)IOMalloc(patchedKCSize);
+			memcpy(patchedKCBuf, kcBuf, oldKcSize);
+			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
 
-			MachInfo* auxKCInfo = MachInfo::create(MachType::KextCollection);
-			auxKCInfo->initFromKCBuffer(patchedAuxKC, (uint32_t)patchedAuxKCSize, (uint32_t)oldAuxKcSize);
-			auxKCInfo->excludeKextFromKC("com.softraid.driver.SoftRAID");
-			auxKCInfo->excludeKextFromKC("com.apple.nke.rvi");
-			auxKCInfo->overwritePrelinkInfo();
-			that->kcMachInfos[kc_kind::KCKindAuxiliary] = auxKCInfo;
-			*file_size = patchedAuxKCSize;
+			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
+			kcInfo->initFromKCBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
+			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000");
+			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000Framebuffer");
+			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000HWServices");
+			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000HWLibs");
+			kcInfo->overwritePrelinkInfo();
+			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;
+			*file_size = patchedKCSize;
 			IOSleep(5000);
 		}
 	}
