@@ -412,8 +412,8 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			injectInfo->executableSize = (uint32_t)tmpSize;
 
 			kcInfo->injectKextIntoKC(injectInfo);
-			Buffer::deleter(injectInfo->infoPlist);
-			Buffer::deleter(injectInfo->executable);
+			Buffer::deleter((void*)injectInfo->infoPlist);
+			Buffer::deleter((void*)injectInfo->executable);
 			IOFree(injectInfo, sizeof(KextInjectionInfo));
 
 			kcInfo->overwritePrelinkInfo();
