@@ -461,7 +461,7 @@ inline T &getMember(void *that, size_t off) {
  *
  *  @param size  value
  *
- *  @return algined value
+ *  @return aligned value
  */
 template <typename T>
 inline T alignValue(T size, T align = 4096) {
