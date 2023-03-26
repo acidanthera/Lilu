@@ -218,7 +218,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	if (machFatHeader->magic == FAT_MAGIC || machFatHeader->magic == FAT_CIGAM) {
 		bool foundBinary = false;
 		fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
-		for (int i = 0; i < machFatHeader->nfat_arch; i++) {
+		for (uint32_t i = 0; i < machFatHeader->nfat_arch; i++) {
 			if (curFat->cputype == 0x01000007) {
 				executable = injectInfo->executable + curFat->offset;
 				executableSize = curFat->size;
