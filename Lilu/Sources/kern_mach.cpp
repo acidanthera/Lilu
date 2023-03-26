@@ -104,7 +104,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	void *tmpSectionCmdPtr;
 	findSectionBounds(file_buf, file_buf_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, tmpSegmentCmdPtr, tmpSectionCmdPtr, "__PRELINK_INFO", "__info");
 
-	OSSerialize *newPrelinkInfo = OSSerialize::withCapacity(1024 * 1024);
+	OSSerialize *newPrelinkInfo = OSSerialize::withCapacity(2 * 1024 * 1024);
 	prelink_dict->serialize(newPrelinkInfo);
 	// Account for the \0 as well
 	uint32_t infoLength = newPrelinkInfo->getLength() + 1;
@@ -120,6 +120,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 
 	segment_command_64 *segmentCmdPtr = (segment_command_64*)tmpSegmentCmdPtr;
 	segmentCmdPtr->vmaddr = newAddr;
+	segmentCmdPtr->vmsize = infoLength;
 	segmentCmdPtr->filesize = infoLength;
 	segmentCmdPtr->fileoff = file_buf_free_start;
 
