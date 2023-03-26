@@ -117,13 +117,15 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	memcpy(file_buf + file_buf_free_start, newPrelinkInfo->text(), infoLength);
 
 	segment_command_64 *segmentCmdPtr = (segment_command_64*)tmpSegmentCmdPtr;
-	if (segmentCmdPtr->filesize < infoLength) {
-		SYSLOG("mach", "overwritePrelinkInfo: filesize is smaller than the required space for new prelink info!");
+	if (segmentCmdPtr->vmsize < infoLength) {
+		SYSLOG("mach", "overwritePrelinkInfo: filesize is smaller than the required space for new prelink info! Need %x, has %x", infoLength, segmentCmdPtr->filesize);
 		return KERN_FAILURE;
 	}
+	segmentCmdPtr->filesize = infoLength;
 	segmentCmdPtr->fileoff = file_buf_free_start;
 
 	section_64 *sectionCmdPtr = (section_64*)tmpSectionCmdPtr;
+	sectionCmdPtr->size = infoLength;
 	sectionCmdPtr->offset = file_buf_free_start;
 
 	file_buf_free_start += infoLength;
