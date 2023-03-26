@@ -86,9 +86,9 @@ void MachInfo::deinit() {
 	}
 }
 
-kern_return_t MachInfo::initFromBuffer(uint8_t * kcBuf, uint32_t bufSize, uint32_t origBufSize) {
+kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t origBufSize) {
 	kernel_collection = machType != MachType::Kext;
-	file_buf = kcBuf;
+	file_buf = buf;
 	file_buf_size = bufSize;
 	file_buf_free_start = origBufSize;
 
@@ -890,6 +890,10 @@ void MachInfo::freeFileBufferResources() {
 }
 
 void MachInfo::processMachHeader(void *header) {
+	for (int i = 0; i < 128; i++) {
+		DBGLOG("mach", "header[%d] = %x", i, header[i]);
+	}
+
 	auto mh = static_cast<mach_header_native *>(header);
 	size_t headerSize = sizeof(mach_header_native);
 
@@ -906,6 +910,7 @@ void MachInfo::processMachHeader(void *header) {
 			return;
 		}
 
+		DBGLOG("mach", "cmdsize = %x", loadCmd->cmdsize);
 		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
 			SYSLOG("mach", "header command %u of info %s exceeds header size", i, safeString(objectId));
 			return;
