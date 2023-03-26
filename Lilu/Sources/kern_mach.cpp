@@ -156,7 +156,8 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 			SYSLOG("mach", "excludeKextFromKC: Header command %u exceeds header size for section lookup", no);
 			return KERN_FAILURE;
 		}
-
+		
+		uint32_t cmdsize = orgCmd->cmdsize;
 		// LC_FILESET_ENTRY
 		if (orgCmd->cmd == 0x80000035) {
 			auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
@@ -166,19 +167,19 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 			DBGLOG("mach", "excludeKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
 			if (!strncmp(kextName, curEntryName, curEntryCapacity)) {
 				DBGLOG("mach", "excludeKextFromKC: Skipping related LC_FILESET_ENTRY");
-				header->sizeofcmds -= orgCmd->cmdsize;
+				header->sizeofcmds -= cmdsize;
 				goto skipCommand;
 			}
 		}
 
 		if (orgCmd != dstCmd) {
-			DBGLOG("mach", "excludeKextFromKC: Copying %d bytes to %p from %p", orgCmd->cmdsize, dstCmd, orgCmd);
-			memcpy(dstCmd, orgCmd, orgCmd->cmdsize);
+			DBGLOG("mach", "excludeKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
+			memcpy(dstCmd, orgCmd, cmdsize);
 		}
-		reinterpret_cast<uintptr_t &>(dstCmd) += orgCmd->cmdsize;
+		reinterpret_cast<uintptr_t &>(dstCmd) += cmdsize;
 
 		skipCommand:
-		reinterpret_cast<uintptr_t &>(orgCmd) += orgCmd->cmdsize;
+		reinterpret_cast<uintptr_t &>(orgCmd) += cmdsize;
 	}
 
 	if (orgCmd == dstCmd) {
