@@ -322,14 +322,14 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	header->ncmds++;
 	header->sizeofcmds += scmd->cmdsize;
 
-	uint32_t idLen = (uint32_t)(strlen(injectInfo->identifier) + 1);
+	uint32_t idLen = (uint32_t)(strlen(identifier) + 1);
 	fileset_entry_command *fcmd = (fileset_entry_command*)(scmd + 1);
 	fcmd->commandType = LC_FILESET_ENTRY;
 	fcmd->commandSize = sizeof(fileset_entry_command) + alignValue(idLen, 8U);
 	fcmd->virtualAddress = fcmd->fileOffset = imageOffset;
 	fcmd->stringOffset = sizeof(fileset_entry_command);
 	fcmd->stringAddress32 = 0;
-	memcpy(fcmd + 1, injectInfo->identifier, idLen);
+	memcpy(fcmd + 1, identifier, idLen);
 
 	header->ncmds++;
 	header->sizeofcmds += fcmd->commandSize;
@@ -912,10 +912,6 @@ void MachInfo::freeFileBufferResources() {
 }
 
 void MachInfo::processMachHeader(void *header) {
-	for (int i = 0; i < 128; i++) {
-		DBGLOG("mach", "header[%d] = %x", i, ((uint8_t*)header)[i]);
-	}
-
 	auto mh = static_cast<mach_header_native *>(header);
 	size_t headerSize = sizeof(mach_header_native);
 
@@ -932,7 +928,6 @@ void MachInfo::processMachHeader(void *header) {
 			return;
 		}
 
-		DBGLOG("mach", "cmdsize = %x", loadCmd->cmdsize);
 		if (addr + sizeof(load_command) > endaddr || addr + loadCmd->cmdsize > endaddr) {
 			SYSLOG("mach", "header command %u of info %s exceeds header size", i, safeString(objectId));
 			return;
