@@ -399,10 +399,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 			kcInfo->initFromKCBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
-			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000");
-			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000Framebuffer");
-			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000HWServices");
-			kcInfo->excludeKextFromKC("com.apple.kext.AMDRadeonX6000HWLibs");
+			kcInfo->excludeKextFromKC("com.apple.driver.AppleGraphicsDevicePolicy");
 			kcInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;
 			*file_size = patchedKCSize;
@@ -457,7 +454,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		if (doOverride) {
 			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
 			uint8_t *patchedKC = that->kcMachInfos[kcType]->getFileBuf();
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Copying %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
+			// SYSLOG("patcher", "onVmMapEnterMemObjectControl: Copying %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
 			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
 		}
 	}

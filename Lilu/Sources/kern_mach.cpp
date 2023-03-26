@@ -167,16 +167,16 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 			// If this is the kext we are trying to exclude
 			const char *curEntryName = (char*)fcmd + fcmd->stringOffset;
 			uint32_t curEntryCapacity = fcmd->commandSize - fcmd->stringOffset;
-			DBGLOG("mach", "excludeKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
+			// DBGLOG("mach", "excludeKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
 			if (!strncmp(kextName, curEntryName, curEntryCapacity)) {
-				DBGLOG("mach", "excludeKextFromKC: Skipping related LC_FILESET_ENTRY");
+				// DBGLOG("mach", "excludeKextFromKC: Skipping related LC_FILESET_ENTRY");
 				header->sizeofcmds -= cmdsize;
 				goto skipCommand;
 			}
 		}
 
 		if (orgCmd != dstCmd) {
-			DBGLOG("mach", "excludeKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
+			// DBGLOG("mach", "excludeKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
 			memcpy(dstCmd, orgCmd, cmdsize);
 		}
 		reinterpret_cast<uintptr_t &>(dstCmd) += cmdsize;
