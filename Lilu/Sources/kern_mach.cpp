@@ -230,7 +230,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		identifier = bundleIdentifier->getCStringNoCopy();
 		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
 	}
-	excludeKextFromKC(injectInfo->identifier);
+	excludeKextFromKC(identifier);
 
 	uint32_t imageOffset = 0;
 	if (injectInfo->executable != nullptr) {
