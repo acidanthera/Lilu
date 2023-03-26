@@ -308,7 +308,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	// TODO: Implement checking and handling of situation where we run out of header space
 	mach_header_64 *header = (mach_header_64*)file_buf;
 
-	segment_command_64 *scmd = (segment_command_64*)(file_buf + sizeof(mach_header_64));
+	segment_command_64 *scmd = (segment_command_64*)(file_buf + sizeof(mach_header_64) + header->sizeofcmds);
 	scmd->cmd = LC_SEGMENT_64;
 	scmd->cmdsize = sizeof(segment_command_64);
 	snprintf(scmd->segname, 16, "__LILU%d", kextsInjected);
