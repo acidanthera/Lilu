@@ -891,7 +891,7 @@ void MachInfo::freeFileBufferResources() {
 
 void MachInfo::processMachHeader(void *header) {
 	for (int i = 0; i < 128; i++) {
-		DBGLOG("mach", "header[%d] = %x", i, header[i]);
+		DBGLOG("mach", "header[%d] = %x", i, ((uint8_*)header)[i]);
 	}
 
 	auto mh = static_cast<mach_header_native *>(header);
