@@ -225,6 +225,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				foundBinary = true;
 				break;
 			}
+			curFat++;
 		}
 
 		if (!foundBinary) {
