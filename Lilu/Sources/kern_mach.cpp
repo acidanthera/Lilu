@@ -211,6 +211,11 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	return KERN_SUCCESS;
 }
 
+kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
+	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", injectInfo->executable[0], injectInfo->executable[1], injectInfo->executable[2], injectInfo->executable[3]);
+	return KERN_SUCCESS;
+}
+
 kern_return_t MachInfo::initFromMemory() {
 	// Before 11.0 __LINKEDIT is dropped from memory unless keepsyms=1 argument is specified.
 	// With 11.0 for all kernel collections (KC) __LINKEDIT is preserved for both kexts and kernels.

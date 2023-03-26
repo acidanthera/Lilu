@@ -7,6 +7,7 @@
 
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_compat.hpp>
+#include <Headers/kern_file.hpp>
 #include <PrivateHeaders/kern_patcher.hpp>
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_iokit.hpp>
@@ -400,6 +401,19 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 			kcInfo->initFromKCBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
 			kcInfo->excludeKextFromKC("com.apple.driver.AGPM");
+
+			KextInjectionInfo *injectInfo = (KextInjectionInfo*)IOMalloc(sizeof(KextInjectionInfo));
+			size_t tmpSize;
+			injectInfo->bundlePath = "/System/Library/Extensions/AppleGraphicsPowerManagement.kext";
+			injectInfo->infoPlist = (const char*)FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/Info.plist", tmpSize);
+			injectInfo->infoPlistSize = tmpSize;
+			injectInfo->executablePath = "Contents/MacOS/AppleGraphicsPowerManagement";
+			injectInfo->executable = FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/MacOS/AppleGraphicsPowerManagement", tmpSize);
+			injectInfo->executableSize = tmpSize;
+
+			kcInfo->injectKextIntoKC(injectInfo);
+			IOFree(injectInfo, sizeof(KextInjectionInfo));
+
 			kcInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;
 			*file_size = patchedKCSize;

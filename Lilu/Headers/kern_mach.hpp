@@ -27,15 +27,24 @@ enum MachType {
 };
 
 typedef struct {
-  uint32_t commandType;
-  uint32_t commandSize;
-  uint64_t virtualAddress; 
-  uint64_t fileOffset;     
-  uint32_t stringOffset;
-  uint32_t stringAddress32;
-  uint32_t reserved;       
-  char * payload[];      
+  	uint32_t commandType;
+  	uint32_t commandSize;
+  	uint64_t virtualAddress; 
+  	uint64_t fileOffset;     
+  	uint32_t stringOffset;
+  	uint32_t stringAddress32;
+  	uint32_t reserved;       
+	char * payload[];      
 } fileset_entry_command;
+
+typedef struct {
+	const char *bundlePath;
+	const char *infoPlist;
+	uint32_t infoPlistSize;
+	const char *executablePath;
+  	const uint8_t *executable = nullptr; // Optional
+	uint32_t executableSize;
+} KextInjectionInfo;
 
 class MachInfo {
 #if defined(__i386__)
@@ -377,7 +386,14 @@ public:
 	 *
 	 *  @return KERN_SUCCESS if the kext was found and excluded
 	 */
-	kern_return_t excludeKextFromKC(const char * kextName);
+	kern_return_t excludeKextFromKC(const char *kextName);
+
+	/**
+	 *  Inject a kext from the KC
+	 *
+	 *  @return KERN_SUCCESS if the kext was injected
+	 */
+	kern_return_t injectKextIntoKC(KextInjectionInfo *injectInfo);
 
 	/**
 	 *  Overwrite the prelink info in the file buffer
