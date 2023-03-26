@@ -37,14 +37,14 @@ typedef struct {
 	char * payload[];      
 } fileset_entry_command;
 
-typedef struct {
+struct KextInjectionInfo {
 	const char *bundlePath;
 	const char *infoPlist;
 	uint32_t infoPlistSize;
 	const char *executablePath;
   	const uint8_t *executable = nullptr; // Optional
 	uint32_t executableSize;
-} KextInjectionInfo;
+};
 
 class MachInfo {
 #if defined(__i386__)

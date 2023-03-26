@@ -406,12 +406,14 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			size_t tmpSize;
 			injectInfo->bundlePath = "/System/Library/Extensions/AppleGraphicsPowerManagement.kext";
 			injectInfo->infoPlist = (const char*)FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/Info.plist", tmpSize);
-			injectInfo->infoPlistSize = tmpSize;
+			injectInfo->infoPlistSize = (uint32_t)tmpSize;
 			injectInfo->executablePath = "Contents/MacOS/AppleGraphicsPowerManagement";
 			injectInfo->executable = FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/MacOS/AppleGraphicsPowerManagement", tmpSize);
-			injectInfo->executableSize = tmpSize;
+			injectInfo->executableSize = (uint32_t)tmpSize;
 
 			kcInfo->injectKextIntoKC(injectInfo);
+			Buffer::deleter(injectInfo->infoPlist);
+			Buffer::deleter(injectInfo->executable);
 			IOFree(injectInfo, sizeof(KextInjectionInfo));
 
 			kcInfo->overwritePrelinkInfo();
