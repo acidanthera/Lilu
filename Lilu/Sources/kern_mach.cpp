@@ -86,13 +86,13 @@ void MachInfo::deinit() {
 	}
 }
 
-kern_return_t MachInfo::initFromKCBuffer(uint8_t * kcBuf, uint32_t bufSize, uint32_t origKCSize) {
-	kernel_collection = true;
+kern_return_t MachInfo::initFromBuffer(uint8_t * kcBuf, uint32_t bufSize, uint32_t origBufSize) {
+	kernel_collection = machType != MachType::Kext;
 	file_buf = kcBuf;
 	file_buf_size = bufSize;
-	file_buf_free_start = origKCSize;
+	file_buf_free_start = origBufSize;
 
-	updatePrelinkInfo();
+	if (kernel_collection) updatePrelinkInfo();
 	return KERN_SUCCESS;
 }
 
@@ -135,7 +135,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 }
 
 kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
-	DBGLOG("mach", "excludeKextFromKC: Blocking %s", kextName);
+	DBGLOG("mach", "excludeKextFromKC: Excluding %s", kextName);
 
 	// Remove the related LC_FILESET_ENTRY command
 	auto header = (mach_header*)(file_buf);
@@ -161,8 +161,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 		}
 		
 		uint32_t cmdsize = orgCmd->cmdsize;
-		// LC_FILESET_ENTRY
-		if (orgCmd->cmd == 0x80000035) {
+		if (orgCmd->cmd == LC_FILESET_ENTRY) {
 			auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
 			// If this is the kext we are trying to exclude
 			const char *curEntryName = (char*)fcmd + fcmd->stringOffset;
@@ -186,7 +185,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	}
 
 	if (orgCmd == dstCmd) {
-		SYSLOG("mach", "excludeKextFromKC: Failed to locate related LC_FILESET_ENTRY");
+		SYSLOG("mach", "excludeKextFromKC: Unable to locate related LC_FILESET_ENTRY");
 		return KERN_FAILURE;
 	}
 	header->ncmds--;
@@ -212,7 +211,106 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 }
 
 kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
+	kern_return_t error = KERN_SUCCESS;
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", injectInfo->executable[0], injectInfo->executable[1], injectInfo->executable[2], injectInfo->executable[3]);
+
+	OSDictionary *plist = OSDynamicCast(OSDictionary, OSUnserializeXML(injectInfo->infoPlist, nullptr));
+	if (plist == nullptr) {
+		SYSLOG("mach", "injectKextIntoKC: Failed to deserialize infoPlist");
+		return KERN_FAILURE;
+	}
+
+	const char* identifier = injectInfo->identifier;
+	if (identifier == nullptr) {
+		OSString *bundleIdentifier = OSDynamicCast(OSString, plist->getObject("CFBundleIdentifier"));
+		if (bundleIdentifier == nullptr) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to fetch CFBundleIdentifier");
+			return KERN_FAILURE;
+		}
+		identifier = bundleIdentifier->getCStringNoCopy();
+		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
+	}
+	excludeKextFromKC(injectInfo->identifier);
+
+	uint32_t imageOffset = 0;
+	if (injectInfo->executable != nullptr) {
+		if (file_buf_free_start + injectInfo->executableSize > file_buf_size) {
+			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
+			return KERN_FAILURE;
+		}
+
+		// Append the image
+		memcpy(file_buf + file_buf_free_start, injectInfo->executable, injectInfo->executableSize);
+		imageOffset = file_buf_free_start;
+		file_buf_free_start += alignValue(injectInfo->executableSize);
+	}
+
+	// Add keys related to prelinking
+	plist->setObject("_PrelinkBundlePath", OSString::withCString(injectInfo->bundlePath));
+	if (injectInfo->executable != nullptr) {
+		plist->setObject("_PrelinkExecutableRelativePath", OSString::withCString(injectInfo->executablePath));
+		plist->setObject("_PrelinkExecutableSourceAddr", OSNumber::withNumber(imageOffset, 32));
+		plist->setObject("_PrelinkExecutableLoadAddr", OSNumber::withNumber(imageOffset, 32));
+		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(injectInfo->executableSize, 32));
+
+		// Find kmod offset
+		MachInfo *kextInfo = MachInfo::create();
+		uint8_t *executableCopy = (uint8_t*)IOMalloc(injectInfo->executableSize);
+		memcpy(executableCopy, injectInfo->executable, injectInfo->executableSize);
+		kextInfo->initFromBuffer(executableCopy, injectInfo->executableSize, injectInfo->executableSize);
+
+		kextInfo->processMachHeader(kextInfo->getFileBuf());
+		error = kextInfo->readSymbols(NULLVP, nullptr);
+		if (error != KERN_SUCCESS) return error;
+		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
+		uint32_t kmodOffset = kextInfo->solveSymbol("_kmod_info");
+		if (kmodOffset == 0) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
+			return KERN_FAILURE;
+		}
+
+		plist->setObject("_PrelinkKmodInfo", OSNumber::withNumber(imageOffset + kmodOffset, 32));
+		kextInfo->deinit();
+		delete kextInfo;
+	}
+
+	static OSArray *imageArr = nullptr;
+	if (!imageArr) imageArr = OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
+	if (!imageArr) {
+		SYSLOG("mach", "injectKextIntoKC: Failed to fetch _PrelinkInfoDictionary");
+		return KERN_FAILURE;
+	}
+	imageArr->setObject(plist);
+
+	// Add LC_SEGMENT_64 (segment_command_64) and LC_FILESET_ENTRY (fileset_entry_command) commands
+	// TODO: Implement checking and handling of situation where we run out of header space
+	mach_header_64 *header = (mach_header_64*)file_buf;
+
+	segment_command_64 *scmd = (segment_command_64*)(file_buf + sizeof(mach_header_64));
+	scmd->cmd = LC_SEGMENT_64;
+	scmd->cmdsize = sizeof(segment_command_64);
+	snprintf(scmd->segname, 16, "__LILU%d", kextsInjected);
+	kextsInjected++;
+	scmd->vmaddr = scmd->fileoff = imageOffset;
+	scmd->vmsize = alignValue(injectInfo->executableSize);
+	scmd->filesize = injectInfo->executableSize;
+	scmd->maxprot = scmd->initprot = 3;
+	scmd->nsects = scmd->flags = 0;
+
+	header->ncmds++;
+	header->sizeofcmds += scmd->cmdsize;
+
+	uint32_t idLen = strlen(injectInfo->identifier) + 1;
+	fileset_entry_command *fcmd = (fileset_entry_command*)(scmd + 1);
+	fcmd->commandType = LC_FILESET_ENTRY;
+	fcmd->commandSize = sizeof(fileset_entry_command) + alignValue(idLen, 8U);
+	fcmd->virtualAddress = fcmd->fileOffset = imageOffset;
+	fcmd->stringOffset = sizeof(fileset_entry_command);
+	fcmd->stringAddress32 = 0;
+	memcpy(fcmd + 1, injectInfo->identifier, idLen);
+
+	header->ncmds++;
+	header->sizeofcmds += fcmd->commandSize;
 	return KERN_SUCCESS;
 }
 

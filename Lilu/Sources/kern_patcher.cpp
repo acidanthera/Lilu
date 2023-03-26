@@ -399,11 +399,11 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
 
 			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
-			kcInfo->initFromKCBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
-			kcInfo->excludeKextFromKC("com.apple.driver.AGPM");
+			kcInfo->initFromBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
 
 			KextInjectionInfo *injectInfo = (KextInjectionInfo*)IOMalloc(sizeof(KextInjectionInfo));
 			size_t tmpSize;
+			// injectInfo->identifier = "com.apple.driver.AGPM";
 			injectInfo->bundlePath = "/System/Library/Extensions/AppleGraphicsPowerManagement.kext";
 			injectInfo->infoPlist = (const char*)FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/Info.plist", tmpSize);
 			injectInfo->infoPlistSize = (uint32_t)tmpSize;

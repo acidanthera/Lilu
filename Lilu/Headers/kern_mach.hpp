@@ -26,24 +26,24 @@ enum MachType {
 	KextCollection
 };
 
+#define LC_FILESET_ENTRY 0x80000035;
 typedef struct {
   	uint32_t commandType;
   	uint32_t commandSize;
-  	uint64_t virtualAddress; 
-  	uint64_t fileOffset;     
+	uint64_t virtualAddress;
+	uint64_t fileOffset;
   	uint32_t stringOffset;
   	uint32_t stringAddress32;
-  	uint32_t reserved;       
-	char * payload[];      
 } fileset_entry_command;
 
 struct KextInjectionInfo {
+	const char *identifier = nullptr; // Optional; fetched automatically from the plist if omitted
 	const char *bundlePath;
 	const char *infoPlist;
 	uint32_t infoPlistSize;
-	const char *executablePath;
+	const char *executablePath; // Used iff executable != nullptr
   	const uint8_t *executable = nullptr; // Optional
-	uint32_t executableSize;
+	uint32_t executableSize; // Used iff executable != nullptr
 };
 
 class MachInfo {
@@ -96,6 +96,7 @@ class MachInfo {
 	bool prelink_slid {false};               // assume kaslr-slid kext addresses
 	bool kernel_collection {false};          // kernel collection (11.0+)
 	uint64_t self_uuid[2] {};                // saved uuid of the loaded kext or kernel
+	uint32_t kextsInjected {0};              // amount of kexts injected into the KC so far
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
@@ -375,11 +376,11 @@ public:
 	}
 
 	/**
-	 *  Resolve mach data in a KC via buffer
+	 *  Resolve mach data in an image via memory buffer
 	 *
 	 *  @return KERN_SUCCESS if loaded
 	 */
-	kern_return_t initFromKCBuffer(uint8_t *kcBuf, uint32_t bufSize, uint32_t origKCSize);
+	kern_return_t initFromBuffer(uint8_t *buf, uint32_t bufSize, uint32_t origBufSize);
 
 	/**
 	 *  Exclude a kext from the KC
