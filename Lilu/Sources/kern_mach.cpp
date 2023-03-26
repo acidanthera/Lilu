@@ -211,8 +211,29 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 }
 
 kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
-	kern_return_t error = KERN_SUCCESS;
-	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", injectInfo->executable[0], injectInfo->executable[1], injectInfo->executable[2], injectInfo->executable[3]);
+	const uint8_t *executable = injectInfo->executable;
+	uint32_t executableSize = injectInfo->executableSize;
+
+	fat_header *machFatHeader = (fat_header*)executable;
+	if (machFatHeader->magic == FAT_MAGIC || machFatHeader->magic == FAT_CIGAM) {
+		bool foundBinary = false;
+		fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
+		for (int i = 0; i < machFatHeader->nfat_arch; i++) {
+			if (curFat->cputype == 0x01000007) {
+				executable = injectInfo->executable + curFat->offset;
+				executableSize = curFat->size;
+				foundBinary = true;
+				break;
+			}
+		}
+
+		if (!foundBinary) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to extract x64 binary from fat binary");
+			return KERN_FAILURE;
+		}
+	}
+
+	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
 
 	OSDictionary *plist = OSDynamicCast(OSDictionary, OSUnserializeXML(injectInfo->infoPlist, nullptr));
 	if (plist == nullptr) {
@@ -233,34 +254,34 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	excludeKextFromKC(identifier);
 
 	uint32_t imageOffset = 0;
-	if (injectInfo->executable != nullptr) {
-		if (file_buf_free_start + injectInfo->executableSize > file_buf_size) {
+	if (executable != nullptr) {
+		if (file_buf_free_start + executableSize > file_buf_size) {
 			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
 			return KERN_FAILURE;
 		}
 
 		// Append the image
-		memcpy(file_buf + file_buf_free_start, injectInfo->executable, injectInfo->executableSize);
+		memcpy(file_buf + file_buf_free_start, executable, executableSize);
 		imageOffset = file_buf_free_start;
-		file_buf_free_start += alignValue(injectInfo->executableSize);
+		file_buf_free_start += alignValue(executableSize);
 	}
 
 	// Add keys related to prelinking
 	plist->setObject("_PrelinkBundlePath", OSString::withCString(injectInfo->bundlePath));
-	if (injectInfo->executable != nullptr) {
+	if (executable != nullptr) {
 		plist->setObject("_PrelinkExecutableRelativePath", OSString::withCString(injectInfo->executablePath));
 		plist->setObject("_PrelinkExecutableSourceAddr", OSNumber::withNumber(imageOffset, 32));
 		plist->setObject("_PrelinkExecutableLoadAddr", OSNumber::withNumber(imageOffset, 32));
-		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(injectInfo->executableSize, 32));
+		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(executableSize, 32));
 
 		// Find kmod offset
 		MachInfo *kextInfo = MachInfo::create();
-		uint8_t *executableCopy = (uint8_t*)IOMalloc(injectInfo->executableSize);
-		memcpy(executableCopy, injectInfo->executable, injectInfo->executableSize);
-		kextInfo->initFromBuffer(executableCopy, injectInfo->executableSize, injectInfo->executableSize);
+		uint8_t *executableCopy = (uint8_t*)IOMalloc(executableSize);
+		memcpy(executableCopy, executable, executableSize);
+		kextInfo->initFromBuffer(executableCopy, executableSize, executableSize);
 
 		kextInfo->processMachHeader(kextInfo->getFileBuf());
-		error = kextInfo->readSymbols(NULLVP, nullptr);
+		kern_return_t error = kextInfo->readSymbols(NULLVP, nullptr);
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 		uint32_t kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
@@ -292,8 +313,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	snprintf(scmd->segname, 16, "__LILU%d", kextsInjected);
 	kextsInjected++;
 	scmd->vmaddr = scmd->fileoff = imageOffset;
-	scmd->vmsize = alignValue(injectInfo->executableSize);
-	scmd->filesize = injectInfo->executableSize;
+	scmd->vmsize = alignValue(executableSize);
+	scmd->filesize = executableSize;
 	scmd->maxprot = scmd->initprot = 3;
 	scmd->nsects = scmd->flags = 0;
 
