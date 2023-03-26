@@ -399,7 +399,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 			kcInfo->initFromKCBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
-			kcInfo->excludeKextFromKC("com.apple.driver.AppleGraphicsDevicePolicy");
+			kcInfo->excludeKextFromKC("com.apple.driver.AGPM");
 			kcInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;
 			*file_size = patchedKCSize;
