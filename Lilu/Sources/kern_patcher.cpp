@@ -462,7 +462,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcType, offset, offset + initial_size);
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, offset, offset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
