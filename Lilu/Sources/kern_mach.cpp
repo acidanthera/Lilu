@@ -247,7 +247,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
-		// Apply fixup to fileoff of the segments
+		// Apply fixup to the segments and sections
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
 
@@ -255,7 +255,17 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
+				segCmd->vmaddr += imageOffset;
 				segCmd->fileoff += imageOffset;
+
+				section_64 *sect = (section_64 *)(segCmd + 1);
+				for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
+					sect->addr += imageOffset;
+					if (sect->offset != 0) {
+						sect->offset += imageOffset;
+					}
+					sect++;
+				}
 			}
 
 			addr += loadCmd->cmdsize;
