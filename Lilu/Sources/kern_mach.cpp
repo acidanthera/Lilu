@@ -267,18 +267,15 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					}
 					sect++;
 				}
-				break;
 			} else if (loadCmd->cmd == LC_SYMTAB) {
 				symtab_command *symtabCmd = (symtab_command*)loadCmd;
 				symtabCmd->symoff += imageOffset;
 				symtabCmd->stroff += imageOffset;
-				break;
 			} else if (loadCmd->cmd == LC_DYSYMTAB) {
 				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
 				dysymtabCmd->indirectsymoff += imageOffset;
 				dysymtabCmd->extreloff += imageOffset;
 				dysymtabCmd->locreloff += imageOffset;
-				break;
 			}
 
 			addr += loadCmd->cmdsize;
