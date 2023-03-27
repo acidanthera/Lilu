@@ -211,26 +211,54 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 }
 
 kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
-	const uint8_t *executable = injectInfo->executable;
+	MachInfo *kextInfo = MachInfo::create();
+	uint8_t *executable = nullptr;
 	uint32_t executableSize = injectInfo->executableSize;
+	uint32_t imageOffset = file_buf_free_start;
 
-	fat_header *machFatHeader = (fat_header*)executable;
-	if (machFatHeader->magic == FAT_CIGAM) {
-		bool foundBinary = false;
-		fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
-		for (uint32_t i = 0; i < OSSwapInt32(machFatHeader->nfat_arch); i++) {
-			if (curFat->cputype == OSSwapInt32(0x01000007)) {
-				executable = injectInfo->executable + OSSwapInt32(curFat->offset);
-				executableSize = OSSwapInt32(curFat->size);
-				foundBinary = true;
-				break;
+	const uint8_t *executableOrg = injectInfo->executable;
+	if (executableOrg != nullptr) {
+		fat_header *machFatHeader = (fat_header*)executable;
+		if (machFatHeader->magic == FAT_CIGAM) {
+			bool foundBinary = false;
+			fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
+			for (uint32_t i = 0; i < OSSwapInt32(machFatHeader->nfat_arch); i++) {
+				if (curFat->cputype == OSSwapInt32(0x01000007)) {
+					executableOrg = injectInfo->executable + OSSwapInt32(curFat->offset);
+					executableSize = OSSwapInt32(curFat->size);
+					foundBinary = true;
+					break;
+				}
+				curFat++;
 			}
-			curFat++;
+
+			if (!foundBinary) {
+				SYSLOG("mach", "injectKextIntoKC: Failed to extract x64 binary from fat binary");
+				return KERN_FAILURE;
+			}
 		}
 
-		if (!foundBinary) {
-			SYSLOG("mach", "injectKextIntoKC: Failed to extract x64 binary from fat binary");
-			return KERN_FAILURE;
+		executable = (uint8_t*)IOMalloc(executableSize);
+		memcpy(executable, executableOrg, executableSize);
+
+		kextInfo->initFromBuffer(executable, executableSize, executableSize);
+		kextInfo->processMachHeader(kextInfo->getFileBuf());
+		kern_return_t error = kextInfo->readSymbols(NULLVP, nullptr);
+		if (error != KERN_SUCCESS) return error;
+		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
+
+		// Apply fixup to fileoff of the segments
+		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
+		uint8_t *addr = (uint8_t*)(mh + 1);
+
+		for (uint32_t i = 0; i < mh->ncmds; i++) {
+			load_command *loadCmd = (load_command*)addr;
+			if (loadCmd->cmd == LC_SEGMENT_64) {
+				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
+				segCmd->fileoff += imageOffset;
+			}
+
+			addr += loadCmd->cmdsize;
 		}
 	}
 
@@ -253,8 +281,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
 	}
 	excludeKextFromKC(identifier);
-
-	uint32_t imageOffset = 0;
 	if (executable != nullptr) {
 		if (file_buf_free_start + executableSize > file_buf_size) {
 			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
@@ -276,15 +302,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(executableSize, 32));
 
 		// Find kmod offset
-		MachInfo *kextInfo = MachInfo::create();
-		uint8_t *executableCopy = (uint8_t*)IOMalloc(executableSize);
-		memcpy(executableCopy, executable, executableSize);
-		kextInfo->initFromBuffer(executableCopy, executableSize, executableSize);
-
-		kextInfo->processMachHeader(kextInfo->getFileBuf());
-		kern_return_t error = kextInfo->readSymbols(NULLVP, nullptr);
-		if (error != KERN_SUCCESS) return error;
-		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 		uint32_t kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
 		if (kmodOffset == 0) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
