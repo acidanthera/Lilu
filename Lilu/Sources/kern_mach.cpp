@@ -255,30 +255,30 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
-					segment_command_64 *segCmd = (segment_command_64*)loadCmd;
-					segCmd->vmaddr += imageOffset;
-					segCmd->fileoff += imageOffset;
+				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
+				segCmd->vmaddr += imageOffset;
+				segCmd->fileoff += imageOffset;
 
-					section_64 *sect = (section_64 *)(segCmd + 1);
-					for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
-						sect->addr += imageOffset;
-						if (sect->offset != 0) {
-							sect->offset += imageOffset;
-						}
-						sect++;
+				section_64 *sect = (section_64 *)(segCmd + 1);
+				for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
+					sect->addr += imageOffset;
+					if (sect->offset != 0) {
+						sect->offset += imageOffset;
 					}
-					break;
+					sect++;
+				}
+				break;
 			} else if (loadCmd->cmd == LC_SYMTAB) {
-					symtab_command *symtabCmd = (symtab_command*)loadCmd;
-					symtabCmd->symoff += imageOffset;
-					symtabCmd->stroff += imageOffset;
-					break;
+				symtab_command *symtabCmd = (symtab_command*)loadCmd;
+				symtabCmd->symoff += imageOffset;
+				symtabCmd->stroff += imageOffset;
+				break;
 			} else if (loadCmd->cmd == LC_DYSYMTAB) {
-					dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
-					dysymtabCmd->indirectsymoff += imageOffset;
-					dysymtabCmd->extreloff += imageOffset;
-					dysymtabCmd->locreloff += imageOffset;
-					break;
+				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
+				dysymtabCmd->indirectsymoff += imageOffset;
+				dysymtabCmd->extreloff += imageOffset;
+				dysymtabCmd->locreloff += imageOffset;
+				break;
 			}
 
 			addr += loadCmd->cmdsize;
