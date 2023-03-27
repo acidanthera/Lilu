@@ -247,25 +247,39 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
-		// Apply fixup to the segments and sections
+		// Apply fixup/rebase to the image
+		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
-			if (loadCmd->cmd == LC_SEGMENT_64) {
-				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
-				segCmd->vmaddr += imageOffset;
-				segCmd->fileoff += imageOffset;
+			switch (loadCmd->cmd) {
+				case LC_SEGMENT_64:
+					segment_command_64 *segCmd = (segment_command_64*)loadCmd;
+					segCmd->vmaddr += imageOffset;
+					segCmd->fileoff += imageOffset;
 
-				section_64 *sect = (section_64 *)(segCmd + 1);
-				for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
-					sect->addr += imageOffset;
-					if (sect->offset != 0) {
-						sect->offset += imageOffset;
+					section_64 *sect = (section_64 *)(segCmd + 1);
+					for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
+						sect->addr += imageOffset;
+						if (sect->offset != 0) {
+							sect->offset += imageOffset;
+						}
+						sect++;
 					}
-					sect++;
-				}
+					break;
+				case LC_SYMTAB:
+					symtab_command *symtabCmd = (symtab_command*)loadCmd;
+					symtabCmd->symoff += imageOffset;
+					symtabCmd->stroff += imageOffset;
+					break;
+				case LC_DYSYMTAB:
+					dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
+					dysymtabCmd->indirectsymoff += imageOffset;
+					dysymtabCmd->extreloff += imageOffset;
+					dysymtabCmd->locreloff += imageOffset;
+					break;
 			}
 
 			addr += loadCmd->cmdsize;
