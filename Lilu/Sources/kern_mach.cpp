@@ -254,8 +254,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
-			switch (loadCmd->cmd) {
-				case LC_SEGMENT_64:
+			if (loadCmd->cmd == LC_SEGMENT_64) {
 					segment_command_64 *segCmd = (segment_command_64*)loadCmd;
 					segCmd->vmaddr += imageOffset;
 					segCmd->fileoff += imageOffset;
@@ -269,12 +268,12 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 						sect++;
 					}
 					break;
-				case LC_SYMTAB:
+			} else if (loadCmd->cmd == LC_SYMTAB) {
 					symtab_command *symtabCmd = (symtab_command*)loadCmd;
 					symtabCmd->symoff += imageOffset;
 					symtabCmd->stroff += imageOffset;
 					break;
-				case LC_DYSYMTAB:
+			} else if (loadCmd->cmd == LC_DYSYMTAB) {
 					dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
 					dysymtabCmd->indirectsymoff += imageOffset;
 					dysymtabCmd->extreloff += imageOffset;
