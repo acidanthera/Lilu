@@ -218,13 +218,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 	const uint8_t *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
-		fat_header *machFatHeader = (fat_header*)executable;
+		fat_header *machFatHeader = (fat_header*)executableOrg;
 		if (machFatHeader->magic == FAT_CIGAM) {
 			bool foundBinary = false;
 			fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
 			for (uint32_t i = 0; i < OSSwapInt32(machFatHeader->nfat_arch); i++) {
 				if (curFat->cputype == OSSwapInt32(0x01000007)) {
-					executableOrg = injectInfo->executable + OSSwapInt32(curFat->offset);
+					executableOrg = executableOrg + OSSwapInt32(curFat->offset);
 					executableSize = OSSwapInt32(curFat->size);
 					foundBinary = true;
 					break;
@@ -281,6 +281,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
 	}
 	excludeKextFromKC(identifier);
+
 	if (executable != nullptr) {
 		if (file_buf_free_start + executableSize > file_buf_size) {
 			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
