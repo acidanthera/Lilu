@@ -93,6 +93,30 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 	file_buf_free_start = origBufSize;
 
 	if (kernel_collection) updatePrelinkInfo();
+
+	if (machType == MachType::KextCollection) {
+		mach_header_64 *mh = (mach_header_64*)file_buf;
+		uint8_t *addr = (uint8_t*)(mh + 1);
+
+		// Reserve more space in __LINKEDIT
+		uint32_t linkeditIncrease = 16 * 1024 * 1024;
+		for (uint32_t i = 0; i < mh->ncmds; i++) {
+			load_command *loadCmd = (load_command*)addr;
+			if (loadCmd->cmd == LC_SEGMENT_64) {
+				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
+				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+					linkedit_offset = segCmd->fileoff;
+					linkedit_free_start = segCmd->filesize;
+					segCmd->vmsize += linkeditIncrease;
+					segCmd->filesize += linkeditIncrease;
+					file_buf_free_start += linkeditIncrease;
+					break;
+				}
+			}
+
+			addr += loadCmd->cmdsize;
+		}
+	}
 	return KERN_SUCCESS;
 }
 
@@ -215,7 +239,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	uint8_t *executable = nullptr;
 	uint32_t executableSize = injectInfo->executableSize;
 	uint32_t imageOffset = file_buf_free_start;
-	uint32_t imageVirtualSize = executableSize;
 
 	const uint8_t *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
@@ -227,7 +250,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				if (curFat->cputype == OSSwapInt32(0x01000007)) {
 					executableOrg = executableOrg + OSSwapInt32(curFat->offset);
 					executableSize = OSSwapInt32(curFat->size);
-					imageVirtualSize = executableSize;
 					foundBinary = true;
 					break;
 				}
@@ -253,27 +275,28 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
-		segment_command_64 *linkeditCmd = nullptr;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
-				imageVirtualSize = max(imageVirtualSize, (uint32_t)(segCmd->vmaddr + segCmd->vmsize));
-				segCmd->vmaddr += imageOffset;
-				segCmd->fileoff += imageOffset;
-
-				section_64 *sect = (section_64 *)(segCmd + 1);
-				for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
-					sect->addr += imageOffset;
-					if (sect->offset != 0) {
-						sect->offset += imageOffset;
-					}
-					sect++;
-				}
-
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					linkeditCmd = segCmd;
+					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->vmaddr, segCmd->filesize);
+					linkedit_free_start += segCmd->filesize;
+					segCmd->vmaddr = segCmd->fileoff = linkedit_offset + linkedit_free_start;
+					segCmd->vmsize = segCmd->filesize;
+				} else {
+					segCmd->vmaddr += imageOffset;
+					segCmd->fileoff += imageOffset;
+
+					section_64 *sect = (section_64 *)(segCmd + 1);
+					for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
+						sect->addr += imageOffset;
+						if (sect->offset != 0) {
+							sect->offset += imageOffset;
+						}
+						sect++;
+					}
 				}
 			} else if (loadCmd->cmd == LC_SYMTAB) {
 				symtab_command *symtabCmd = (symtab_command*)loadCmd;
@@ -287,14 +310,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			}
 
 			addr += loadCmd->cmdsize;
-		}
-
-		// TODO: Implement checking and handling of situation where we run out of header space
-		if (linkeditCmd != nullptr) {
-			memcpy(addr, linkeditCmd, sizeof(segment_command_64));
-			strncpy(((segment_command_64*)addr)->segname, "__LILU_LINKEDIT", 16);
-			mh->ncmds++;
-			mh->sizeofcmds += sizeof(segment_command_64);
 		}
 	}
 
@@ -327,7 +342,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// Append the image
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
 		imageOffset = file_buf_free_start;
-		file_buf_free_start += alignValue(imageVirtualSize);
+		file_buf_free_start += alignValue(executableSize);
 	}
 
 	// Add keys related to prelinking

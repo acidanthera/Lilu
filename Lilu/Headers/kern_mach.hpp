@@ -78,6 +78,8 @@ class MachInfo {
 	uint8_t *file_buf {nullptr};             // read file data
 	uint32_t file_buf_size {0};              // read file data size
 	uint32_t file_buf_free_start {0};        // start of the free space inside the file (for injecting new prelink info / kexts)
+	uint32_t linkedit_offset {0};            // file offset to __LINKEDIT
+	uint32_t linkedit_free_start {0};        // start of the free space inside the __LINKEDIT segment (for injecting new kexts)
 	uint8_t *sym_buf {nullptr};              // pointer to buffer (normally __LINKEDIT) containing symbols to solve
 	bool sym_buf_ro {false};                 // sym_buf is read-only (not copy).
 	uint64_t sym_fileoff {0};                // file offset of symbols (normally __LINKEDIT) so we can read
