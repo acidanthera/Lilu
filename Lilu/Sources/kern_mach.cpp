@@ -105,8 +105,8 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					linkedit_offset = segCmd->fileoff;
-					linkedit_free_start = segCmd->filesize;
+					linkedit_offset = (uint32_t)segCmd->fileoff;
+					linkedit_free_start = (uint32_t)segCmd->filesize;
 					segCmd->vmsize += linkeditIncrease;
 					segCmd->filesize += linkeditIncrease;
 					file_buf_free_start += linkeditIncrease;
