@@ -251,6 +251,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
+		segment_command_64 *linkeditCmd = nullptr;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
@@ -267,6 +268,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					}
 					sect++;
 				}
+
+				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+					linkeditCmd = segCmd;
+				}
 			} else if (loadCmd->cmd == LC_SYMTAB) {
 				symtab_command *symtabCmd = (symtab_command*)loadCmd;
 				symtabCmd->symoff += imageOffset;
@@ -279,6 +284,14 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			}
 
 			addr += loadCmd->cmdsize;
+		}
+
+		// TODO: Implement checking and handling of situation where we run out of header space
+		if (linkeditCmd != nullptr) {
+			memcpy(addr, linkeditCmd, sizeof(segment_command_64));
+			strncpy(((segment_command_64*)addr)->segname, "__LILU_LINKEDIT", 16);
+			mh->ncmds++;
+			mh->sizeofcmds += sizeof(segment_command_64);
 		}
 	}
 
