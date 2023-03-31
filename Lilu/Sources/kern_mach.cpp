@@ -259,7 +259,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
-				imageVirtualSize = max(imageVirtualSize, segCmd->vmaddr + segCmd->vmsize);
+				imageVirtualSize = max(imageVirtualSize, (uint32_t)(segCmd->vmaddr + segCmd->vmsize));
 				segCmd->vmaddr += imageOffset;
 				segCmd->fileoff += imageOffset;
 
