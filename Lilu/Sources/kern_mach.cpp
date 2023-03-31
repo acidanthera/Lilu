@@ -215,6 +215,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	uint8_t *executable = nullptr;
 	uint32_t executableSize = injectInfo->executableSize;
 	uint32_t imageOffset = file_buf_free_start;
+	uint32_t imageVirtualSize = executableSize;
 
 	const uint8_t *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
@@ -226,6 +227,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				if (curFat->cputype == OSSwapInt32(0x01000007)) {
 					executableOrg = executableOrg + OSSwapInt32(curFat->offset);
 					executableSize = OSSwapInt32(curFat->size);
+					imageVirtualSize = executableSize;
 					foundBinary = true;
 					break;
 				}
@@ -257,6 +259,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
+				imageVirtualSize = max(imageVirtualSize, segCmd->vmaddr + segCmd->vmsize);
 				segCmd->vmaddr += imageOffset;
 				segCmd->fileoff += imageOffset;
 
@@ -324,7 +327,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// Append the image
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
 		imageOffset = file_buf_free_start;
-		file_buf_free_start += alignValue(executableSize);
+		file_buf_free_start += alignValue(imageVirtualSize);
 	}
 
 	// Add keys related to prelinking
