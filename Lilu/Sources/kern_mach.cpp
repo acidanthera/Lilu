@@ -281,7 +281,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->vmaddr, segCmd->filesize);
+					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->vmaddr, (uint32_t)segCmd->filesize);
 					linkedit_free_start += segCmd->filesize;
 					segCmd->vmaddr = segCmd->fileoff = linkedit_offset + linkedit_free_start;
 					segCmd->vmsize = segCmd->filesize;
