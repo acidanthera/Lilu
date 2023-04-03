@@ -239,6 +239,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	uint8_t *executable = nullptr;
 	uint32_t executableSize = injectInfo->executableSize;
 	uint32_t imageOffset = file_buf_free_start;
+	uint32_t kmodOffset = 0;
 
 	const uint8_t *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
@@ -317,6 +318,18 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		// Without it, the XNU panics in OSKext::slidePrelinkedExecutable
 		mh->flags |= MH_DYLIB_IN_CACHE;
+
+		// Apply fixup to _kmod_info
+		kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
+		if (kmodOffset == 0) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
+			return KERN_FAILURE;
+		}
+
+		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(kextInfo->getFileBuf() + kmodOffset);
+		kmod->address += imageOffset;
+		kmod->start_addr += imageOffset;
+		kmod->stop_addr += imageOffset;
 	}
 
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
@@ -358,14 +371,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		plist->setObject("_PrelinkExecutableSourceAddr", OSNumber::withNumber(imageOffset, 32));
 		plist->setObject("_PrelinkExecutableLoadAddr", OSNumber::withNumber(imageOffset, 32));
 		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(executableSize, 32));
-
-		// Find kmod offset
-		uint32_t kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
-		if (kmodOffset == 0) {
-			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
-			return KERN_FAILURE;
-		}
-
 		plist->setObject("_PrelinkKmodInfo", OSNumber::withNumber(imageOffset + kmodOffset, 32));
 		kextInfo->deinit();
 		delete kextInfo;
