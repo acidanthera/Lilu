@@ -271,12 +271,12 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
-		// Apply fixup/rebase to the image
-		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
 		uint32_t linkeditDelta = 0;
 
+		// Apply fixup/rebase to the image
+		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
@@ -287,7 +287,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					linkedit_free_start += segCmd->filesize;
 					segCmd->vmaddr = segCmd->fileoff = linkedit_offset + linkedit_free_start;
 					segCmd->vmsize = segCmd->filesize;
-					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT %llx %llx", segCmd->vmaddr, segCmd->vmsize);
+					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
 				} else {
 					segCmd->vmaddr += imageOffset;
 					segCmd->fileoff += imageOffset;
@@ -314,6 +314,9 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 			addr += loadCmd->cmdsize;
 		}
+
+		// Without it, the XNU panics in OSKext::slidePrelinkedExecutable
+		mh->flags |= MH_DYLIB_IN_CACHE;
 	}
 
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
