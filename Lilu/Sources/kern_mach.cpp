@@ -327,7 +327,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(kextInfo->getFileBuf() + kmodOffset);
-		kmod->address += imageOffset;
 		kmod->start_addr += imageOffset;
 		kmod->stop_addr += imageOffset;
 	}
