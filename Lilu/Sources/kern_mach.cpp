@@ -275,16 +275,19 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
+		uint32_t linkeditDelta = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->vmaddr, (uint32_t)segCmd->filesize);
+					linkeditDelta = linkedit_offset + linkedit_free_start - segCmd->fileoff;
+					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->fileoff, (uint32_t)segCmd->filesize);
 					linkedit_free_start += segCmd->filesize;
 					segCmd->vmaddr = segCmd->fileoff = linkedit_offset + linkedit_free_start;
 					segCmd->vmsize = segCmd->filesize;
+					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT %llx %llx", segCmd->vmaddr, segCmd->vmsize);
 				} else {
 					segCmd->vmaddr += imageOffset;
 					segCmd->fileoff += imageOffset;
@@ -300,13 +303,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				}
 			} else if (loadCmd->cmd == LC_SYMTAB) {
 				symtab_command *symtabCmd = (symtab_command*)loadCmd;
-				symtabCmd->symoff += imageOffset;
-				symtabCmd->stroff += imageOffset;
+				symtabCmd->symoff += linkeditDelta;
+				symtabCmd->stroff += linkeditDelta;
 			} else if (loadCmd->cmd == LC_DYSYMTAB) {
 				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
-				dysymtabCmd->indirectsymoff += imageOffset;
-				dysymtabCmd->extreloff += imageOffset;
-				dysymtabCmd->locreloff += imageOffset;
+				dysymtabCmd->indirectsymoff += linkeditDelta;
+				dysymtabCmd->extreloff += linkeditDelta;
+				dysymtabCmd->locreloff += linkeditDelta;
 			}
 
 			addr += loadCmd->cmdsize;
