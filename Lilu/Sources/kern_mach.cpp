@@ -327,8 +327,14 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(kextInfo->getFileBuf() + kmodOffset);
+		for (int i = 0; i < 196; i++) {
+			DBGLOG("mach", "injectKextIntoKC: %d = 0x%x", ((uint8_t*)kmod)[i]);
+		}
 		kmod->start_addr += imageOffset;
 		kmod->stop_addr += imageOffset;
+		for (int i = 0; i < 196; i++) {
+			DBGLOG("mach", "injectKextIntoKC: %d = 0x%x", ((uint8_t*)kmod)[i]);
+		}
 	}
 
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
