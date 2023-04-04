@@ -416,7 +416,7 @@ public:
 	/**
 	 *  Set the KC base address
 	 */
-	uint64_t setKcBaseAddress(uint64_t addr) {
+	void setKcBaseAddress(uint64_t addr) {
 		kc_base_address = addr;
 	}
 };
