@@ -243,6 +243,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 	const uint8_t *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
+		// Extract x64 binary from a fat file
 		fat_header *machFatHeader = (fat_header*)executableOrg;
 		if (machFatHeader->magic == FAT_CIGAM) {
 			bool foundBinary = false;
@@ -263,6 +264,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			}
 		}
 
+
+		// Setup kextInfo
 		executable = (uint8_t*)IOMalloc(executableSize);
 		memcpy(executable, executableOrg, executableSize);
 
@@ -272,12 +275,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
+
+		// Apply fixup to the commands
+		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
 		uint32_t linkeditDelta = 0;
 
-		// Apply fixup/rebase to the image
-		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
@@ -316,8 +320,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			addr += loadCmd->cmdsize;
 		}
 
+
 		// Without it, the XNU panics in OSKext::slidePrelinkedExecutable
 		mh->flags |= MH_DYLIB_IN_CACHE;
+
 
 		// Apply fixup to _kmod_info
 		kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
@@ -329,16 +335,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(executable + kmodOffset);
 		kmod->address = imageOffset;
 		kmod->size = kextInfo->getTextSize();
-		// Got the magic offsets by comparing kexts from /S/L/E and from the KC
-		// Would be glad to hear an explanation on what they are.
-		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx, file_buf=%llx, imageOffset=%x", kmod->start_addr, file_buf, imageOffset);
-		kmod->start_addr += imageOffset + 0x40000040000000ULL;
-		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx", kmod->start_addr);
-		kmod->stop_addr += imageOffset + 0x60000040000000ULL;
 	}
 
-	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
 
+	// Exclude existing kext with the same identifier, if any
 	OSDictionary *plist = OSDynamicCast(OSDictionary, OSUnserializeXML(injectInfo->infoPlist, nullptr));
 	if (plist == nullptr) {
 		SYSLOG("mach", "injectKextIntoKC: Failed to deserialize infoPlist");
@@ -357,16 +357,18 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	}
 	excludeKextFromKC(identifier);
 
+
+	// Append the image
 	if (executable != nullptr) {
 		if (file_buf_free_start + executableSize > file_buf_size) {
 			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
 			return KERN_FAILURE;
 		}
-
-		// Append the image
+		
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
 		file_buf_free_start += alignValue(executableSize);
 	}
+
 
 	// Add keys related to prelinking
 	plist->setObject("_PrelinkBundlePath", OSString::withCString(injectInfo->bundlePath));
@@ -388,7 +390,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	}
 	imageArr->setObject(plist);
 
-	// Add LC_SEGMENT_64 (segment_command_64) and LC_FILESET_ENTRY (fileset_entry_command) commands
+
+	// Add LC_SEGMENT_64 (segment_command_64) and LC_FILESET_ENTRY (fileset_entry_command) commands to the KC
 	// TODO: Implement checking and handling of situation where we run out of header space
 	mach_header_64 *header = (mach_header_64*)file_buf;
 
