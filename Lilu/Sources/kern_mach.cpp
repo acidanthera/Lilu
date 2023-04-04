@@ -327,11 +327,14 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(executable + kmodOffset);
-		// This is kind of cheating, but I couldn't find what slides start/stop inside XNU, so this remained the only solution.
+		kmod->address = imageOffset;
+		kmod->size = kextInfo->getTextSize();
+		// Got the magic offsets by comparing kexts from /S/L/E and from the KC
+		// Would be glad to hear an explanation on what they are.
 		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx, file_buf=%llx, imageOffset=%x", kmod->start_addr, file_buf, imageOffset);
-		kmod->start_addr += (uint64_t)(kc_base_address + imageOffset);
+		kmod->start_addr += imageOffset + 0x40000040000000ULL;
 		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx", kmod->start_addr);
-		kmod->stop_addr += (uint64_t)(kc_base_address + imageOffset);
+		kmod->stop_addr += imageOffset + 0x60000040000000ULL;
 	}
 
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
@@ -1020,6 +1023,7 @@ void MachInfo::processMachHeader(void *header) {
 			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found TEXT");
 				disk_text_addr = segCmd->vmaddr;
+				text_size = segCmd->vmsize;
 			} else if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 				DBGLOG("mach", "header processing found LINKEDIT");
 				sym_fileoff = segCmd->fileoff;

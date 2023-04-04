@@ -71,6 +71,7 @@ class MachInfo {
 	
 	mach_vm_address_t running_text_addr {0}; // the address of running __TEXT segment
 	mach_vm_address_t disk_text_addr {0};    // the same address at from a file
+	uint64_t          text_size {0};         // size of the __TEXT segment
 	mach_vm_address_t kaslr_slide {0};       // the kernel aslr slide, computed as the difference between above's addresses
 	OSDictionary *prelink_dict {nullptr};    // read prealinked kext dictionary
 	uint8_t *prelink_addr {nullptr};         // prelink text base address
@@ -407,7 +408,7 @@ public:
 	kern_return_t overwritePrelinkInfo();
 
 	/**
-	 *  Get file buffer of the initialised image
+	 *  Get the file buffer of the initialised image
 	 */
 	uint8_t *getFileBuf() {
 		return file_buf;
@@ -418,6 +419,13 @@ public:
 	 */
 	void setKcBaseAddress(uint64_t addr) {
 		kc_base_address = addr;
+	}
+
+	/**
+	 *  Get the size of the __TEXT segment
+	 */
+	uint64_t getTextSize() {
+		return text_size;
 	}
 };
 
