@@ -98,7 +98,8 @@ class MachInfo {
 	bool prelink_slid {false};               // assume kaslr-slid kext addresses
 	bool kernel_collection {false};          // kernel collection (11.0+)
 	uint64_t self_uuid[2] {};                // saved uuid of the loaded kext or kernel
-	uint32_t kextsInjected {0};              // amount of kexts injected into the KC so far
+	uint32_t kexts_injected {0};             // amount of kexts injected into the KC so far
+	uint64_t kc_base_address {0};            // base address of the KC
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
@@ -410,6 +411,13 @@ public:
 	 */
 	uint8_t *getFileBuf() {
 		return file_buf;
+	}
+
+	/**
+	 *  Set the KC base address
+	 */
+	uint64_t setKcBaseAddress(uint64_t addr) {
+		kc_base_address = addr;
 	}
 };
 

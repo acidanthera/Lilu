@@ -329,9 +329,9 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(executable + kmodOffset);
 		// This is kind of cheating, but I couldn't find what slides start/stop inside XNU, so this remained the only solution.
 		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx, file_buf=%llx, imageOffset=%x", kmod->start_addr, file_buf, imageOffset);
-		kmod->start_addr += (uint64_t)(file_buf + imageOffset);
+		kmod->start_addr += (uint64_t)(kc_base_address + imageOffset);
 		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx", kmod->start_addr);
-		kmod->stop_addr += (uint64_t)(file_buf + imageOffset);
+		kmod->stop_addr += (uint64_t)(kc_base_address + imageOffset);
 	}
 
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
@@ -392,8 +392,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	segment_command_64 *scmd = (segment_command_64*)(file_buf + sizeof(mach_header_64) + header->sizeofcmds);
 	scmd->cmd = LC_SEGMENT_64;
 	scmd->cmdsize = sizeof(segment_command_64);
-	snprintf(scmd->segname, 16, "__LILU%d", kextsInjected);
-	kextsInjected++;
+	snprintf(scmd->segname, 16, "__LILU%d", kexts_injected);
+	kexts_injected++;
 	scmd->vmaddr = scmd->fileoff = imageOffset;
 	scmd->vmsize = alignValue(executableSize);
 	scmd->filesize = executableSize;

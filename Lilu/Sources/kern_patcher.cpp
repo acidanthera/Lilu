@@ -400,6 +400,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 			kcInfo->initFromBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
+			kcInfo->setKcBaseAddress((uint64_t)kcBuf);
 
 			KextInjectionInfo *injectInfo = (KextInjectionInfo*)IOMalloc(sizeof(KextInjectionInfo));
 			size_t tmpSize;
