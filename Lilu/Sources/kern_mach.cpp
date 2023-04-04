@@ -328,8 +328,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(executable + kmodOffset);
 		// This is kind of cheating, but I couldn't find what slides start/stop inside XNU, so this remained the only solution.
-		kmod->start_addr += (uint64_t)(file_buf + file_buf_free_start);
-		kmod->stop_addr += (uint64_t)(file_buf + file_buf_free_start);
+		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx, file_buf=%llx, imageOffset=%x", kmod->start_addr, file_buf, imageOffset);
+		kmod->start_addr += (uint64_t)(file_buf + imageOffset);
+		DBGLOG("mach", "injectKextIntoKC: kmod->start_addr=%llx", kmod->start_addr);
+		kmod->stop_addr += (uint64_t)(file_buf + imageOffset);
 	}
 
 	DBGLOG("mach", "injectKextIntoKC: %x %x %x %x", executable[0], executable[1], executable[2], executable[3]);
@@ -360,7 +362,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		// Append the image
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
-		imageOffset = file_buf_free_start;
 		file_buf_free_start += alignValue(executableSize);
 	}
 
