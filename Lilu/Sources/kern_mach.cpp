@@ -24,6 +24,7 @@
 #include <mach-o/fat.h>
 #include <mach-o/loader.h>
 #include <mach-o/nlist.h>
+#include <mach-o/reloc.h>
 #include <mach/vm_param.h>
 #include <i386/proc_reg.h>
 #include <kern/thread.h>
@@ -32,6 +33,8 @@
 #include <libkern/c++/OSString.h>
 #include <libkern/c++/OSNumber.h>
 #include <libkern/c++/OSSerialize.h>
+#include <libkern/c++/OSOrderedSet.h>
+#include <libkern/c++/OSCollectionIterator.h>
 
 kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *prelink, bool fsfallback) {
 	kern_return_t error = KERN_FAILURE;
@@ -234,6 +237,10 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	return KERN_SUCCESS;
 }
 
+int32_t orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2, void * context) {
+	return OSDynamicCast(OSNumber, obj2)->unsigned32BitValue() - OSDynamicCast(OSNumber, obj1)->unsigned32BitValue();
+}
+
 kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	MachInfo *kextInfo = MachInfo::create();
 	uint8_t *executable = nullptr;
@@ -280,7 +287,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
-		uint32_t linkeditDelta = 0;
+		uint32_t linkeditDelta = 0, locreloff = 0, nlocrel = 0, dataVmaddr = 0, dataFileoff = 0, dataFilesize = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
@@ -294,6 +301,12 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					segCmd->vmsize = segCmd->filesize;
 					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
 				} else {
+					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
+						dataVmaddr = segCmd->vmaddr;
+						dataFileoff = segCmd->fileoff;
+						dataFilesize = segCmd->filesize;
+					}
+
 					segCmd->vmaddr += imageOffset;
 					segCmd->fileoff += imageOffset;
 
@@ -312,9 +325,12 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				symtabCmd->stroff += linkeditDelta;
 			} else if (loadCmd->cmd == LC_DYSYMTAB) {
 				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
-				dysymtabCmd->indirectsymoff += linkeditDelta;
-				dysymtabCmd->extreloff += linkeditDelta;
-				dysymtabCmd->locreloff += linkeditDelta;
+				// TODO: Figure out what to do with indirectsymoff
+				dysymtabCmd->extreloff = 0;
+				locreloff = dysymtabCmd->locreloff;
+				dysymtabCmd->locreloff = 0;
+				nlocrel = dysymtabCmd->nlocrel;
+				dysymtabCmd->nlocrel = 0;
 			}
 
 			addr += loadCmd->cmdsize;
@@ -335,6 +351,78 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(executable + kmodOffset);
 		kmod->address = imageOffset;
 		kmod->size = kextInfo->getTextSize();
+
+		// Convert Local relocation to the dyld chained fixups format
+		// Assumes that every local relocations are within the __DATA segment
+		relocation_info *relocInfo = (relocation_info*)(executable + locreloff);
+		uint32_t dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
+		OSArray *dataPages = OSArray::withCapacity(dataPageCount);
+		for (int i = 0; i < dataPageCount; i++) {
+			dataPages->setObject(OSOrderedSet::withCapacity(0, orderFunction));
+		}
+
+		for (int i = 0; i < nlocrel; i++) {
+			uint32_t r_address = relocInfo->r_address;
+			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
+				DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
+				       r_address, dataVmaddr, dataVmaddr + dataFilesize);
+				return KERN_FAILURE;
+			}
+
+			uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
+			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
+		}
+
+		dyld_chained_fixups_header* fixupsHeader = (dyld_chained_fixups_header*)(file_buf + linkedit_offset + linkedit_free_start);
+		fixupsHeader->fixups_version = 0;
+		fixupsHeader->starts_offset = sizeof(fixupsHeader);
+		fixupsHeader->imports_offset = fixupsHeader->symbols_offset = fixupsHeader->imports_count = 0;
+		fixupsHeader->imports_format = 1; // DYLD_CHAINED_IMPORT
+		fixupsHeader->symbols_format = 0;
+
+		dyld_chained_starts_in_image* fixupStarts = (dyld_chained_starts_in_image*)(fixupsHeader + 1);
+		fixupStarts->seg_count = 1;
+		fixupStarts->seg_info_offset[0] = sizeof(*fixupsHeader) + sizeof(*fixupStarts);
+
+		dyld_chained_starts_in_segment* segInfo = (dyld_chained_starts_in_segment*)(fixupStarts + 1);
+		segInfo->size = sizeof(*segInfo) + 2 * (dataPageCount - 1);
+		segInfo->page_size = PAGE_SIZE;
+		segInfo->pointer_format == 11; // DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
+		segInfo->segment_offset = dataFileoff;
+		segInfo->max_valid_pointer = 0; // Only used on 32-bit
+		segInfo->page_count = dataPageCount;
+
+		linkedit_free_start += fixupStarts->seg_info_offset[0] + segInfo->size;
+
+		for (int i = 0; i < dataPageCount; i++) {
+			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
+			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
+			uint32_t relocCount = pageToReloc->getCount();
+			if (relocCount != 0) {
+				pageStart = OSDynamicCast(OSNumber, pageToReloc->getFirstObject())->unsigned32BitValue();
+				pageStart -= dataVmaddr + (PAGE_SIZE * i);
+			}
+
+			segInfo->page_start[i] = pageStart;
+			if (relocCount == 0) continue;
+
+			OSCollectionIterator *iterator = OSCollectionIterator::withCollection(pageToReloc);
+			ChainedFixupPointerOnDisk *prevReloc = nullptr, *curReloc = nullptr;
+			OSObject *curObj = nullptr;
+			while (curObj = iterator->getNextObject()) {
+				curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
+				curReloc->fixup64.target += imageOffset;
+				curReloc->fixup64.cacheLevel = kc_index;
+				curReloc->fixup64.diversity = curReloc->fixup64.addrDiv = curReloc->fixup64.key = 0;
+				curReloc->fixup64.next = 0;
+				curReloc->fixup64.isAuth = 0;
+
+				if (prevReloc != nullptr) {
+					prevReloc->fixup64.next = (uint64_t)curReloc - (uint64_t)prevReloc;
+				}
+				prevReloc = curReloc;
+			}
+		}
 	}
 
 
