@@ -375,6 +375,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
 			DBGLOG("mach", "injectKextIntoKC: Placing 0x%x into dataPages[%d]", r_address, pageId);
 			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
+
+			relocInfo++;
 		}
 
 		// Set up chained fixup headers
