@@ -288,6 +288,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
 		uint32_t linkeditDelta = 0, locreloff = 0, nlocrel = 0, dataVmaddr = 0, dataFileoff = 0, dataFilesize = 0;
+		uint32_t fixupsHeaderOffset = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
@@ -361,6 +362,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			dataPages->setObject(OSOrderedSet::withCapacity(0, orderFunction));
 		}
 
+		// Fetch all the relocations
 		for (uint32_t i = 0; i < nlocrel; i++) {
 			uint32_t r_address = relocInfo->r_address;
 			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
@@ -373,7 +375,9 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
 		}
 
-		dyld_chained_fixups_header* fixupsHeader = (dyld_chained_fixups_header*)(file_buf + linkedit_offset + linkedit_free_start);
+		// Set up chained fixup headers
+		fixupsHeaderOffset = linkedit_offset + linkedit_free_start;
+		dyld_chained_fixups_header* fixupsHeader = (dyld_chained_fixups_header*)(file_buf + fixupsHeaderOffset);
 		fixupsHeader->fixups_version = 0;
 		fixupsHeader->starts_offset = sizeof(fixupsHeader);
 		fixupsHeader->imports_offset = fixupsHeader->symbols_offset = fixupsHeader->imports_count = 0;
@@ -394,6 +398,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		linkedit_free_start += fixupStarts->seg_info_offset[0] + segInfo->size;
 
+		// Set up the chain itself
 		for (uint32_t i = 0; i < dataPageCount; i++) {
 			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
 			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
@@ -423,6 +428,18 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				prevReloc = curReloc;
 			}
 		}
+
+		// Add LC_DYLD_CHAINED_FIXUPS mach command
+		mach_header_64 *header = (mach_header_64*)executable;
+
+		linkedit_data_command *scmd = (linkedit_data_command*)(executable + sizeof(mach_header_64) + header->sizeofcmds);
+		scmd->cmd = LC_DYLD_CHAINED_FIXUPS;
+		scmd->cmdsize = sizeof(linkedit_data_command);
+		scmd->dataoff = fixupsHeaderOffset;
+		scmd->datasize = linkedit_free_start - fixupsHeaderOffset;
+
+		header->ncmds++;
+		header->sizeofcmds += scmd->cmdsize;
 	}
 
 
