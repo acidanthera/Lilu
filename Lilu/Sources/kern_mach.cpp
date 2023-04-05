@@ -478,6 +478,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 		
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
+		kernel_collection_slide((const mach_header_64*)(file_buf + file_buf_free_start));
 		file_buf_free_start += alignValue(executableSize);
 	}
 
@@ -533,6 +534,253 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	header->ncmds++;
 	header->sizeofcmds += fcmd->commandSize;
 	return KERN_SUCCESS;
+}
+
+#define LogFixups 1
+
+enum {
+    DYLD_CHAINED_PTR_START_NONE   = 0xFFFF, // used in page_start[] to denote a page with no fixups
+    DYLD_CHAINED_PTR_START_MULTI  = 0x8000, // used in page_start[] to denote a page which has multiple starts
+    DYLD_CHAINED_PTR_START_LAST   = 0x8000, // used in chain_starts[] to denote last start in list for page
+};
+
+// cannot safely callout out to functions like strcmp before initial fixup
+static inline int
+strings_are_equal(const char* a, const char* b)
+{
+	while (*a && *b) {
+		if (*a != *b) {
+			return 0;
+		}
+		++a;
+		++b;
+	}
+	return *a == *b;
+}
+
+// values for dyld_chained_starts_in_segment.pointer_format
+enum {
+    DYLD_CHAINED_PTR_ARM64E                 =  1,    // stride 8, unauth target is vmaddr
+    DYLD_CHAINED_PTR_64                     =  2,    // target is vmaddr
+    DYLD_CHAINED_PTR_32                     =  3,
+    DYLD_CHAINED_PTR_32_CACHE               =  4,
+    DYLD_CHAINED_PTR_32_FIRMWARE            =  5,
+    DYLD_CHAINED_PTR_64_OFFSET              =  6,    // target is vm offset
+    DYLD_CHAINED_PTR_ARM64E_OFFSET          =  7,    // old name
+    DYLD_CHAINED_PTR_ARM64E_KERNEL          =  7,    // stride 4, unauth target is vm offset
+    DYLD_CHAINED_PTR_64_KERNEL_CACHE        =  8,
+    DYLD_CHAINED_PTR_ARM64E_USERLAND        =  9,    // stride 8, unauth target is vm offset
+    DYLD_CHAINED_PTR_ARM64E_FIRMWARE        = 10,    // stride 4, unauth target is vmaddr
+    DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE    = 11,    // stride 1, x86_64 kernel caches
+};
+
+static inline __attribute__((__always_inline__)) void
+fixup_value(union ChainedFixupPointerOnDisk* fixupLoc,
+    const struct dyld_chained_starts_in_segment* segInfo,
+    uintptr_t slide,
+    int* stop)
+{
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: fixup_value %p\n", fixupLoc);
+	}
+	switch (segInfo->pointer_format) {
+	case DYLD_CHAINED_PTR_64_KERNEL_CACHE:
+	case DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE: {
+		const void* baseAddress = 0;
+		uintptr_t slidValue = (uintptr_t)baseAddress + fixupLoc->fixup64.target;
+		if (LogFixups) {
+			DBGLOG("mach", "[LOG] kernel-fixups: slidValue %p (base=%p, target=%p)\n", (void*)slidValue,
+			    (const void *)baseAddress, (void *)(uintptr_t)fixupLoc->fixup64.target);
+		}
+
+		if (fixupLoc->fixup64.isAuth) {
+			DBGLOG("mach", "Unexpected authenticated fixup\n");
+			*stop = 1;
+			return;
+		}
+		// fixupLoc->raw64 = slidValue;
+		break;
+	}
+	default:
+		DBGLOG("mach", "unsupported pointer chain format: 0x%04X", segInfo->pointer_format);
+		*stop = 1;
+		break;
+	}
+}
+
+static inline __attribute__((__always_inline__)) int
+walk_chain(const struct mach_header_64* mh,
+    const struct dyld_chained_starts_in_segment* segInfo,
+    uint32_t pageIndex,
+    uint16_t offsetInPage,
+    uintptr_t slide)
+{
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: walk_chain page[%d]\n", pageIndex);
+	}
+	int                        stop = 0;
+	uintptr_t                   pageContentStart = (uintptr_t)mh + (uintptr_t)segInfo->segment_offset
+	    + (pageIndex * segInfo->page_size);
+	union ChainedFixupPointerOnDisk* chain = (union ChainedFixupPointerOnDisk*)(pageContentStart + offsetInPage);
+	int                       chainEnd = 0;
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: segInfo->segment_offset 0x%llx\n", segInfo->segment_offset);
+		DBGLOG("mach", "[LOG] kernel-fixups: segInfo->segment_pagesize %d\n", segInfo->page_size);
+		DBGLOG("mach", "[LOG] kernel-fixups: segInfo pointer format %d\n", segInfo->pointer_format);
+	}
+	while (!stop && !chainEnd) {
+		// copy chain content, in case handler modifies location to final value
+		if (LogFixups) {
+			DBGLOG("mach", "[LOG] kernel-fixups: value of chain %p", chain);
+		}
+		union ChainedFixupPointerOnDisk chainContent = *chain;
+		fixup_value(chain, segInfo, slide, &stop);
+		if (!stop) {
+			switch (segInfo->pointer_format) {
+			case DYLD_CHAINED_PTR_64_KERNEL_CACHE:
+				if (chainContent.fixup64.next == 0) {
+					chainEnd = 1;
+				} else {
+					if (LogFixups) {
+						DBGLOG("mach", "[LOG] kernel-fixups: chainContent fixup 64.next %d\n", chainContent.fixup64.next);
+					}
+					chain = (union ChainedFixupPointerOnDisk*)((uintptr_t)chain + chainContent.fixup64.next * 4);
+				}
+				break;
+			case DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE:
+				if (chainContent.fixup64.next == 0) {
+					chainEnd = 1;
+				} else {
+					if (LogFixups) {
+						DBGLOG("mach", "[LOG] kernel-fixups: chainContent fixup x86 64.next %d\n", chainContent.fixup64.next);
+					}
+					chain = (union ChainedFixupPointerOnDisk*)((uintptr_t)chain + chainContent.fixup64.next);
+				}
+				break;
+			default:
+				DBGLOG("mach", "unknown pointer format 0x%04X", segInfo->pointer_format);
+				stop = 1;
+			}
+		}
+	}
+	return stop;
+}
+
+static inline __attribute__((__always_inline__)) int
+kernel_collection_slide(const struct mach_header_64* mh)
+{
+	// First find the slide and chained fixups load command
+	uint64_t textVMAddr     = 0;
+	const struct linkedit_data_command* chainedFixups = 0;
+	uint64_t linkeditVMAddr         = 0;
+	uint64_t linkeditFileOffset = 0;
+
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: parsing load commands\n");
+	}
+
+	const struct load_command* startCmds = 0;
+	if (mh->magic == MH_MAGIC_64) {
+		startCmds = (struct load_command*)((uintptr_t)mh + sizeof(struct mach_header_64));
+	} else if (mh->magic == MH_MAGIC) {
+		startCmds = (struct load_command*)((uintptr_t)mh + sizeof(struct mach_header));
+	} else {
+		//const uint32_t* h = (uint32_t*)mh;
+		//diag.error("file does not start with MH_MAGIC[_64]: 0x%08X 0x%08X", h[0], h [1]);
+		return 1;  // not a mach-o file
+	}
+	const struct load_command* const cmdsEnd = (struct load_command*)((uintptr_t)startCmds + mh->sizeofcmds);
+	const struct load_command* cmd = startCmds;
+	for (uint32_t i = 0; i < mh->ncmds; ++i) {
+		if (LogFixups) {
+			DBGLOG("mach", "[LOG] kernel-fixups: parsing load command %d with cmd=0x%x\n", i, cmd->cmd);
+		}
+		const struct load_command* nextCmd = (struct load_command*)((uintptr_t)cmd + cmd->cmdsize);
+		if (cmd->cmdsize < 8) {
+			//diag.error("malformed load command #%d of %d at %p with mh=%p, size (0x%X) too small", i, this->ncmds, cmd, this, cmd->cmdsize);
+			return 1;
+		}
+		if ((nextCmd > cmdsEnd) || (nextCmd < startCmds)) {
+			//diag.error("malformed load command #%d of %d at %p with mh=%p, size (0x%X) is too large, load commands end at %p", i, this->ncmds, cmd, this, cmd->cmdsize, cmdsEnd);
+			return 1;
+		}
+		if (cmd->cmd == LC_DYLD_CHAINED_FIXUPS) {
+			chainedFixups = (const struct linkedit_data_command*)cmd;
+		} else if (cmd->cmd == LC_SEGMENT_64) {
+			const struct segment_command_64* seg = (const struct segment_command_64*)(uintptr_t)cmd;
+
+			if (LogFixups) {
+				DBGLOG("mach", "[LOG] kernel-fixups: segment name vm start and size: %s 0x%llx 0x%llx\n",
+				    seg->segname, seg->vmaddr, seg->vmsize);
+			}
+			if (strings_are_equal(seg->segname, "__TEXT")) {
+				textVMAddr = seg->vmaddr;
+			} else if (strings_are_equal(seg->segname, "__LINKEDIT")) {
+				linkeditVMAddr = seg->vmaddr;
+				linkeditFileOffset = seg->fileoff;
+			}
+		}
+		cmd = nextCmd;
+	}
+
+	uintptr_t slide = (uintptr_t)mh - (uintptr_t)textVMAddr;
+
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: slide %lx\n", slide);
+	}
+
+	if (chainedFixups == 0) {
+		return 0;
+	}
+
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: found chained fixups %p\n", chainedFixups);
+		DBGLOG("mach", "[LOG] kernel-fixups: found linkeditVMAddr %p\n", (void*)linkeditVMAddr);
+		DBGLOG("mach", "[LOG] kernel-fixups: found linkeditFileOffset %p\n", (void*)linkeditFileOffset);
+	}
+
+	// Now we have the chained fixups, walk it to apply all the rebases
+	uint64_t offsetInLinkedit   = chainedFixups->dataoff - linkeditFileOffset;
+	uintptr_t linkeditStartAddr = (uintptr_t)linkeditVMAddr + slide;
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: offsetInLinkedit %llx\n", offsetInLinkedit);
+		DBGLOG("mach", "[LOG] kernel-fixups: linkeditStartAddr %p\n", (void*)linkeditStartAddr);
+	}
+
+	const struct dyld_chained_fixups_header* fixupsHeader = (const struct dyld_chained_fixups_header*)(linkeditStartAddr + offsetInLinkedit);
+	const struct dyld_chained_starts_in_image* fixupStarts = (const struct dyld_chained_starts_in_image*)((uintptr_t)fixupsHeader + fixupsHeader->starts_offset);
+	if (LogFixups) {
+		DBGLOG("mach", "[LOG] kernel-fixups: fixupsHeader %p\n", fixupsHeader);
+		DBGLOG("mach", "[LOG] kernel-fixups: fixupStarts %p\n", fixupStarts);
+	}
+
+	int stopped = 0;
+	for (uint32_t segIndex = 0; segIndex < fixupStarts->seg_count && !stopped; ++segIndex) {
+		if (LogFixups) {
+			DBGLOG("mach", "[LOG] kernel-fixups: segment %d\n", segIndex);
+		}
+		if (fixupStarts->seg_info_offset[segIndex] == 0) {
+			continue;
+		}
+		const struct dyld_chained_starts_in_segment* segInfo = (const struct dyld_chained_starts_in_segment*)((uintptr_t)fixupStarts + fixupStarts->seg_info_offset[segIndex]);
+		for (uint32_t pageIndex = 0; pageIndex < segInfo->page_count && !stopped; ++pageIndex) {
+			uint16_t offsetInPage = segInfo->page_start[pageIndex];
+			if (offsetInPage == DYLD_CHAINED_PTR_START_NONE) {
+				continue;
+			}
+			if (offsetInPage & DYLD_CHAINED_PTR_START_MULTI) {
+				// FIXME: Implement this
+				return 1;
+			} else {
+				// one chain per page
+				if (walk_chain(mh, segInfo, pageIndex, offsetInPage, slide)) {
+					stopped = 1;
+				}
+			}
+		}
+	}
+
+	return stopped;
 }
 
 kern_return_t MachInfo::initFromMemory() {
