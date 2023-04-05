@@ -393,7 +393,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		dyld_chained_starts_in_image* fixupStarts = (dyld_chained_starts_in_image*)(fixupsHeader + 1);
 		fixupStarts->seg_count = 1;
-		fixupStarts->seg_info_offset[0] = sizeof(*fixupsHeader) + sizeof(*fixupStarts);
+		fixupStarts->seg_info_offset[0] = sizeof(*fixupStarts);
 
 		dyld_chained_starts_in_segment* segInfo = (dyld_chained_starts_in_segment*)(fixupStarts + 1);
 		segInfo->size = sizeof(*segInfo) + 2 * (dataPageCount - 1);
@@ -403,7 +403,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		segInfo->max_valid_pointer = 0; // Only used on 32-bit
 		segInfo->page_count = dataPageCount;
 
-		linkedit_free_start += fixupStarts->seg_info_offset[0] + segInfo->size;
+		linkedit_free_start += sizeof(*fixupsHeader) + sizeof(*fixupStarts) + segInfo->size;
 
 		// Set up the chain itself
 		for (uint32_t i = 0; i < dataPageCount; i++) {
