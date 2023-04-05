@@ -302,9 +302,9 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
 				} else {
 					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
-						dataVmaddr = segCmd->vmaddr;
-						dataFileoff = segCmd->fileoff;
-						dataFilesize = segCmd->filesize;
+						dataVmaddr = (uint32_t)segCmd->vmaddr;
+						dataFileoff = (uint32_t)segCmd->fileoff;
+						dataFilesize = (uint32_t)segCmd->filesize;
 					}
 
 					segCmd->vmaddr += imageOffset;
@@ -357,11 +357,11 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		relocation_info *relocInfo = (relocation_info*)(executable + locreloff);
 		uint32_t dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
 		OSArray *dataPages = OSArray::withCapacity(dataPageCount);
-		for (int i = 0; i < dataPageCount; i++) {
+		for (uint32_t i = 0; i < dataPageCount; i++) {
 			dataPages->setObject(OSOrderedSet::withCapacity(0, orderFunction));
 		}
 
-		for (int i = 0; i < nlocrel; i++) {
+		for (uint32_t i = 0; i < nlocrel; i++) {
 			uint32_t r_address = relocInfo->r_address;
 			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
 				DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
@@ -387,14 +387,14 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		dyld_chained_starts_in_segment* segInfo = (dyld_chained_starts_in_segment*)(fixupStarts + 1);
 		segInfo->size = sizeof(*segInfo) + 2 * (dataPageCount - 1);
 		segInfo->page_size = PAGE_SIZE;
-		segInfo->pointer_format == 11; // DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
+		segInfo->pointer_format = 11; // DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
 		segInfo->segment_offset = dataFileoff;
 		segInfo->max_valid_pointer = 0; // Only used on 32-bit
 		segInfo->page_count = dataPageCount;
 
 		linkedit_free_start += fixupStarts->seg_info_offset[0] + segInfo->size;
 
-		for (int i = 0; i < dataPageCount; i++) {
+		for (uint32_t i = 0; i < dataPageCount; i++) {
 			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
 			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
 			uint32_t relocCount = pageToReloc->getCount();
@@ -409,7 +409,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			OSCollectionIterator *iterator = OSCollectionIterator::withCollection(pageToReloc);
 			ChainedFixupPointerOnDisk *prevReloc = nullptr, *curReloc = nullptr;
 			OSObject *curObj = nullptr;
-			while (curObj = iterator->getNextObject()) {
+			while ((curObj = iterator->getNextObject())) {
 				curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
 				curReloc->fixup64.target += imageOffset;
 				curReloc->fixup64.cacheLevel = kc_index;
