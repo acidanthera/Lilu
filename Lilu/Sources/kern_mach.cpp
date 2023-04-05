@@ -386,7 +386,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		fixupsHeaderOffset = linkedit_offset + linkedit_free_start;
 		dyld_chained_fixups_header* fixupsHeader = (dyld_chained_fixups_header*)(file_buf + fixupsHeaderOffset);
 		fixupsHeader->fixups_version = 0;
-		fixupsHeader->starts_offset = sizeof(fixupsHeader);
+		fixupsHeader->starts_offset = sizeof(*fixupsHeader);
 		fixupsHeader->imports_offset = fixupsHeader->symbols_offset = fixupsHeader->imports_count = 0;
 		fixupsHeader->imports_format = 1; // DYLD_CHAINED_IMPORT
 		fixupsHeader->symbols_format = 0;
