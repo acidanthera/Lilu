@@ -237,7 +237,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	return KERN_SUCCESS;
 }
 
-int32_t orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2, void * context) {
+SInt32 orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2, void * context) {
 	return OSDynamicCast(OSNumber, obj2)->unsigned32BitValue() - OSDynamicCast(OSNumber, obj1)->unsigned32BitValue();
 }
 
