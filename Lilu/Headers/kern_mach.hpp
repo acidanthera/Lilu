@@ -75,11 +75,6 @@ struct dyld_chained_starts_in_segment
                                     // the last of which has the high bit set
 };
 
-union ChainedFixupPointerOnDisk {
-	uint64_t raw64;
-	struct dyld_chained_ptr_64_kernel_cache_rebase fixup64;
-};
-
 // DYLD_CHAINED_PTR_64_KERNEL_CACHE, DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
 struct dyld_chained_ptr_64_kernel_cache_rebase
 {
@@ -90,6 +85,11 @@ struct dyld_chained_ptr_64_kernel_cache_rebase
                 key        :  2,
                 next       : 12,    // 1 or 4-byte stide
                 isAuth     :  1;    // 0 -> not authenticated.  1 -> authenticated
+};
+
+union ChainedFixupPointerOnDisk {
+	uint64_t raw64;
+	struct dyld_chained_ptr_64_kernel_cache_rebase fixup64;
 };
 
 struct KextInjectionInfo {
