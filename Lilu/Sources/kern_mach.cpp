@@ -358,6 +358,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		relocation_info *relocInfo = (relocation_info*)(executable + locreloff);
 		uint32_t dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
 		OSArray *dataPages = OSArray::withCapacity(dataPageCount);
+		DBGLOG("mach", "injectKextIntoKC: dataPageCount=%d", dataPageCount);
 		for (uint32_t i = 0; i < dataPageCount; i++) {
 			dataPages->setObject(OSOrderedSet::withCapacity(0, orderFunction));
 		}
@@ -372,6 +373,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			}
 
 			uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
+			DBGLOG("mach", "injectKextIntoKC: Placing 0x%x into dataPages[%d]", r_address, pageId);
 			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
 		}
 
@@ -403,10 +405,12 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
 			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
 			uint32_t relocCount = pageToReloc->getCount();
+			DBGLOG("mach", "injectKextIntoKC: relocCount of page %d is %d", i, relocCount);
 			if (relocCount != 0) {
 				pageStart = OSDynamicCast(OSNumber, pageToReloc->getFirstObject())->unsigned32BitValue();
 				pageStart -= dataVmaddr + (PAGE_SIZE * i);
 			}
+			DBGLOG("mach", "injectKextIntoKC: pageStart of page %d is 0x%x", i, pageStart);
 
 			segInfo->page_start[i] = pageStart;
 			if (relocCount == 0) continue;
@@ -415,6 +419,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			ChainedFixupPointerOnDisk *prevReloc = nullptr, *curReloc = nullptr;
 			OSObject *curObj = nullptr;
 			while ((curObj = iterator->getNextObject())) {
+				DBGLOG("mach", "injectKextIntoKC: Adding 0x%x to the chain", OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
 				curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
 				curReloc->fixup64.target += imageOffset;
 				curReloc->fixup64.cacheLevel = kc_index;
