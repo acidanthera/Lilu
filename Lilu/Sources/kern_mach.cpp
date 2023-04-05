@@ -300,10 +300,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 					linkeditDelta = linkedit_offset + linkedit_free_start - (uint32_t)segCmd->fileoff;
 					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->fileoff, (uint32_t)segCmd->filesize);
-					linkedit_free_start += segCmd->filesize;
 					segCmd->vmaddr = segCmd->fileoff = linkedit_offset + linkedit_free_start;
 					segCmd->vmsize = segCmd->filesize;
 					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
+					linkedit_free_start += segCmd->filesize;
 				} else {
 					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
 						dataVmaddr = (uint32_t)segCmd->vmaddr;
