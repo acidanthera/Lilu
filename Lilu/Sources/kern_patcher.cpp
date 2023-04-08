@@ -425,7 +425,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			uint64_t prelinkedSymbolsAddr = *(uint64_t*)prelinkedSymbolsPtr->getBytesNoCopy();
 			DBGLOG("patcher", "lilu-prelinked-symbols = %llX", prelinkedSymbolsAddr);
 
-			IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(prelinkedSymbolsAddr, 4096, kIODirectionIn);
+			IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, 4096, kIODirectionIn);
 			prelinkedSymbolsDesc->prepare();
 			char *prelinkedSymbols = (char*)IOMalloc(4096);
 			prelinkedSymbolsDesc->readBytes(0, prelinkedSymbols, 4096);
