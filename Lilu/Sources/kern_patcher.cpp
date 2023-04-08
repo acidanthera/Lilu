@@ -11,6 +11,7 @@
 #include <PrivateHeaders/kern_patcher.hpp>
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_iokit.hpp>
+#include <Headers/kern_nvram.hpp>
 
 #include <mach/mach_types.h>
 
@@ -413,10 +414,16 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			injectInfo->executable = FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/MacOS/AppleGraphicsPowerManagement", tmpSize);
 			injectInfo->executableSize = (uint32_t)tmpSize;
 
-			kcInfo->injectKextIntoKC(injectInfo);
+			// kcInfo->injectKextIntoKC(injectInfo);
 			Buffer::deleter((void*)injectInfo->infoPlist);
 			Buffer::deleter((void*)injectInfo->executable);
 			IOFree(injectInfo, sizeof(KextInjectionInfo));
+
+			NVStorage *nvram = new NVStorage();
+			nvram->init();
+			OSData *ocVersion = nvram->read("4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version");
+			DBGLOG("patcher", "opencore-version = %s", ocVersion->getBytesNoCopy());
+			ocVersion->free();
 
 			kcInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;
