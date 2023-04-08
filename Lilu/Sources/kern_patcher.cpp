@@ -434,7 +434,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			prelinkedSymbolsHeaderDesc->release();
 
 			for (uint32_t i = 0; i < 4096; i++) {
-				DBGLOG("patcher", "prelinkedSymbolsHeader[%d] = 0x%x", i, (char*)(prelinkedSymbolsHeader)[i]);
+				DBGLOG("patcher", "prelinkedSymbolsHeader[%d] = 0x%x", i, ((char*)prelinkedSymbolsHeader)[i]);
 			}
 
 			uint32_t prelinkedSymbolsSize = prelinkedSymbolsHeader->Size;
@@ -451,7 +451,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			LILU_PRELINKED_SYMBOLS_ENTRY *curSymbol = &prelinkedSymbols->Entries[0];
 			for (uint32_t i = 0; i < numOfSymbols; i++) {
 				DBGLOG("patcher", "lilu-prelinked-symbols[%d]: SymbolValue 0x%llX SymbolName %s", i, curSymbol->SymbolValue, curSymbol->SymbolName);
-				curSymbol = (LILU_PRELINKED_SYMBOLS_ENTRY*)((uint8_t*)(curSymbol) + curSymbol->EntryLength);
+				curSymbol = (LILU_PRELINKED_SYMBOLS_ENTRY*)(((uint8_t*)curSymbol) + curSymbol->EntryLength);
 			}
 
 			IOFree(prelinkedSymbols, prelinkedSymbolsSize);
