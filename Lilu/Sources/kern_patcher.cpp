@@ -421,7 +421,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			NVStorage *nvram = new NVStorage();
 			nvram->init();
-			OSData *ocVersion = nvram->read("4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version");
+			OSData *ocVersion = nvram->read("4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:opencore-version", NVStorage::Options::OptRaw);
 			DBGLOG("patcher", "opencore-version = %s", ocVersion->getBytesNoCopy());
 			ocVersion->free();
 
