@@ -241,9 +241,6 @@ SInt32 orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2,
 	return OSDynamicCast(OSNumber, obj2)->unsigned32BitValue() - OSDynamicCast(OSNumber, obj1)->unsigned32BitValue();
 }
 
-static inline __attribute__((__always_inline__)) int
-kernel_collection_slide(const struct mach_header_64* mh);
-
 kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	MachInfo *kextInfo = MachInfo::create();
 	uint8_t *executable = nullptr;
