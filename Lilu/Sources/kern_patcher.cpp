@@ -430,12 +430,13 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			// Fetch the size of the prelinked symbols
 			IOMemoryDescriptor *prelinkedSymbolsHeaderDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, 4096, kIODirectionIn);
 			LILU_PRELINKED_SYMBOLS_HEADER *prelinkedSymbolsHeader = (LILU_PRELINKED_SYMBOLS_HEADER*)IOMalloc(4096);
+			prelinkedSymbolsHeaderDesc->prepare();
 			prelinkedSymbolsHeaderDesc->readBytes(0, prelinkedSymbolsHeader, 4096);
+			prelinkedSymbolsHeaderDesc->complete();
 			prelinkedSymbolsHeaderDesc->release();
 
 			for (uint32_t i = 0; i < 4096; i++) {
 				DBGLOG("patcher", "prelinkedSymbolsHeader[%d] = 0x%x", i, ((uint8_t*)prelinkedSymbolsHeader)[i]);
-				DBGLOG("patcher", "&prelinkedSymbolsHeader[%d] = %p", i, &(((uint8_t*)prelinkedSymbolsHeader)[i]));
 			}
 
 			uint32_t prelinkedSymbolsSize = prelinkedSymbolsHeader->Size;
@@ -445,7 +446,9 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			// Fetch the prelinked symbols
 			IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, prelinkedSymbolsSize, kIODirectionIn);
 			LILU_PRELINKED_SYMBOLS *prelinkedSymbols = (LILU_PRELINKED_SYMBOLS*)IOMalloc(prelinkedSymbolsSize);
+			prelinkedSymbolsDesc->prepare();
 			prelinkedSymbolsDesc->readBytes(0, prelinkedSymbols, prelinkedSymbolsSize);
+			prelinkedSymbolsDesc->complete();
 			prelinkedSymbolsDesc->release();
 
 			uint32_t numOfSymbols = prelinkedSymbols->Header.NumberOfSymbols;
