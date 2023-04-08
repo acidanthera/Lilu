@@ -419,18 +419,38 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			Buffer::deleter((void*)injectInfo->executable);
 			IOFree(injectInfo, sizeof(KextInjectionInfo));
 
+			// Fetch the address to the prelinked symbols
 			NVStorage *nvram = new NVStorage();
 			nvram->init();
-			OSData *prelinkedSymbolsPtr = nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols", NVStorage::Options::OptRaw);
-			uint64_t prelinkedSymbolsAddr = *(uint64_t*)prelinkedSymbolsPtr->getBytesNoCopy();
-			DBGLOG("patcher", "lilu-prelinked-symbols = %llX", prelinkedSymbolsAddr);
+			OSData *prelinkedSymbolsAddrData = nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
+			uint64_t prelinkedSymbolsAddr = *(uint64_t*)prelinkedSymbolsAddrData->getBytesNoCopy();
+			prelinkedSymbolsAddrData->free();
+			DBGLOG("patcher", "lilu-prelinked-symbols-addr = %llX", prelinkedSymbolsAddr);
 
-			IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, 4096, kIODirectionIn);
-			char *prelinkedSymbols = (char*)IOMalloc(4096);
-			prelinkedSymbolsDesc->readBytes(0, prelinkedSymbols, 4096);
-			DBGLOG("patcher", "lilu-prelinked-symbols content = %s", prelinkedSymbols);
+			// Fetch the size of the prelinked symbols
+			IOMemoryDescriptor *prelinkedSymbolsHeaderDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, 4096, kIODirectionIn);
+			LILU_PRELINKED_SYMBOLS_HEADER *prelinkedSymbolsHeader = (LILU_PRELINKED_SYMBOLS_HEADER*)IOMalloc(4096);
+			prelinkedSymbolsHeaderDesc->readBytes(0, prelinkedSymbolsHeader, 4096);
+			prelinkedSymbolsHeaderDesc->release();
 
-			prelinkedSymbolsPtr->free();
+			uint32_t prelinkedSymbolsSize = prelinkedSymbolsHeader->Size;
+			IOFree(prelinkedSymbolsHeader, 4096);
+			DBGLOG("patcher", "lilu-prelinked-symbols Size = %d", prelinkedSymbolsSize);
+
+			// Fetch the prelinked symbols
+			IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, prelinkedSymbolsSize, kIODirectionIn);
+			LILU_PRELINKED_SYMBOLS *prelinkedSymbols = (LILU_PRELINKED_SYMBOLS*)IOMalloc(prelinkedSymbolsSize);
+			prelinkedSymbolsDesc->readBytes(0, prelinkedSymbols, prelinkedSymbolsSize);
+			prelinkedSymbolsDesc->release();
+
+			uint32_t numOfSymbols = prelinkedSymbols->Header.NumberOfSymbols;
+			LILU_PRELINKED_SYMBOLS_ENTRY *curSymbol = &prelinkedSymbols->Entries[0];
+			for (uint32_t i = 0; i < numOfSymbols; i++) {
+				DBGLOG("patcher", "lilu-prelinked-symbols found symbol %s", curSymbol->SymbolName);
+				curSymbol = (LILU_PRELINKED_SYMBOLS_ENTRY*)((uint8_t*)(curSymbol) + curSymbol->EntryLength);
+			}
+
+			IOFree(prelinkedSymbols, prelinkedSymbolsSize);
 
 			kcInfo->overwritePrelinkInfo();
 			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;

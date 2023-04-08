@@ -66,6 +66,54 @@ typedef struct {
 } vm_map_kernel_flags_t;
 
 typedef uint16_t vm_tag_t;
+
+//
+// Prelinked symbols passed to Lilu
+//
+typedef struct {
+  //
+  // Version of the format (currently 0)
+  //
+  uint8_t Version;
+  //
+  // Size of the entire LILU_PRELINKED_SYMBOLS struct
+  //
+  uint32_t Size;
+  //
+  // Number of symbols
+  //
+  uint32_t NumberOfSymbols;
+} PACKED LILU_PRELINKED_SYMBOLS_HEADER;
+
+typedef struct {
+  //
+  // Length of this entry
+  //
+  uint32_t EntryLength;
+  //
+  // Value of this symbol (or stab offset)
+  //
+  uint64_t SymbolValue;
+  //
+  // Length of this symbol's name
+  //
+  uint32_t SymbolNameLength;
+  //
+  // This symbols's name
+  //
+  char SymbolName[0];
+} PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
+
+typedef struct {
+  //
+  // The header
+  //
+  LILU_PRELINKED_SYMBOLS_HEADER Header;
+  //
+  // The symbols
+  //
+  LILU_PRELINKED_SYMBOLS_ENTRY Entries[0];
+} PACKED LILU_PRELINKED_SYMBOLS;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
