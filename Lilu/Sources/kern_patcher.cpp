@@ -422,8 +422,16 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			NVStorage *nvram = new NVStorage();
 			nvram->init();
 			OSData *prelinkedSymbolsPtr = nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols", NVStorage::Options::OptRaw);
-			DBGLOG("patcher", "lilu-prelinked-symbols = %llX", prelinkedSymbolsPtr->getBytesNoCopy());
-			DBGLOG("patcher", "lilu-prelinked-symbols content = %s", *(const char**)prelinkedSymbolsPtr->getBytesNoCopy());
+			uint64_t prelinkedSymbolsAddr = *(uint64_t*)prelinkedSymbolsPtr->getBytesNoCopy();
+			DBGLOG("patcher", "lilu-prelinked-symbols = %llX", prelinkedSymbolsAddr);
+
+			IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(prelinkedSymbolsAddr, 4096, kIODirectionIn);
+			prelinkedSymbolsDesc->prepare();
+			char *prelinkedSymbols = (char*)IOMalloc(4096);
+			prelinkedSymbolsDesc->readBytes(0, prelinkedSymbols, 4096);
+			prelinkedSymbolsDesc->complete();
+			DBGLOG("patcher", "lilu-prelinked-symbols content = %s", prelinkedSymbols);
+
 			prelinkedSymbolsPtr->free();
 
 			kcInfo->overwritePrelinkInfo();
