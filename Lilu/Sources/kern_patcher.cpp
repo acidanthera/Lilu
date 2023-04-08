@@ -425,13 +425,17 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			OSData *prelinkedSymbolsAddrData = nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
 			uint64_t prelinkedSymbolsAddr = *(uint64_t*)prelinkedSymbolsAddrData->getBytesNoCopy();
 			prelinkedSymbolsAddrData->free();
-			DBGLOG("patcher", "lilu-prelinked-symbols-addr = %llX", prelinkedSymbolsAddr);
+			DBGLOG("patcher", "lilu-prelinked-symbols-addr = 0x%llX", prelinkedSymbolsAddr);
 
 			// Fetch the size of the prelinked symbols
 			IOMemoryDescriptor *prelinkedSymbolsHeaderDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, 4096, kIODirectionIn);
 			LILU_PRELINKED_SYMBOLS_HEADER *prelinkedSymbolsHeader = (LILU_PRELINKED_SYMBOLS_HEADER*)IOMalloc(4096);
 			prelinkedSymbolsHeaderDesc->readBytes(0, prelinkedSymbolsHeader, 4096);
 			prelinkedSymbolsHeaderDesc->release();
+
+			for (uint32_t i = 0; i < 4096; i++) {
+				DBGLOG("patcher", "prelinkedSymbolsHeader[%d] = 0x%x", i, prelinkedSymbolsHeader[i]);
+			}
 
 			uint32_t prelinkedSymbolsSize = prelinkedSymbolsHeader->Size;
 			IOFree(prelinkedSymbolsHeader, 4096);
@@ -446,7 +450,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			uint32_t numOfSymbols = prelinkedSymbols->Header.NumberOfSymbols;
 			LILU_PRELINKED_SYMBOLS_ENTRY *curSymbol = &prelinkedSymbols->Entries[0];
 			for (uint32_t i = 0; i < numOfSymbols; i++) {
-				DBGLOG("patcher", "lilu-prelinked-symbols[%d]: SymbolValue %llX SymbolName %s", i, curSymbol->SymbolValue, curSymbol->SymbolName);
+				DBGLOG("patcher", "lilu-prelinked-symbols[%d]: SymbolValue 0x%llX SymbolName %s", i, curSymbol->SymbolValue, curSymbol->SymbolName);
 				curSymbol = (LILU_PRELINKED_SYMBOLS_ENTRY*)((uint8_t*)(curSymbol) + curSymbol->EntryLength);
 			}
 
