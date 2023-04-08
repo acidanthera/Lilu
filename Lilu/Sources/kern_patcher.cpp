@@ -446,7 +446,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			uint32_t numOfSymbols = prelinkedSymbols->Header.NumberOfSymbols;
 			LILU_PRELINKED_SYMBOLS_ENTRY *curSymbol = &prelinkedSymbols->Entries[0];
 			for (uint32_t i = 0; i < numOfSymbols; i++) {
-				DBGLOG("patcher", "lilu-prelinked-symbols found symbol %s", curSymbol->SymbolName);
+				DBGLOG("patcher", "lilu-prelinked-symbols[%d]: SymbolValue %X SymbolName %s", i, curSymbol->SymbolValue, curSymbol->SymbolName);
 				curSymbol = (LILU_PRELINKED_SYMBOLS_ENTRY*)((uint8_t*)(curSymbol) + curSymbol->EntryLength);
 			}
 
