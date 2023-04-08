@@ -434,7 +434,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			prelinkedSymbolsHeaderDesc->release();
 
 			for (uint32_t i = 0; i < 4096; i++) {
-				DBGLOG("patcher", "prelinkedSymbolsHeader[%d] = 0x%x", i, prelinkedSymbolsHeader[i]);
+				DBGLOG("patcher", "prelinkedSymbolsHeader[%d] = 0x%x", i, (char*)(prelinkedSymbolsHeader)[i]);
 			}
 
 			uint32_t prelinkedSymbolsSize = prelinkedSymbolsHeader->Size;
