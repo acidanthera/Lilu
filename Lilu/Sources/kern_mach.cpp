@@ -124,7 +124,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 				branch_got_entry_count = 0;
 				OSSerialize *serializer = OSSerialize::withCapacity(16);
 				while (*curGot != 0) {
-					OSNumber::withNumber(*curGot, 64)->serialize(serializer);
+					OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32)->serialize(serializer);
 					branch_gots_entries->setObject(serializer->text(), OSNumber::withNumber(branch_got_entry_count, 32));
 					serializer->clearText();
 
@@ -452,7 +452,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
 			if (extRelocInfo->r_pcrel) {
-				OSNumber::withNumber(resolvedSymbolOffset, 64)->serialize(serializer);
+				OSNumber::withNumber(resolvedSymbolOffset, 32)->serialize(serializer);
 				char *serializedOffset = serializer->text();
 				OSObject *gotEntryIdOSObj = branch_gots_entries->getObject(serializedOffset);
 				uint32_t gotEntryId = 0;
@@ -484,6 +484,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				uint32_t jumpBase = imageOffset + r_address + 4;
 				uint32_t jumpTarget = branch_stubs_offset + 6 * gotEntryId;
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
+				DBGLOG("mach", "injectKextIntoKC: jumpBase=0x%x, jumpTarget=0x%x, KC_BASE+0x%x -> KC_BASE+0x%x -> 0x%x", jumpBase, jumpTarget,
+				       imageOffset + r_address - 1, jumpTarget, resolvedSymbolOffset);
 			} else {
 				if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
 					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
