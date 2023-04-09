@@ -387,7 +387,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			curReloc->fixup64.cacheLevel = kc_index;
 
 			uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
-			DBGLOG("mach", "injectKextIntoKC: Placing 0x%x into dataPages[%d]", r_address, pageId);
 			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
 
 			locRelocInfo++;
@@ -403,7 +402,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 			if (curNlist->n_type == (N_PEXT | N_SECT)) {
 				privateSymbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
-			} else if (curNlist->n_desc == (N_EXT | N_SECT)) {
+			} else if (curNlist->n_type == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 			curNlist++;
@@ -414,7 +413,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		for (uint32_t i = 0; i < nextrel; i++) {
 			OSString *wantedSymbolOSStr = OSDynamicCast(OSString, symbolTable->getObject(extRelocInfo->r_symbolnum));
 			const char *wantedSymbol = wantedSymbolOSStr->getCStringNoCopy();
-			DBGLOG("mach", "injectKextIntoKC: wantedSymbol[%d] = %s", i, wantedSymbol);
 
 			// Try to resolve the symbol
 			OSObject *resolvedSymbolOSObj = privateSymbols->getObject(wantedSymbol);
@@ -431,7 +429,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			uint64_t resolvedSymbolVal = OSDynamicCast(OSNumber, resolvedSymbolOSObj)->unsigned64BitValue();
 			uint32_t resolvedSymbolKCIndex = resolvedSymbolVal >> 32;
 			uint32_t resolvedSymbolOffset = resolvedSymbolVal & 0xFFFFFFFF;
-			DBGLOG("mach", "injectKextIntoKC: Resolved to offset 0x%x in KC index %d", resolvedSymbolOffset, resolvedSymbolKCIndex);
 
 			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
@@ -448,7 +445,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				curReloc->fixup64.cacheLevel = resolvedSymbolKCIndex;
 
 				uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
-				DBGLOG("mach", "injectKextIntoKC: Placing 0x%x into dataPages[%d]", r_address, pageId);
 				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
 			}
 
@@ -483,12 +479,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
 			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
 			uint32_t relocCount = pageToReloc->getCount();
-			DBGLOG("mach", "injectKextIntoKC: relocCount of page %d is %d", i, relocCount);
 			if (relocCount != 0) {
 				pageStart = OSDynamicCast(OSNumber, pageToReloc->getFirstObject())->unsigned32BitValue();
 				pageStart -= dataVmaddr + (PAGE_SIZE * i);
 			}
-			DBGLOG("mach", "injectKextIntoKC: pageStart of page %d is 0x%x", i, pageStart);
 
 			segInfo->page_start[i] = pageStart;
 			if (relocCount == 0) continue;
@@ -497,7 +491,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			ChainedFixupPointerOnDisk *prevReloc = nullptr, *curReloc = nullptr;
 			OSObject *curObj = nullptr;
 			while ((curObj = iterator->getNextObject())) {
-				DBGLOG("mach", "injectKextIntoKC: Adding 0x%x to the chain", OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
 				curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
 				curReloc->fixup64.diversity = curReloc->fixup64.addrDiv = curReloc->fixup64.key = 0;
 				curReloc->fixup64.next = 0;
@@ -624,7 +617,6 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		OSDictionary *curKextInfo = OSDynamicCast(OSDictionary, curObj);
 		uint32_t imageOffset = OSDynamicCast(OSNumber, curKextInfo->getObject("_PrelinkExecutableSourceAddr"))->unsigned32BitValue();
 		uint8_t *executable = file_buf + imageOffset;
-		DBGLOG("mach", "extractKextsSymbols: imageOffset=0x%x", imageOffset);
 		if (imageOffset == 0xffffffff) continue;
 
 		// Find the string table and the symbol table
@@ -644,14 +636,12 @@ kern_return_t MachInfo::extractKextsSymbols() {
 
 			addr += loadCmd->cmdsize;
 		}
-		DBGLOG("mach", "extractKextsSymbols: symoff=0x%x, nsyms=0x%x, stroff=0x%x", symoff, nsyms, stroff);
 
 		// Parse the symbol table
 		nlist_64 *curNlist = (nlist_64*)(file_buf + symoff);
 		for (uint32_t i = 0; i < nsyms; i++) {
 			const char *symbolName = (const char *)(file_buf + stroff + curNlist->n_un.n_strx);
-			if (imageOffset == 0x18d98000) DBGLOG("mach", "extractKextsSymbols: Found symbol %s with an offset of 0x%x and type 0x%x", symbolName, curNlist->n_value, curNlist->n_desc);
-			if (curNlist->n_desc == (N_EXT | N_SECT)) {
+			if (curNlist->n_type == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 			curNlist++;
