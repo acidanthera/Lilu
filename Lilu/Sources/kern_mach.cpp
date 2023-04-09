@@ -401,10 +401,10 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
 			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
 
-			if (curNlist->n_type == N_PEXT | N_SECT) {
-				privateSymbols->setObject(symbolName, OSNumber::withNumber((kc_index << 32) + curNlist->n_value, 64));
-			} else if (curNlist->n_desc == N_EXT | N_SECT) {
-				kc_symbols->setObject(symbolName, OSNumber::withNumber((kc_index << 32) + curNlist->n_value, 64));
+			if (curNlist->n_type == (N_PEXT | N_SECT)) {
+				privateSymbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
+			} else if (curNlist->n_desc == (N_EXT | N_SECT)) {
+				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 			curNlist++;
 		}
@@ -647,9 +647,9 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
 		for (uint32_t i = 0; i < nsyms; i++) {
 			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
-			if (curNlist->n_desc == N_EXT | N_SECT) {
+			if (curNlist->n_desc == (N_EXT | N_SECT)) {
 				DBGLOG("mach", "Found symbol %s with an offset of 0x%x", symbolName, curNlist->n_value);
-				kc_symbols->setObject(symbolName, OSNumber::withNumber((kc_index << 32) + curNlist->n_value, 64));
+				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 			curNlist++;
 		}
