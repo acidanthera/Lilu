@@ -156,8 +156,8 @@ class MachInfo {
 	bool kernel_collection {false};          // kernel collection (11.0+)
 	uint64_t self_uuid[2] {};                // saved uuid of the loaded kext or kernel
 	uint32_t kexts_injected {0};             // amount of kexts injected into the KC so far
-	uint64_t kc_base_address {0};            // base address of the KC
 	uint32_t kc_index {0};                   // Index of the KC (kc_kind2index)
+	OSDictionary *kc_symbols {nullptr};      // Exported symbols from various KCs
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
@@ -472,13 +472,6 @@ public:
 	}
 
 	/**
-	 *  Set the KC base address
-	 */
-	void setKcBaseAddress(uint64_t addr) {
-		kc_base_address = addr;
-	}
-
-	/**
 	 *  Get the size of the __TEXT segment
 	 */
 	uint64_t getTextSize() {
@@ -491,6 +484,13 @@ public:
 	 */
 	void setKcIndex(uint32_t index) {
 		kc_index = index;
+	}
+
+    /**
+	 *  Set the KC symbols
+	 */
+	void setKcSymbols(OSDictionary *kcSymbols) {
+		kc_symbols = kcSymbols;
 	}
 };
 

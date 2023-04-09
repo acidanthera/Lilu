@@ -530,6 +530,16 @@ public:
 		vm_map_offset_t start,
 		vm_map_offset_t end,
 		boolean_t       flags);
+	
+	/**
+	 *  Initialize and populate the kcSymbols dictionary with symbols from OpenCore
+	 */
+	bool populatePrelinkedSymbolsFromOpenCore();
+
+	/**
+	 *  Stores exported symbols from various KCs
+	 */
+	OSDictionary *kcSymbols;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

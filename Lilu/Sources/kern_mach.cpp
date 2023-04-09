@@ -287,7 +287,9 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
-		uint32_t linkeditDelta = 0, locreloff = 0, nlocrel = 0, dataVmaddr = 0, dataFileoff = 0, dataFilesize = 0;
+		uint32_t linkeditDelta = 0, dataVmaddr = 0, dataFileoff = 0, dataFilesize = 0;
+		uint32_t symoff = 0, nsyms = 0, stroff = 0;
+		uint32_t locreloff = 0, nlocrel = 0, extreloff = 0, nextrel = 0;
 		uint32_t fixupsHeaderOffset = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
@@ -322,14 +324,23 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				}
 			} else if (loadCmd->cmd == LC_SYMTAB) {
 				symtab_command *symtabCmd = (symtab_command*)loadCmd;
+				symoff = symtabCmd->symoff;
 				symtabCmd->symoff += linkeditDelta;
+
+				nsyms = symtabCmd->nsyms;
+
+				stroff = symtabCmd->stroff;
 				symtabCmd->stroff += linkeditDelta;
 			} else if (loadCmd->cmd == LC_DYSYMTAB) {
 				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
-				// TODO: Figure out what to do with indirectsymoff
+				extreloff = dysymtabCmd->extreloff;
 				dysymtabCmd->extreloff = 0;
+
+				nextrel = dysymtabCmd->nextrel;
+
 				locreloff = dysymtabCmd->locreloff;
 				dysymtabCmd->locreloff = 0;
+
 				nlocrel = dysymtabCmd->nlocrel;
 				dysymtabCmd->nlocrel = 0;
 			}
@@ -353,9 +364,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		kmod->address = imageOffset;
 		kmod->size = kextInfo->getTextSize();
 
-		// Convert Local relocation to the dyld chained fixups format
+		// Resolve and convert local+external relocations to the dyld chained fixups format
 		// Assumes that every local relocations are within the __DATA segment
-		relocation_info *relocInfo = (relocation_info*)(executable + locreloff);
 		uint32_t dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
 		OSArray *dataPages = OSArray::withCapacity(dataPageCount);
 		DBGLOG("mach", "injectKextIntoKC: dataPageCount=%d", dataPageCount);
@@ -363,20 +373,71 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			dataPages->setObject(OSOrderedSet::withCapacity(0, orderFunction));
 		}
 
-		// Fetch all the relocations
+		// Fetch the local relocations
+		relocation_info *locRelocInfo = (relocation_info*)(executable + locreloff);
 		for (uint32_t i = 0; i < nlocrel; i++) {
-			uint32_t r_address = relocInfo->r_address;
+			uint32_t r_address = locRelocInfo->r_address;
 			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
 				DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
 				       r_address, dataVmaddr, dataVmaddr + dataFilesize);
 				return KERN_FAILURE;
 			}
+			ChainedFixupPointerOnDisk *curReloc = (ChainedFixupPointerOnDisk*)(executable + r_address);
+			curReloc->fixup64.target += imageOffset;
+			curReloc->fixup64.cacheLevel = kc_index;
 
 			uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
 			DBGLOG("mach", "injectKextIntoKC: Placing 0x%x into dataPages[%d]", r_address, pageId);
 			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
 
-			relocInfo++;
+			locRelocInfo++;
+		}
+
+		// Parse the symbol table
+		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
+		OSArray *symbolTable = OSArray::withCapacity(nsyms);
+		for (uint32_t i = 0; i < nsyms; i++) {
+			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
+			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
+		}
+
+		// Fetch and resolve the external relocations
+		relocation_info *extRelocInfo = (relocation_info*)(executable + extreloff);
+		for (uint32_t i = 0; i < nextrel; i++) {
+			OSString *wantedSymbolOSStr = OSDynamicCast(OSString, symbolTable->getObject(extRelocInfo->r_symbolnum));
+			const char *wantedSymbol = wantedSymbolOSStr->getCStringNoCopy();
+			DBGLOG("mach", "injectKextIntoKC: wantedSymbol[%d] = %s", i, wantedSymbol);
+
+			OSObject *resolvedSymbolOSObj = kc_symbols->getObject(wantedSymbol);
+			if (resolvedSymbolOSObj == nullptr) {
+				SYSLOG("mach", "injectKextIntoKC: Failed to resolve %s", wantedSymbol);
+				extRelocInfo++;
+				continue;
+			}
+			uint64_t resolvedSymbolVal = OSDynamicCast(OSNumber, resolvedSymbolOSObj)->unsigned64BitValue();
+			uint32_t resolvedSymbolKCIndex = resolvedSymbolVal >> 32;
+			uint32_t resolvedSymbolOffset = resolvedSymbolVal & 0xFFFFFFFF;
+			DBGLOG("mach", "injectKextIntoKC: Resolved to offset 0x%x in KC index %d", resolvedSymbolOffset, resolvedSymbolKCIndex);
+
+			uint32_t r_address = extRelocInfo->r_address;
+			if (extRelocInfo->r_pcrel) {
+				DBGLOG("mach", "injectKextIntoKC: TODO r_pcrel handling");
+			} else {
+				if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
+					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
+						r_address, dataVmaddr, dataVmaddr + dataFilesize);
+					return KERN_FAILURE;
+				}
+				ChainedFixupPointerOnDisk *curReloc = (ChainedFixupPointerOnDisk*)(executable + r_address);
+				curReloc->fixup64.target = resolvedSymbolOffset;
+				curReloc->fixup64.cacheLevel = resolvedSymbolKCIndex;
+
+				uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
+				DBGLOG("mach", "injectKextIntoKC: Placing 0x%x into dataPages[%d]", r_address, pageId);
+				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
+			}
+
+			extRelocInfo++;
 		}
 
 		// Set up chained fixup headers
@@ -423,8 +484,6 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			while ((curObj = iterator->getNextObject())) {
 				DBGLOG("mach", "injectKextIntoKC: Adding 0x%x to the chain", OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
 				curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
-				curReloc->fixup64.target += imageOffset;
-				curReloc->fixup64.cacheLevel = kc_index;
 				curReloc->fixup64.diversity = curReloc->fixup64.addrDiv = curReloc->fixup64.key = 0;
 				curReloc->fixup64.next = 0;
 				curReloc->fixup64.isAuth = 0;
