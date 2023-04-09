@@ -396,9 +396,17 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		// Parse the symbol table
 		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
 		OSArray *symbolTable = OSArray::withCapacity(nsyms);
+		OSDictionary *privateSymbols = OSDictionary::withCapacity(0);
 		for (uint32_t i = 0; i < nsyms; i++) {
 			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
 			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
+
+			if (curNlist->n_type == N_PEXT | N_SECT) {
+				privateSymbols->setObject(symbolName, OSNumber::withNumber((kc_index << 32) + curNlist->n_value, 64));
+			} else if (curNlist->n_desc == N_EXT | N_SECT) {
+				kc_symbols->setObject(symbolName, OSNumber::withNumber((kc_index << 32) + curNlist->n_value, 64));
+			}
+			curNlist++;
 		}
 
 		// Fetch and resolve the external relocations
@@ -408,17 +416,24 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			const char *wantedSymbol = wantedSymbolOSStr->getCStringNoCopy();
 			DBGLOG("mach", "injectKextIntoKC: wantedSymbol[%d] = %s", i, wantedSymbol);
 
-			OSObject *resolvedSymbolOSObj = kc_symbols->getObject(wantedSymbol);
+			// Try to resolve the symbol
+			OSObject *resolvedSymbolOSObj = privateSymbols->getObject(wantedSymbol);
+			if (resolvedSymbolOSObj == nullptr) {
+				resolvedSymbolOSObj = kc_symbols->getObject(wantedSymbol);
+			}
+
 			if (resolvedSymbolOSObj == nullptr) {
 				SYSLOG("mach", "injectKextIntoKC: Failed to resolve %s", wantedSymbol);
 				extRelocInfo++;
 				continue;
 			}
+
 			uint64_t resolvedSymbolVal = OSDynamicCast(OSNumber, resolvedSymbolOSObj)->unsigned64BitValue();
 			uint32_t resolvedSymbolKCIndex = resolvedSymbolVal >> 32;
 			uint32_t resolvedSymbolOffset = resolvedSymbolVal & 0xFFFFFFFF;
 			DBGLOG("mach", "injectKextIntoKC: Resolved to offset 0x%x in KC index %d", resolvedSymbolOffset, resolvedSymbolKCIndex);
 
+			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
 			if (extRelocInfo->r_pcrel) {
 				DBGLOG("mach", "injectKextIntoKC: TODO r_pcrel handling");
