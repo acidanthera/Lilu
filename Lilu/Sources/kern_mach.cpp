@@ -654,6 +654,8 @@ kern_return_t MachInfo::extractKextsSymbols() {
 			curNlist++;
 		}
 	}
+
+	return KERN_SUCCESS;
 }
 
 kern_return_t MachInfo::initFromMemory() {
