@@ -609,6 +609,53 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	return KERN_SUCCESS;
 }
 
+kern_return_t MachInfo::extractKextsSymbols() {
+	static OSArray *imageArr = nullptr;
+	if (!imageArr) imageArr = OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
+	if (!imageArr) {
+		SYSLOG("mach", "injectKextIntoKC: Failed to fetch _PrelinkInfoDictionary");
+		return KERN_FAILURE;
+	}
+
+	OSCollectionIterator *iterator = OSCollectionIterator::withCollection(imageArr);
+	OSObject *curObj = nullptr;
+	while ((curObj = iterator->getNextObject())) {
+		// Fetch the executable
+		OSDictionary *curKextInfo = OSDynamicCast(OSDictionary, curObj);
+		uint32_t imageOffset = OSDynamicCast(OSNumber, curKextInfo->getObject("_PrelinkExecutableSourceAddr"))->unsigned32BitValue();
+		uint8_t *executable = file_buf + imageOffset;
+
+		// Find the string table and the symbol table
+		mach_header_64 *mh = (mach_header_64*)executable;
+		uint8_t *addr = (uint8_t*)(mh + 1);
+		uint32_t symoff = 0, nsyms = 0, stroff = 0;
+
+		for (uint32_t i = 0; i < mh->ncmds; i++) {
+			load_command *loadCmd = (load_command*)addr;
+			if (loadCmd->cmd == LC_SYMTAB) {
+				symtab_command *symtabCmd = (symtab_command*)loadCmd;
+				symoff = symtabCmd->symoff;
+				nsyms = symtabCmd->nsyms;
+				stroff = symtabCmd->stroff;
+				break;
+			}
+
+			addr += loadCmd->cmdsize;
+		}
+
+		// Parse the symbol table
+		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
+		for (uint32_t i = 0; i < nsyms; i++) {
+			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
+			if (curNlist->n_desc == N_EXT | N_SECT) {
+				DBGLOG("mach", "Found symbol %s with an offset of 0x%x", symbolName, curNlist->n_value);
+				kc_symbols->setObject(symbolName, OSNumber::withNumber((kc_index << 32) + curNlist->n_value, 64));
+			}
+			curNlist++;
+		}
+	}
+}
+
 kern_return_t MachInfo::initFromMemory() {
 	// Before 11.0 __LINKEDIT is dropped from memory unless keepsyms=1 argument is specified.
 	// With 11.0 for all kernel collections (KC) __LINKEDIT is preserved for both kexts and kernels.

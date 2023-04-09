@@ -465,6 +465,13 @@ public:
 	kern_return_t overwritePrelinkInfo();
 
 	/**
+	 *  Parse all kexts in the KC and add exported symbols to kcSymbols
+	 * 
+	 *  @return KERN_SUCCESS if all kexts were parsed successfully
+ 	 */
+	kern_return_t extractKextsSymbols();
+
+	/**
 	 *  Get the file buffer of the initialised image
 	 */
 	uint8_t *getFileBuf() {

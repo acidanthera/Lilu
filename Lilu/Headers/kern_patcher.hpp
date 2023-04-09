@@ -535,11 +535,6 @@ public:
 	 *  Initialize and populate the kcSymbols dictionary with symbols from OpenCore
 	 */
 	bool populatePrelinkedSymbolsFromOpenCore();
-
-	/**
-	 *  Stores exported symbols from various KCs
-	 */
-	OSDictionary *kcSymbols;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -1023,6 +1018,11 @@ private:
 	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()
 	 */
 	vm_map_t *gKextMap = nullptr;
+
+	/**
+	 *  Stores exported symbols from various KCs
+	 */
+	OSDictionary *kcSymbols;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

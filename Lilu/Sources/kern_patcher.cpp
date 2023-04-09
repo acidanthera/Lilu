@@ -456,6 +456,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			kcInfo->initFromBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
 			kcInfo->setKcSymbols(that->kcSymbols);
 			kcInfo->setKcIndex(1);
+			kcInfo->extractKextsSymbols();
 
 			KextInjectionInfo *injectInfo = (KextInjectionInfo*)IOMalloc(sizeof(KextInjectionInfo));
 			size_t tmpSize;
