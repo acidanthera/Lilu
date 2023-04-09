@@ -408,7 +408,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			locRelocInfo++;
 		}
 
-		// Parse the symbol table
+		// Parse the symbol table, fixing it in the process
 		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
 		OSArray *symbolTable = OSArray::withCapacity(nsyms);
 		OSDictionary *privateSymbols = OSDictionary::withCapacity(0);
@@ -421,6 +421,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			} else if (curNlist->n_type == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
+
+			curNlist->n_value += imageOffset;
 			curNlist++;
 		}
 
