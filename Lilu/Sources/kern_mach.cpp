@@ -624,6 +624,7 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		OSDictionary *curKextInfo = OSDynamicCast(OSDictionary, curObj);
 		uint32_t imageOffset = OSDynamicCast(OSNumber, curKextInfo->getObject("_PrelinkExecutableSourceAddr"))->unsigned32BitValue();
 		uint8_t *executable = file_buf + imageOffset;
+		DBGLOG("mach", "imageOffset=0x%x", imageOffset);
 
 		// Find the string table and the symbol table
 		mach_header_64 *mh = (mach_header_64*)executable;
@@ -642,10 +643,12 @@ kern_return_t MachInfo::extractKextsSymbols() {
 
 			addr += loadCmd->cmdsize;
 		}
+		DBGLOG("mach", "symoff=0x%x, nsyms=0x%x, stroff=0x%x", symoff, nsyms, stroff);
 
 		// Parse the symbol table
 		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
 		for (uint32_t i = 0; i < nsyms; i++) {
+			DBGLOG("mach", "n_strx=0x%x", curNlist->n_un.n_strx);
 			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
 			if (curNlist->n_desc == (N_EXT | N_SECT)) {
 				DBGLOG("mach", "Found symbol %s with an offset of 0x%x", symbolName, curNlist->n_value);
