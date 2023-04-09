@@ -137,6 +137,10 @@ class MachInfo {
 	uint32_t file_buf_free_start {0};        // start of the free space inside the file (for injecting new prelink info / kexts)
 	uint32_t linkedit_offset {0};            // file offset to __LINKEDIT
 	uint32_t linkedit_free_start {0};        // start of the free space inside the __LINKEDIT segment (for injecting new kexts)
+	uint32_t branch_stubs_offset {0};        // file offset to __BRANCH_STUBS
+	uint32_t branch_gots_offset {0};         // file offset to __BRANCH_GOTS
+	OSDictionary *branch_gots_entries {nullptr};  // entries inside __BRANCH_GOTS
+	uint32_t branch_got_entry_count {0};     // amount of entries inside __BRANCH_GOTS
 	uint8_t *sym_buf {nullptr};              // pointer to buffer (normally __LINKEDIT) containing symbols to solve
 	bool sym_buf_ro {false};                 // sym_buf is read-only (not copy).
 	uint64_t sym_fileoff {0};                // file offset of symbols (normally __LINKEDIT) so we can read

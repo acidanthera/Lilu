@@ -113,7 +113,23 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 					segCmd->vmsize += linkeditIncrease;
 					segCmd->filesize += linkeditIncrease;
 					file_buf_free_start += linkeditIncrease;
-					break;
+				} else if (!strncmp(segCmd->segname, "__BRANCH_STUBS", sizeof(segCmd->segname))) {
+					branch_stubs_offset = (uint32_t)segCmd->fileoff;
+				} else if (!strncmp(segCmd->segname, "__BRANCH_GOTS", sizeof(segCmd->segname))) {
+					branch_gots_offset = (uint32_t)segCmd->fileoff;
+				}
+
+				uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
+				branch_gots_entries = OSDictionary::withCapacity(0);
+				branch_got_entry_count = 0;
+				OSSerialize *serializer = OSSerialize::withCapacity(16);
+				while (*curGot != 0) {
+					OSNumber::withNumber(*curGot, 64)->serialize(serializer);
+					branch_gots_entries->setObject(serializer->text(), OSNumber::withNumber(branch_got_entry_count, 32));
+					serializer->clearText();
+
+					branch_got_entry_count++;
+					curGot++;
 				}
 			}
 
@@ -410,6 +426,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 		// Fetch and resolve the external relocations
 		relocation_info *extRelocInfo = (relocation_info*)(executable + extreloff);
+		OSSerialize *serializer = OSSerialize::withCapacity(16);
 		for (uint32_t i = 0; i < nextrel; i++) {
 			OSString *wantedSymbolOSStr = OSDynamicCast(OSString, symbolTable->getObject(extRelocInfo->r_symbolnum));
 			const char *wantedSymbol = wantedSymbolOSStr->getCStringNoCopy();
@@ -433,7 +450,38 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
 			if (extRelocInfo->r_pcrel) {
-				DBGLOG("mach", "injectKextIntoKC: TODO r_pcrel handling");
+				OSNumber::withNumber(resolvedSymbolOffset, 64)->serialize(serializer);
+				char *serializedOffset = serializer->text();
+				OSObject *gotEntryIdOSObj = branch_gots_entries->getObject(serializedOffset);
+				uint32_t gotEntryId = 0;
+
+				if (gotEntryIdOSObj == nullptr) {
+					gotEntryId = branch_got_entry_count;
+
+					// Create the stub
+					uint32_t stubOffset = branch_stubs_offset + 6 * gotEntryId;
+					uint32_t stubValue = branch_gots_offset - branch_stubs_offset - 6 + 2 * gotEntryId;
+					*(uint8_t*)(executable + stubOffset) = 0xff;
+					*(uint8_t*)(executable + stubOffset + 1) = 0x25;
+					*(uint32_t*)(executable + stubOffset + 2) = stubValue;
+
+					// Set the GOT value
+					uint32_t gotOffset = branch_gots_offset + 8 * gotEntryId;
+					ChainedFixupPointerOnDisk *gotVal = (ChainedFixupPointerOnDisk*)(executable + gotOffset);
+					gotVal->raw64 = 0;
+					gotVal->fixup64.target = resolvedSymbolOffset;
+					(gotVal - 1)->fixup64.next = 8;
+
+					branch_gots_entries->setObject(serializedOffset, OSNumber::withNumber(gotEntryId, 32));
+					branch_got_entry_count++;
+				} else {
+					gotEntryId = OSDynamicCast(OSNumber, gotEntryIdOSObj)->unsigned32BitValue();
+				}
+				serializer->clearText();
+
+				uint32_t jumpBase = r_address + 4;
+				uint32_t jumpTarget = branch_stubs_offset + 6 * gotEntryId;
+				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
 			} else {
 				if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
 					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
