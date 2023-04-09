@@ -416,13 +416,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
 			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
 
+			curNlist->n_value += imageOffset;
 			if (curNlist->n_type == (N_PEXT | N_SECT)) {
 				privateSymbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			} else if (curNlist->n_type == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 
-			curNlist->n_value += imageOffset;
 			curNlist++;
 		}
 
