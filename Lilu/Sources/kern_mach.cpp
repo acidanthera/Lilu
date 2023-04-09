@@ -481,7 +481,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				}
 				serializer->clearText();
 
-				uint32_t jumpBase = r_address + 4;
+				uint32_t jumpBase = imageOffset + r_address + 4;
 				uint32_t jumpTarget = branch_stubs_offset + 6 * gotEntryId;
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
 			} else {
