@@ -467,7 +467,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			injectInfo->executable = FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/MacOS/AppleGraphicsPowerManagement", tmpSize);
 			injectInfo->executableSize = (uint32_t)tmpSize;
 
-			// kcInfo->injectKextIntoKC(injectInfo);
+			kcInfo->injectKextIntoKC(injectInfo);
 			Buffer::deleter((void*)injectInfo->infoPlist);
 			Buffer::deleter((void*)injectInfo->executable);
 			IOFree(injectInfo, sizeof(KextInjectionInfo));
