@@ -650,7 +650,7 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		nlist_64 *curNlist = (nlist_64*)(file_buf + symoff);
 		for (uint32_t i = 0; i < nsyms; i++) {
 			const char *symbolName = (const char *)(file_buf + stroff + curNlist->n_un.n_strx);
-			DBGLOG("mach", "extractKextsSymbols: Found symbol %s with an offset of 0x%x and type 0x%x", symbolName, curNlist->n_value, curNlist->n_desc);
+			if (imageOffset == 0x18d98000) DBGLOG("mach", "extractKextsSymbols: Found symbol %s with an offset of 0x%x and type 0x%x", symbolName, curNlist->n_value, curNlist->n_desc);
 			if (curNlist->n_desc == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
