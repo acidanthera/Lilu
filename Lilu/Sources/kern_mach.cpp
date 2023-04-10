@@ -417,9 +417,9 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
 
 			curNlist->n_value += imageOffset;
-			if (curNlist->n_type == (N_PEXT | N_SECT)) {
+			if ((curNlist->n_type & (N_PEXT | N_SECT)) == (N_PEXT | N_SECT)) {
 				privateSymbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
-			} else if (curNlist->n_type == (N_EXT | N_SECT)) {
+			} else if ((curNlist->n_type & (N_EXT | N_SECT)) == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 
@@ -693,7 +693,7 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		nlist_64 *curNlist = (nlist_64*)(file_buf + symoff);
 		for (uint32_t i = 0; i < nsyms; i++) {
 			const char *symbolName = (const char *)(file_buf + stroff + curNlist->n_un.n_strx);
-			if (curNlist->n_type == (N_EXT | N_SECT)) {
+			if ((curNlist->n_type & (N_EXT | N_SECT)) == (N_EXT | N_SECT)) {
 				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
 			}
 			curNlist++;
