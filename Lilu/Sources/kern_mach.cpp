@@ -463,13 +463,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					// Create the stub
 					uint32_t stubOffset = branch_stubs_offset + 6 * gotEntryId;
 					uint32_t stubValue = branch_gots_offset - branch_stubs_offset - 6 + 2 * gotEntryId;
-					*(uint8_t*)(executable + stubOffset) = 0xff;
-					*(uint8_t*)(executable + stubOffset + 1) = 0x25;
-					*(uint32_t*)(executable + stubOffset + 2) = stubValue;
+					*(uint8_t*)(file_buf + stubOffset) = 0xff;
+					*(uint8_t*)(file_buf + stubOffset + 1) = 0x25;
+					*(uint32_t*)(file_buf + stubOffset + 2) = stubValue;
 
 					// Set the GOT value
 					uint32_t gotOffset = branch_gots_offset + 8 * gotEntryId;
-					ChainedFixupPointerOnDisk *gotVal = (ChainedFixupPointerOnDisk*)(executable + gotOffset);
+					ChainedFixupPointerOnDisk *gotVal = (ChainedFixupPointerOnDisk*)(file_buf + gotOffset);
 					gotVal->raw64 = 0;
 					gotVal->fixup64.target = resolvedSymbolOffset;
 					(gotVal - 1)->fixup64.next = 8;
