@@ -473,6 +473,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					uint32_t gotOffset = branch_gots_offset + 8 * gotEntryId;
 					ChainedFixupPointerOnDisk *gotVal = (ChainedFixupPointerOnDisk*)(file_buf + gotOffset);
 					gotVal->raw64 = 0;
+					gotVal->fixup64.cacheLevel = resolvedSymbolKCIndex;
 					gotVal->fixup64.target = resolvedSymbolOffset;
 					(gotVal - 1)->fixup64.next = 8;
 
