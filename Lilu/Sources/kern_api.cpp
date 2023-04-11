@@ -323,8 +323,8 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 #endif
 
 #ifdef LILU_KCINJECT_SUPPORT
-	// The code is currently only tested on Big Sur
-	if (getKernelVersion() == KernelVersion::BigSur) {
+	// Warning: The code is currently only tested on Big Sur
+	if (getKernelVersion() >= KernelVersion::BigSur) {
 		patcher.setupKCListening();
 	}
 #endif
