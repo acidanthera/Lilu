@@ -125,7 +125,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 				OSSerialize *serializer = OSSerialize::withCapacity(16);
 				while (*curGot != 0) {
 					OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32)->serialize(serializer);
-					branch_gots_entries->setObject(serializer->text(), OSNumber::withNumber(branch_got_entry_count, 32));
+					branch_gots_entries->setObject(serializer->text(), OSNumber::withNumber(branch_got_entry_count, 64));
 					serializer->clearText();
 
 					branch_got_entry_count++;
@@ -454,7 +454,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
 			if (extRelocInfo->r_pcrel) {
-				OSNumber::withNumber(resolvedSymbolVal, 32)->serialize(serializer);
+				OSNumber::withNumber(resolvedSymbolVal, 64)->serialize(serializer);
 				char *serializedOffset = serializer->text();
 				OSObject *gotEntryIdOSObj = branch_gots_entries->getObject(serializedOffset);
 				uint32_t gotEntryId = 0;
