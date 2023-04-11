@@ -454,7 +454,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
 			if (extRelocInfo->r_pcrel) {
-				OSNumber::withNumber(resolvedSymbolOffset, 32)->serialize(serializer);
+				OSNumber::withNumber(resolvedSymbolVal, 32)->serialize(serializer);
 				char *serializedOffset = serializer->text();
 				OSObject *gotEntryIdOSObj = branch_gots_entries->getObject(serializedOffset);
 				uint32_t gotEntryId = 0;
