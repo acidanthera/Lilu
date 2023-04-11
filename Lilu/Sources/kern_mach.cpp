@@ -307,15 +307,17 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		uint32_t symoff = 0, nsyms = 0, stroff = 0;
 		uint32_t locreloff = 0, nlocrel = 0, extreloff = 0, nextrel = 0;
 		uint32_t fixupsHeaderOffset = 0;
+		uint32_t kextLinkeditOffset = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					linkeditDelta = linkedit_offset + linkedit_free_start - (uint32_t)segCmd->fileoff;
-					memcpy(file_buf + linkedit_offset + linkedit_free_start, kextInfo->getFileBuf() + segCmd->fileoff, (uint32_t)segCmd->filesize);
-					segCmd->vmaddr = segCmd->fileoff = linkedit_offset + linkedit_free_start;
+					kextLinkeditOffset = linkedit_offset + linkedit_free_start;
+					linkeditDelta = kextLinkeditOffset - (uint32_t)segCmd->fileoff;
+					memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, (uint32_t)segCmd->filesize);
+					segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
 					segCmd->vmsize = segCmd->filesize;
 					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
 					linkedit_free_start += segCmd->filesize;
@@ -340,13 +342,13 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				}
 			} else if (loadCmd->cmd == LC_SYMTAB) {
 				symtab_command *symtabCmd = (symtab_command*)loadCmd;
-				symoff = symtabCmd->symoff;
 				symtabCmd->symoff += linkeditDelta;
+				symoff = symtabCmd->symoff;
 
 				nsyms = symtabCmd->nsyms;
 
-				stroff = symtabCmd->stroff;
 				symtabCmd->stroff += linkeditDelta;
+				stroff = symtabCmd->stroff;
 			} else if (loadCmd->cmd == LC_DYSYMTAB) {
 				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
 				extreloff = dysymtabCmd->extreloff;
@@ -409,11 +411,11 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 
 		// Parse the symbol table, fixing it in the process
-		nlist_64 *curNlist = (nlist_64*)(executable + symoff);
+		nlist_64 *curNlist = (nlist_64*)(file_buf + symoff);
 		OSArray *symbolTable = OSArray::withCapacity(nsyms);
 		OSDictionary *privateSymbols = OSDictionary::withCapacity(0);
 		for (uint32_t i = 0; i < nsyms; i++) {
-			const char *symbolName = (const char *)(executable + stroff + curNlist->n_un.n_strx);
+			const char *symbolName = (const char *)(file_buf + stroff + curNlist->n_un.n_strx);
 			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
 
 			curNlist->n_value += imageOffset;
