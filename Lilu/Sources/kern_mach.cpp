@@ -454,41 +454,48 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			// Do the relocation
 			uint32_t r_address = extRelocInfo->r_address;
 			if (extRelocInfo->r_pcrel) {
-				OSNumber::withNumber(resolvedSymbolVal, 64)->serialize(serializer);
-				char *serializedOffset = serializer->text();
-				OSObject *gotEntryIdOSObj = branch_gots_entries->getObject(serializedOffset);
-				uint32_t gotEntryId = 0;
-
-				if (gotEntryIdOSObj == nullptr) {
-					gotEntryId = branch_got_entry_count;
-
-					// Create the stub
-					uint32_t stubOffset = branch_stubs_offset + 6 * gotEntryId;
-					uint32_t stubValue = branch_gots_offset - branch_stubs_offset - 6 + 2 * gotEntryId;
-					*(uint8_t*)(file_buf + stubOffset) = 0xff;
-					*(uint8_t*)(file_buf + stubOffset + 1) = 0x25;
-					*(uint32_t*)(file_buf + stubOffset + 2) = stubValue;
-
-					// Set the GOT value
-					uint32_t gotOffset = branch_gots_offset + 8 * gotEntryId;
-					ChainedFixupPointerOnDisk *gotVal = (ChainedFixupPointerOnDisk*)(file_buf + gotOffset);
-					gotVal->raw64 = 0;
-					gotVal->fixup64.cacheLevel = resolvedSymbolKCIndex;
-					gotVal->fixup64.target = resolvedSymbolOffset;
-					(gotVal - 1)->fixup64.next = 8;
-
-					branch_gots_entries->setObject(serializedOffset, OSNumber::withNumber(gotEntryId, 32));
-					branch_got_entry_count++;
-				} else {
-					gotEntryId = OSDynamicCast(OSNumber, gotEntryIdOSObj)->unsigned32BitValue();
-				}
-				serializer->clearText();
-
 				uint32_t jumpBase = imageOffset + r_address + 4;
-				uint32_t jumpTarget = branch_stubs_offset + 6 * gotEntryId;
+				uint32_t jumpTarget = 0;
+
+				if (resolvedSymbolKCIndex == kc_index) {
+					// Jump to the target directly
+					jumpTarget = resolvedSymbolOffset;
+				} else {
+					// Utilize __BRANCH_STUBS and __BRANCH_GOTS
+					OSNumber::withNumber(resolvedSymbolVal, 64)->serialize(serializer);
+					char *serializedOffset = serializer->text();
+					OSObject *gotEntryIdOSObj = branch_gots_entries->getObject(serializedOffset);
+					uint32_t gotEntryId = 0;
+
+					if (gotEntryIdOSObj == nullptr) {
+						gotEntryId = branch_got_entry_count;
+
+						// Create the stub
+						uint32_t stubOffset = branch_stubs_offset + 6 * gotEntryId;
+						uint32_t stubValue = branch_gots_offset - branch_stubs_offset - 6 + 2 * gotEntryId;
+						*(uint8_t*)(file_buf + stubOffset) = 0xff;
+						*(uint8_t*)(file_buf + stubOffset + 1) = 0x25;
+						*(uint32_t*)(file_buf + stubOffset + 2) = stubValue;
+
+						// Set the GOT value
+						uint32_t gotOffset = branch_gots_offset + 8 * gotEntryId;
+						ChainedFixupPointerOnDisk *gotVal = (ChainedFixupPointerOnDisk*)(file_buf + gotOffset);
+						gotVal->raw64 = 0;
+						gotVal->fixup64.cacheLevel = resolvedSymbolKCIndex;
+						gotVal->fixup64.target = resolvedSymbolOffset;
+						(gotVal - 1)->fixup64.next = 8;
+
+						branch_gots_entries->setObject(serializedOffset, OSNumber::withNumber(gotEntryId, 32));
+						branch_got_entry_count++;
+					} else {
+						gotEntryId = OSDynamicCast(OSNumber, gotEntryIdOSObj)->unsigned32BitValue();
+					}
+					serializer->clearText();
+
+					jumpTarget = branch_stubs_offset + 6 * gotEntryId;
+				}
+
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
-				DBGLOG("mach", "injectKextIntoKC: jumpBase=0x%x, jumpTarget=0x%x, KC_BASE+0x%x -> KC_BASE+0x%x -> 0x%x", jumpBase, jumpTarget,
-				       imageOffset + r_address - 1, jumpTarget, resolvedSymbolOffset);
 			} else {
 				if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
 					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
