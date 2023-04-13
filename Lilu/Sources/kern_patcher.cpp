@@ -369,47 +369,47 @@ bool KernelPatcher::populatePrelinkedSymbolsFromOpenCore() {
 	}
 
 	// Fetch the address to the prelinked symbols
-	NVStorage *nvram = new NVStorage();
+	auto *nvram = new NVStorage {};
 	nvram->init();
-	OSData *prelinkedSymbolsAddrData = nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
-	if (prelinkedSymbolsAddrData == nullptr) {
+	auto *prelinkedSymbolsAddrData =
+		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
+	if (!prelinkedSymbolsAddrData) {
 		SYSLOG("patcher", "populatePrelinkedSymbolsFromOpenCore: Failed to fetch lilu-prelinked-symbols-addr");
 		return false;
 	}
-	uint64_t prelinkedSymbolsAddr = *(uint64_t*)prelinkedSymbolsAddrData->getBytesNoCopy();
-	prelinkedSymbolsAddrData->free();
+	auto prelinkedSymbolsAddr = *reinterpret_cast<const uint64_t *>(prelinkedSymbolsAddrData->getBytesNoCopy());
 	DBGLOG("patcher", "lilu-prelinked-symbols-addr = 0x%llX", prelinkedSymbolsAddr);
+	prelinkedSymbolsAddrData->free();
+	nvram->deinit();
+	delete nvram;
 
-	// Parse the header
-	IOMemoryDescriptor *prelinkedSymbolsHeaderDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, 4096, kIODirectionIn);
-	LILU_PRELINKED_SYMBOLS_HEADER *prelinkedSymbolsHeader = (LILU_PRELINKED_SYMBOLS_HEADER*)IOMalloc(4096);
-	prelinkedSymbolsHeaderDesc->readBytes(0, prelinkedSymbolsHeader, 4096);
-	prelinkedSymbolsHeaderDesc->release();
+	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(prelinkedSymbolsAddr,
+		sizeof(LILU_PRELINKED_SYMBOLS_HEADER), kIODirectionIn);
+	auto *map = memDesc->map();
+	auto *header = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
+	uint32_t size = header->HeaderSize, count = header->SymbolCount;
+	DBGLOG("patcher", "lilu-prelinked-symbols Size = %d, SymbolCount = %d", size, count);
+	memDesc->release();
+	map->release();
 
-	uint32_t prelinkedSymbolsSize = prelinkedSymbolsHeader->Size;
-	uint32_t numOfSymbols = prelinkedSymbolsHeader->NumberOfSymbols;
-	IOFree(prelinkedSymbolsHeader, 4096);
-	DBGLOG("patcher", "lilu-prelinked-symbols Size = %d, NumberOfSymbols = %d", prelinkedSymbolsSize, numOfSymbols);
-
-	// Initialize the dictionary
-	kcSymbols = OSDictionary::withCapacity(numOfSymbols);
-
-	// Fetch the prelinked symbols
-	IOMemoryDescriptor *prelinkedSymbolsDesc = IOGeneralMemoryDescriptor::withPhysicalAddress((uint32_t)prelinkedSymbolsAddr, prelinkedSymbolsSize, kIODirectionIn);
-	LILU_PRELINKED_SYMBOLS *prelinkedSymbols = (LILU_PRELINKED_SYMBOLS*)IOMalloc(prelinkedSymbolsSize);
-	prelinkedSymbolsDesc->readBytes(0, prelinkedSymbols, prelinkedSymbolsSize);
-	prelinkedSymbolsDesc->release();
-
-	LILU_PRELINKED_SYMBOLS_ENTRY *curSymbol = &prelinkedSymbols->Entries[0];
-	for (uint32_t i = 0; i < numOfSymbols; i++) {
-		if (i % 1000 == 0) {
-			DBGLOG("patcher", "lilu-prelinked-symbols[%d]: SymbolValue 0x%llX SymbolName %s", i, curSymbol->SymbolValue, curSymbol->SymbolName);
-		}
-		kcSymbols->setObject(curSymbol->SymbolName, OSNumber::withNumber(curSymbol->SymbolValue & 0xFFFFFFFF, 64));
-		curSymbol = (LILU_PRELINKED_SYMBOLS_ENTRY*)(((uint8_t*)curSymbol) + curSymbol->EntryLength);
+	kcSymbols = OSDictionary::withCapacity(count);
+	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(prelinkedSymbolsAddr, size, kIODirectionIn);
+	map = memDesc->map();
+	auto *prelinkedSymbols = reinterpret_cast<LILU_PRELINKED_SYMBOLS *>(map->getVirtualAddress());
+	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(prelinkedSymbols->Entries);
+	for (uint32_t i = 0; i < count; i++) {
+		auto *curSymbol = reinterpret_cast<LILU_PRELINKED_SYMBOLS_ENTRY *>(curSymbolAddr);
+		DBGLOG_COND((i % 1000) == 0, "patcher", "lilu-prelinked-symbols[%d]: SymbolValue 0x%llX SymbolName %s", i,
+			curSymbol->SymbolValue, curSymbol->SymbolName);
+		auto *symbolValue = OSNumber::withNumber(curSymbol->SymbolValue & 0xFFFFFFFF, 64);
+		kcSymbols->setObject(curSymbol->SymbolName, symbolValue);
+		symbolValue->release();
+		curSymbolAddr += curSymbol->EntryLength;
 	}
 
-	IOFree(prelinkedSymbols, prelinkedSymbolsSize);
+	memDesc->release();
+	map->release();
+
 	return true;
 }
 
@@ -440,7 +440,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			vm_size_t oldKcSize = (vm_size_t)*file_size;
 			uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
-			if (kcBuf == nullptr || 
+			if (kcBuf == nullptr ||
 			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&kcBuf, (vm_map_offset_t)oldKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
 				SYSLOG("patcher", "Failed to map kcBuf");
 				return ret;
@@ -628,7 +628,7 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		DBGLOG("patcher", "will use absolute jumping to " PRIKADDR, CASTKADDR(to));
 		absolute = true;
 	}
-	
+
 	if (jumpType == JumpType::Long) {
 		absolute = true;
 	} else if (jumpType == JumpType::Short && absolute) {
@@ -879,7 +879,7 @@ bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, si
 
 bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
 	if (dataSize < findSize) return false;
-	
+
 	uint8_t *d = (uint8_t *) data;
 	const uint8_t *repl = (const uint8_t *) replace;
 	const uint8_t *replMsk = (const uint8_t *) replaceMask;
@@ -1078,14 +1078,14 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 	if (!that || !atomic_load_explicit(&that->activated, memory_order_relaxed)) {
 		return;
 	}
-	
+
 	FunctionCast(onOSKextSaveLoadedKextPanicList, that->orgOSKextSaveLoadedKextPanicList)();
-	
+
 	// Flag set during OSKext::unload() to prevent triggering during an unload.
 	if (that->isKextUnloading) {
 		return;
 	}
-	
+
 	DBGLOG("patcher", "invoked at kext loading");
 
 	if (that->waitingForAlreadyLoadedKexts) {
@@ -1108,11 +1108,11 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id) {
 	if (!that)
 		return KERN_INVALID_ARGUMENT;
-	
+
 	kern_return_t result = FunctionCast(onKmodCreateInternal, that->orgKmodCreateInternal)(kmod, id);
 	if (result == KERN_SUCCESS) {
 		DBGLOG("patcher", "invoked at kext loading");
-		
+
 		if (that->waitingForAlreadyLoadedKexts) {
 			that->processAlreadyLoadedKexts();
 			that->waitingForAlreadyLoadedKexts = false;
@@ -1122,7 +1122,7 @@ kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id)
 			that->processKext(kmod, false);
 		}
 	}
-	
+
 	return result;
 }
 

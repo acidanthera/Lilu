@@ -67,51 +67,21 @@ typedef struct {
 
 typedef uint16_t vm_tag_t;
 
-//
-// Prelinked symbols passed to Lilu
-//
 typedef struct {
-  //
-  // Version of the format (currently 0)
-  //
-  uint8_t Version;
-  //
-  // Size of the entire LILU_PRELINKED_SYMBOLS struct
-  //
-  uint32_t Size;
-  //
-  // Number of symbols
-  //
-  uint32_t NumberOfSymbols;
+  uint8_t HeaderVersion;
+  uint32_t HeaderSize;
+  uint32_t SymbolCount;
 } PACKED LILU_PRELINKED_SYMBOLS_HEADER;
 
 typedef struct {
-  //
-  // Length of this entry
-  //
   uint32_t EntryLength;
-  //
-  // Value of this symbol (or stab offset)
-  //
   uint64_t SymbolValue;
-  //
-  // Length of this symbol's name
-  //
   uint32_t SymbolNameLength;
-  //
-  // This symbols's name
-  //
   char SymbolName[0];
 } PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
 
 typedef struct {
-  //
-  // The header
-  //
   LILU_PRELINKED_SYMBOLS_HEADER Header;
-  //
-  // The symbols
-  //
   LILU_PRELINKED_SYMBOLS_ENTRY Entries[0];
 } PACKED LILU_PRELINKED_SYMBOLS;
 #endif /* LILU_KCINJECT_SUPPORT */
@@ -317,7 +287,7 @@ public:
 
 		return (T)nullptr;
 	}
-    
+
     /**
      *  Solve request to resolve multiple symbols in one shot and simplify error handling
      *
@@ -328,12 +298,12 @@ public:
          *  The symbol to solve
          */
         const char *symbol {nullptr};
-        
+
         /**
          *  The symbol address on success, otherwise NULL.
          */
         mach_vm_address_t *address {nullptr};
-        
+
         /**
          *  Construct a solve request conveniently
          */
@@ -341,7 +311,7 @@ public:
         SolveRequest(const char *s, T &addr) :
 			symbol(s), address(reinterpret_cast<mach_vm_address_t*>(&addr)) { }
     };
-	
+
 	/**
 	 *  Solve multiple functions with basic error handling
 	 *
@@ -367,7 +337,7 @@ public:
 		}
 		return true;
 	}
-	
+
 	/**
 	 *  Solve multiple functions with basic error handling
 	 *
@@ -516,7 +486,7 @@ public:
 		vm_prot_t               cur_protection,
 		vm_prot_t               max_protection,
 		vm_inherit_t            inheritance);
-	
+
 	/**
 	 *  A pointer to vm_map_remove()
 	 */
@@ -530,7 +500,7 @@ public:
 		vm_map_offset_t start,
 		vm_map_offset_t end,
 		boolean_t       flags);
-	
+
 	/**
 	 *  Initialize and populate the kcSymbols dictionary with symbols from OpenCore
 	 */
@@ -638,7 +608,7 @@ public:
 		template <typename T>
 		RouteRequest(const char *s, T t, mach_vm_address_t &o) :
 			symbol(s), to(reinterpret_cast<mach_vm_address_t>(t)), org(&o) { }
-		
+
 		/**
 		 *  Construct RouteRequest for wrapping a function
 		 *  @param s  symbol to lookup
@@ -907,7 +877,7 @@ private:
 	 *  Process loaded kext
 	 */
 	void processKext(kmod_info_t *kmod, bool loaded);
-	
+
 	/**
 	 *  Process already loaded kexts once at the start
 	 *
@@ -938,13 +908,13 @@ private:
 	 *  A pointer to OSKext::saveLoadedKextPanicList()
 	 */
 	mach_vm_address_t orgOSKextSaveLoadedKextPanicList {};
-	
+
 #if defined(__i386__)
 	/**
 	 *  Called at kext loading if kext listening is enabled on macOS 10.4 and 10.5
 	 */
 	static kern_return_t onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id);
-	
+
 	/**
 	 *  A pointer to kmod_create_internal()
 	 */
@@ -968,7 +938,7 @@ private:
 	 */
 	evector<Patch::All *, Patch::deleter> kpatches;
 
-#ifdef LILU_KEXTPATCH_SUPPORT	
+#ifdef LILU_KEXTPATCH_SUPPORT
 	/**
 	 *  Awaiting kext notificators
 	 */

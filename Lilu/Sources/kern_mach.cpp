@@ -488,7 +488,18 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 		for (uint32_t i = 0; i < nsyms; i++) {
 			auto *symbolName = reinterpret_cast<const char *>(file_buf + stroff + curNlist->n_un.n_strx);
-			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
+			auto *osSymbolName = OSString::withCStringNoCopy(symbolName);
+			if (!osSymbolName) {
+				SYSLOG("mach", "injectKextIntoKC: Failed to allocate OSString for symbol %s", symbolName);
+				kextInfo->deinit();
+				MachInfo::deleter(kextInfo);
+				dataPages->release();
+				symbolTable->release();
+				privateSymbols->release();
+				return KERN_RESOURCE_SHORTAGE;
+			}
+			symbolTable->setObject(osSymbolName);
+			osSymbolName->release();
 
 			curNlist->n_value += imageOffset;
 			auto *targetDict = (curNlist->n_type & N_PEXT) ? privateSymbols : (curNlist->n_type & N_EXT) ? kc_symbols : nullptr;
@@ -522,6 +533,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				dataPages->release();
 				symbolTable->release();
 				privateSymbols->release();
+				serializer->release();
 				return KERN_FAILURE;
 			}
 			const char *wantedSymbol = wantedSymbolOSStr->getCStringNoCopy();
@@ -557,6 +569,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 						dataPages->release();
 						symbolTable->release();
 						privateSymbols->release();
+						serializer->release();
 						return KERN_RESOURCE_SHORTAGE;
 					}
 					resolvedSymbolValNum->serialize(serializer);
@@ -593,9 +606,11 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 							dataPages->release();
 							symbolTable->release();
 							privateSymbols->release();
+							serializer->release();
 							return KERN_RESOURCE_SHORTAGE;
 						}
 						branch_gots_entries->setObject(serializedOffset, gotEntryIdObj);
+						gotEntryIdObj->release();
 						branch_got_entry_count++;
 					}
 					serializer->clearText();
@@ -613,6 +628,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					dataPages->release();
 					symbolTable->release();
 					privateSymbols->release();
+					serializer->release();
 					return KERN_FAILURE;
 				}
 				ChainedFixupPointerOnDisk *curReloc = (ChainedFixupPointerOnDisk*)(executable + r_address);
@@ -707,11 +723,15 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	}
 
 	// Exclude existing kext with the same identifier, if any
-	auto *plist = OSDynamicCast(OSDictionary, OSUnserializeXML(injectInfo->infoPlist, nullptr));
+	OSString *error = nullptr;
+	auto *plistOSObj = OSUnserializeXML(injectInfo->infoPlist, &error);
+	auto *plist = OSDynamicCast(OSDictionary, plistOSObj);
 	if (!plist) {
-		SYSLOG("mach", "injectKextIntoKC: Failed to deserialize infoPlist");
+		SYSLOG("mach", "injectKextIntoKC: Failed to deserialize infoPlist: %s", error->getCStringNoCopy() ?: "N/A");
 		kextInfo->deinit();
 		MachInfo::deleter(kextInfo);
+		OSSafeReleaseNULL(plistOSObj);
+		OSSafeReleaseNULL(error);
 		return KERN_FAILURE;
 	}
 
@@ -722,6 +742,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to fetch CFBundleIdentifier");
 			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
+			plist->release();
 			return KERN_FAILURE;
 		}
 		identifier = bundleIdentifier->getCStringNoCopy();
@@ -735,7 +756,8 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
 			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
-			return KERN_FAILURE;
+			plist->release();
+			return KERN_RESOURCE_SHORTAGE;
 		}
 
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
@@ -743,13 +765,58 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	}
 
 	// Add keys related to prelinking
-	plist->setObject("_PrelinkBundlePath", OSString::withCString(injectInfo->bundlePath));
+	auto *osBundlePath = OSString::withCString(injectInfo->bundlePath);
+	if (!osBundlePath) {
+		SYSLOG("mach", "injectKextIntoKC: Failed to create OSString for bundle path");
+		kextInfo->deinit();
+		MachInfo::deleter(kextInfo);
+		plist->release();
+		return KERN_RESOURCE_SHORTAGE;
+	}
+	plist->setObject("_PrelinkBundlePath", osBundlePath);
+	osBundlePath->release();
 	if (executable != nullptr) {
-		plist->setObject("_PrelinkExecutableRelativePath", OSString::withCString(injectInfo->executablePath));
-		plist->setObject("_PrelinkExecutableSourceAddr", OSNumber::withNumber(imageOffset, 32));
-		plist->setObject("_PrelinkExecutableLoadAddr", OSNumber::withNumber(imageOffset, 32));
-		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(executableSize, 32));
-		plist->setObject("_PrelinkKmodInfo", OSNumber::withNumber(imageOffset + kmodOffset, 32));
+		auto *osExecutablePath = OSString::withCString(injectInfo->executablePath);
+		if (!osExecutablePath) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to create OSString for executable path");
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			plist->release();
+			return KERN_RESOURCE_SHORTAGE;
+		}
+		plist->setObject("_PrelinkExecutableRelativePath", osExecutablePath);
+		osExecutablePath->release();
+		auto *osImageOffset = OSNumber::withNumber(imageOffset, 32);
+		if (!osImageOffset) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for image offset");
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			plist->release();
+			return KERN_RESOURCE_SHORTAGE;
+		}
+		plist->setObject("_PrelinkExecutableSourceAddr", osImageOffset);
+		plist->setObject("_PrelinkExecutableLoadAddr", osImageOffset);
+		osImageOffset->release();
+		auto *osExecutableSize = OSNumber::withNumber(executableSize, 32);
+		if (!osExecutableSize) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for executable size");
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			plist->release();
+			return KERN_RESOURCE_SHORTAGE;
+		}
+		plist->setObject("_PrelinkExecutableSize", osExecutableSize);
+		osExecutableSize->release();
+		auto *osKmodInfo = OSNumber::withNumber(imageOffset + kmodOffset, 32);
+		if (!osKmodInfo) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for kmod info");
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			plist->release();
+			return KERN_RESOURCE_SHORTAGE;
+		}
+		plist->setObject("_PrelinkKmodInfo", osKmodInfo);
+		osKmodInfo->release();
 	}
 	kextInfo->deinit();
 	MachInfo::deleter(kextInfo);
@@ -757,10 +824,11 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	imageArr = imageArr ?: OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
 	if (!imageArr) {
 		SYSLOG("mach", "injectKextIntoKC: Failed to fetch _PrelinkInfoDictionary");
+		plist->release();
 		return KERN_FAILURE;
 	}
 	imageArr->setObject(plist);
-
+	plist->release();
 
 	// Add LC_SEGMENT_64 (segment_command_64) and LC_FILESET_ENTRY (fileset_entry_command) commands to the KC
 	// TODO: Implement checking and handling of situation where we run out of header space
@@ -791,38 +859,55 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 	header->ncmds++;
 	header->sizeofcmds += fcmd->commandSize;
+
 	return KERN_SUCCESS;
 }
 
 kern_return_t MachInfo::extractKextsSymbols() {
+	if (!prelink_dict) {
+		SYSLOG("mach", "extractKextsSymbols: prelink_dict is null");
+		return KERN_FAILURE;
+	}
+
 	imageArr = imageArr ?: OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
 	if (!imageArr) {
 		SYSLOG("mach", "extractKextsSymbols: Failed to fetch _PrelinkInfoDictionary");
 		return KERN_FAILURE;
 	}
 
-	OSCollectionIterator *iterator = OSCollectionIterator::withCollection(imageArr);
-	OSObject *curObj = nullptr;
-	while ((curObj = iterator->getNextObject())) {
+	auto *iterator = OSCollectionIterator::withCollection(imageArr);
+	if (!iterator) {
+		SYSLOG("mach", "extractKextsSymbols: Failed to create iterator");
+		return KERN_FAILURE;
+	}
+
+	for (OSObject *curObj; (curObj = iterator->getNextObject());) {
 		// Fetch the executable
-		OSDictionary *curKextInfo = OSDynamicCast(OSDictionary, curObj);
+		auto *curKextInfo = OSDynamicCast(OSDictionary, curObj);
 		if (!curKextInfo) {
 			SYSLOG("mach", "extractKextsSymbols: Failed to fetch kext info");
-
+			iterator->release();
+			return KERN_FAILURE;
 		}
-		uint32_t imageOffset = OSDynamicCast(OSNumber, curKextInfo->getObject("_PrelinkExecutableSourceAddr"))->unsigned32BitValue();
-		uint8_t *executable = file_buf + imageOffset;
+		auto *sourceAddr = OSDynamicCast(OSNumber, curKextInfo->getObject("_PrelinkExecutableSourceAddr"));
+		if (!sourceAddr) {
+			SYSLOG("mach", "extractKextsSymbols: Failed to fetch source address");
+			iterator->release();
+			return KERN_FAILURE;
+		}
+		uint32_t imageOffset = sourceAddr->unsigned32BitValue();
+		auto *executable = file_buf + imageOffset;
 		if (imageOffset == 0xffffffff) continue;
 
 		// Find the string table and the symbol table
-		mach_header_64 *mh = (mach_header_64*)executable;
-		uint8_t *addr = (uint8_t*)(mh + 1);
+		auto *mh = reinterpret_cast<mach_header_64 *>(executable);
+		auto *addr = reinterpret_cast<uint8_t *>(mh + 1);
 		uint32_t symoff = 0, nsyms = 0, stroff = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
-			load_command *loadCmd = (load_command*)addr;
+			auto *loadCmd = reinterpret_cast<load_command *>(addr);
 			if (loadCmd->cmd == LC_SYMTAB) {
-				symtab_command *symtabCmd = (symtab_command*)loadCmd;
+				auto *symtabCmd = reinterpret_cast<symtab_command *>(loadCmd);
 				symoff = symtabCmd->symoff;
 				nsyms = symtabCmd->nsyms;
 				stroff = symtabCmd->stroff;
@@ -832,16 +917,30 @@ kern_return_t MachInfo::extractKextsSymbols() {
 			addr += loadCmd->cmdsize;
 		}
 
+		if (!symoff) {
+			SYSLOG("mach", "extractKextsSymbols: Failed to find symbol table");
+			iterator->release();
+			return KERN_FAILURE;
+		}
+
 		// Parse the symbol table
-		nlist_64 *curNlist = (nlist_64*)(file_buf + symoff);
+		auto *curNlist = reinterpret_cast<nlist_64 *>(file_buf + symoff);
 		for (uint32_t i = 0; i < nsyms; i++) {
-			const char *symbolName = (const char *)(file_buf + stroff + curNlist->n_un.n_strx);
+			auto *symbolName = reinterpret_cast<const char *>(file_buf + stroff + curNlist->n_un.n_strx);
 			if ((curNlist->n_type & (N_EXT | N_SECT)) == (N_EXT | N_SECT)) {
-				kc_symbols->setObject(symbolName, OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64));
+				auto *symbolValue = OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64);
+				if (!symbolValue) {
+					SYSLOG("mach", "extractKextsSymbols: Failed to create OSNumber");
+					iterator->release();
+					return KERN_FAILURE;
+				}
+				kc_symbols->setObject(symbolName, symbolValue);
+				symbolValue->release();
 			}
 			curNlist++;
 		}
 	}
+	iterator->release();
 
 	return KERN_SUCCESS;
 }
