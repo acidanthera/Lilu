@@ -46,7 +46,7 @@ kern_return_t MachInfo::init(const char * const paths[], size_t num, MachInfo *p
 
 	// Use in-memory init on modern operating systems when launched in KC mode.
 	error = initFromMemory();
-	if (kernel_collection && strstr(paths[0], ".kext") != NULL)
+	if (is_kc && strstr(paths[0], ".kext") != NULL)
 		return error;
 
 #if defined (__x86_64__)
@@ -87,15 +87,18 @@ void MachInfo::deinit() {
 			Buffer::deleter(sym_buf);
 		sym_buf = nullptr;
 	}
+
+	OSSafeReleaseNULL(branch_gots_entries);
+	branch_gots_entries = nullptr;
 }
 
 kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t origBufSize) {
-	kernel_collection = machType != MachType::Kext;
+	is_kc = machType != MachType::Kext;
 	file_buf = buf;
 	file_buf_size = bufSize;
 	file_buf_free_start = origBufSize;
 
-	if (kernel_collection) updatePrelinkInfo();
+	if (is_kc) updatePrelinkInfo();
 
 	if (machType == MachType::KextCollection) {
 		mach_header_64 *mh = (mach_header_64*)file_buf;
@@ -121,16 +124,25 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 
 				uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
 				branch_gots_entries = OSDictionary::withCapacity(0);
+				if (!branch_gots_entries) { return KERN_RESOURCE_SHORTAGE; }
 				branch_got_entry_count = 0;
-				OSSerialize *serializer = OSSerialize::withCapacity(16);
+				OSSerialize *serializer = OSSerialize::withCapacity(sizeof(uint64_t));
+				if (!serializer) { return KERN_RESOURCE_SHORTAGE; }
 				while (*curGot != 0) {
-					OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32)->serialize(serializer);
-					branch_gots_entries->setObject(serializer->text(), OSNumber::withNumber(branch_got_entry_count, 64));
+					auto *osCurGot = OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32);
+					if (!osCurGot) { return KERN_RESOURCE_SHORTAGE; }
+					osCurGot->serialize(serializer);
+					auto *osCount =  OSNumber::withNumber(branch_got_entry_count, 64);
+					if (!osCount) { return KERN_RESOURCE_SHORTAGE; }
+					branch_gots_entries->setObject(serializer->text(), osCount);
+					osCount->release();
 					serializer->clearText();
+					osCurGot->release();
 
 					branch_got_entry_count++;
 					curGot++;
 				}
+				serializer->release();
 			}
 
 			addr += loadCmd->cmdsize;
@@ -202,7 +214,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 			SYSLOG("mach", "excludeKextFromKC: Header command %u exceeds header size for section lookup", no);
 			return KERN_FAILURE;
 		}
-		
+
 		uint32_t cmdsize = orgCmd->cmdsize;
 		if (orgCmd->cmd == LC_FILESET_ENTRY) {
 			auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
@@ -266,23 +278,22 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 
 	const uint8_t *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
-		// Extract x64 binary from a fat file
-		fat_header *machFatHeader = (fat_header*)executableOrg;
-		if (machFatHeader->magic == FAT_CIGAM) {
-			bool foundBinary = false;
-			fat_arch *curFat = (fat_arch*)(machFatHeader + 1);
-			for (uint32_t i = 0; i < OSSwapInt32(machFatHeader->nfat_arch); i++) {
-				if (curFat->cputype == OSSwapInt32(0x01000007)) {
+		auto *fatHeader = reinterpret_cast<const fat_header *>(executableOrg);
+		if (fatHeader->magic == FAT_CIGAM) {
+			bool found = false;
+			auto *curFat = reinterpret_cast<const fat_arch *>(fatHeader + 1);
+			for (uint32_t i = 0; i < OSSwapInt32(fatHeader->nfat_arch); i++) {
+				if (curFat->cputype == MachCpuTypeNative) {
 					executableOrg = executableOrg + OSSwapInt32(curFat->offset);
 					executableSize = OSSwapInt32(curFat->size);
-					foundBinary = true;
+					found = true;
 					break;
 				}
 				curFat++;
 			}
 
-			if (!foundBinary) {
-				SYSLOG("mach", "injectKextIntoKC: Failed to extract x64 binary from fat binary");
+			if (!found) {
+				SYSLOG("mach", "injectKextIntoKC: Failed to extract x86_64 binary from a FAT binary");
 				return KERN_FAILURE;
 			}
 		}
@@ -298,122 +309,130 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		if (error != KERN_SUCCESS) return error;
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
-
 		// Apply fixup to the commands
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
 		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
 		uint8_t *addr = (uint8_t*)(mh + 1);
-		uint32_t linkeditDelta = 0, dataVmaddr = 0, dataFileoff = 0, dataFilesize = 0;
+		uint64_t linkeditDelta = 0, dataVmaddr = 0;
+		uint32_t dataFileoff = 0, dataFilesize = 0;
 		uint32_t symoff = 0, nsyms = 0, stroff = 0;
 		uint32_t locreloff = 0, nlocrel = 0, extreloff = 0, nextrel = 0;
-		uint32_t fixupsHeaderOffset = 0;
-		uint32_t kextLinkeditOffset = 0;
+		uint64_t kextLinkeditOffset = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
-			load_command *loadCmd = (load_command*)addr;
-			if (loadCmd->cmd == LC_SEGMENT_64) {
-				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
-				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					kextLinkeditOffset = linkedit_offset + linkedit_free_start;
-					linkeditDelta = kextLinkeditOffset - (uint32_t)segCmd->fileoff;
-					memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, (uint32_t)segCmd->filesize);
-					segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
-					segCmd->vmsize = segCmd->filesize;
-					DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
-					linkedit_free_start += segCmd->filesize;
-				} else {
+			auto *loadCmd = reinterpret_cast<load_command *>(addr);
+			switch (loadCmd->cmd) {
+				case LC_SEGMENT_64: {
+					auto *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+					if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+						kextLinkeditOffset = linkedit_offset + linkedit_free_start;
+						linkeditDelta = kextLinkeditOffset - segCmd->fileoff;
+						memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, segCmd->filesize);
+						segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
+						segCmd->vmsize = segCmd->vmsize;
+						DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
+						linkedit_free_start += segCmd->filesize;
+						break;
+					}
 					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
-						dataVmaddr = (uint32_t)segCmd->vmaddr;
-						dataFileoff = (uint32_t)segCmd->fileoff;
-						dataFilesize = (uint32_t)segCmd->filesize;
+						dataVmaddr = segCmd->vmaddr;
+						dataFileoff = static_cast<uint32_t>(segCmd->fileoff);
+						dataFilesize = static_cast<uint32_t>(segCmd->filesize);
 					}
 
 					segCmd->vmaddr += imageOffset;
 					segCmd->fileoff += imageOffset;
 
-					section_64 *sect = (section_64 *)(segCmd + 1);
+					auto *sect = reinterpret_cast<section_64 *>(segCmd + 1);
 					for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
 						sect->addr += imageOffset;
-						if (sect->offset != 0) {
-							sect->offset += imageOffset;
-						}
+						if (sect->offset) { sect->offset += imageOffset; }
 						sect++;
 					}
 				}
-			} else if (loadCmd->cmd == LC_SYMTAB) {
-				symtab_command *symtabCmd = (symtab_command*)loadCmd;
-				symtabCmd->symoff += linkeditDelta;
-				symoff = symtabCmd->symoff;
-
-				nsyms = symtabCmd->nsyms;
-
-				symtabCmd->stroff += linkeditDelta;
-				stroff = symtabCmd->stroff;
-			} else if (loadCmd->cmd == LC_DYSYMTAB) {
-				dysymtab_command *dysymtabCmd = (dysymtab_command*)loadCmd;
-				extreloff = dysymtabCmd->extreloff;
-				dysymtabCmd->extreloff = 0;
-
-				nextrel = dysymtabCmd->nextrel;
-
-				locreloff = dysymtabCmd->locreloff;
-				dysymtabCmd->locreloff = 0;
-
-				nlocrel = dysymtabCmd->nlocrel;
-				dysymtabCmd->nlocrel = 0;
+				case LC_SYMTAB: {
+					auto *symtabCmd = reinterpret_cast<symtab_command *>(loadCmd);
+					symtabCmd->symoff += linkeditDelta;
+					symoff = symtabCmd->symoff;
+					nsyms = symtabCmd->nsyms;
+					symtabCmd->stroff += linkeditDelta;
+					stroff = symtabCmd->stroff;
+				}
+				case LC_DYSYMTAB: {
+					auto *dysymtabCmd = reinterpret_cast<dysymtab_command *>(loadCmd);
+					extreloff = dysymtabCmd->extreloff;
+					dysymtabCmd->extreloff = 0;
+					nextrel = dysymtabCmd->nextrel;
+					locreloff = dysymtabCmd->locreloff;
+					dysymtabCmd->locreloff = 0;
+					nlocrel = dysymtabCmd->nlocrel;
+					dysymtabCmd->nlocrel = 0;
+				}
 			}
 
 			addr += loadCmd->cmdsize;
 		}
 
-
-		// Without it, the XNU panics in OSKext::slidePrelinkedExecutable
-		mh->flags |= MH_DYLIB_IN_CACHE;
-
+		mh->flags |= MH_DYLIB_IN_CACHE; // OSKext::slidePrelinkedExecutable requires this set
 
 		// Apply fixup to _kmod_info
 		kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
-		if (kmodOffset == 0) {
+		if (!kmodOffset) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
 			return KERN_FAILURE;
 		}
 
-		kmod_info_64_v1 *kmod = (kmod_info_64_v1*)(executable + kmodOffset);
+		auto *kmod = reinterpret_cast<kmod_info_64_v1 *>(executable + kmodOffset);
 		kmod->address = imageOffset;
 		kmod->size = kextInfo->getTextSize();
 
 		// Resolve and convert local+external relocations to the dyld chained fixups format
 		// Assumes that every local relocations are within the __DATA segment
-		uint32_t dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
-		OSArray *dataPages = OSArray::withCapacity(dataPageCount);
+		auto dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
+		auto *dataPages = OSArray::withCapacity(dataPageCount);
 		DBGLOG("mach", "injectKextIntoKC: dataPageCount=%d", dataPageCount);
+		if (!dataPages) { return KERN_RESOURCE_SHORTAGE; }
 		for (uint32_t i = 0; i < dataPageCount; i++) {
-			dataPages->setObject(OSOrderedSet::withCapacity(0, orderFunction));
+			auto *obj = OSOrderedSet::withCapacity(0, orderFunction);
+			if (!obj) {
+				dataPages->release();
+				return KERN_RESOURCE_SHORTAGE;
+			}
+			dataPages->setObject(obj);
 		}
 
 		// Fetch the local relocations
-		relocation_info *locRelocInfo = (relocation_info*)(executable + locreloff);
+		auto *locRelocInfo = reinterpret_cast<relocation_info *>(executable + locreloff);
 		for (uint32_t i = 0; i < nlocrel; i++) {
 			uint32_t r_address = locRelocInfo->r_address;
 			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
 				DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
 				       r_address, dataVmaddr, dataVmaddr + dataFilesize);
+				dataPages->release();
 				return KERN_FAILURE;
 			}
-			ChainedFixupPointerOnDisk *curReloc = (ChainedFixupPointerOnDisk*)(executable + r_address);
+			auto *curReloc = reinterpret_cast<ChainedFixupPointerOnDisk *>(executable + r_address);
 			curReloc->fixup64.target += imageOffset;
 			curReloc->fixup64.cacheLevel = kc_index;
 
-			uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
-			OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
+			auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
+			auto *set = OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId));
+			if (!set) {
+				DBGLOG("mach", "injectKextIntoKC: Failed to get the page set for page %d", pageId);
+				dataPages->release();
+				return KERN_FAILURE;
+			}
+			set->setObject(OSNumber::withNumber(r_address, 32));
 
 			locRelocInfo++;
 		}
 
 		// Parse the symbol table, fixing it in the process
-		nlist_64 *curNlist = (nlist_64*)(file_buf + symoff);
-		OSArray *symbolTable = OSArray::withCapacity(nsyms);
-		OSDictionary *privateSymbols = OSDictionary::withCapacity(0);
+		auto *curNlist = reinterpret_cast<nlist_64 *>(file_buf + symoff);
+		auto *symbolTable = OSArray::withCapacity(nsyms);
+		if (!symbolTable) { return KERN_RESOURCE_SHORTAGE; }
+		auto *privateSymbols = OSDictionary::withCapacity(0);
+		if (!privateSymbols) { return KERN_RESOURCE_SHORTAGE; }
 		for (uint32_t i = 0; i < nsyms; i++) {
 			const char *symbolName = (const char *)(file_buf + stroff + curNlist->n_un.n_strx);
 			symbolTable->setObject(OSString::withCStringNoCopy(symbolName));
@@ -506,7 +525,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				curReloc->fixup64.target = resolvedSymbolOffset;
 				curReloc->fixup64.cacheLevel = resolvedSymbolKCIndex;
 
-				uint32_t pageId = (r_address - dataVmaddr) / PAGE_SIZE;
+				auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
 				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
 			}
 
@@ -514,7 +533,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		}
 
 		// Set up chained fixup headers
-		fixupsHeaderOffset = linkedit_offset + linkedit_free_start;
+		auto fixupsHeaderOffset = linkedit_offset + linkedit_free_start;
 		dyld_chained_fixups_header* fixupsHeader = (dyld_chained_fixups_header*)(file_buf + fixupsHeaderOffset);
 		fixupsHeader->fixups_version = 0;
 		fixupsHeader->starts_offset = sizeof(*fixupsHeader);
@@ -605,7 +624,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
 			return KERN_FAILURE;
 		}
-		
+
 		memcpy(file_buf + file_buf_free_start, executable, executableSize);
 		file_buf_free_start += alignValue(executableSize);
 	}
@@ -620,7 +639,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		plist->setObject("_PrelinkExecutableSize", OSNumber::withNumber(executableSize, 32));
 		plist->setObject("_PrelinkKmodInfo", OSNumber::withNumber(imageOffset + kmodOffset, 32));
 		kextInfo->deinit();
-		delete kextInfo;
+		MachInfo::deleter(kextInfo);
 	}
 
 	static OSArray *imageArr = nullptr;
@@ -722,8 +741,8 @@ kern_return_t MachInfo::initFromMemory() {
 
 	// We can still launch macOS 11 with prelinkedkernel, in which case memory init will not be available.
 	findKernelBase();
-	DBGLOG_COND(machType != MachType::Kext, "mach", "memory init mode - %d", kernel_collection);
-	if (!kernel_collection)
+	DBGLOG_COND(machType != MachType::Kext, "mach", "memory init mode - %d", is_kc);
+	if (!is_kc)
 		return KERN_FAILURE;
 
 	return KERN_SUCCESS;
@@ -853,7 +872,7 @@ mach_vm_address_t MachInfo::findKernelBase() {
 	static bool m_kernel_collection {false};
 
 	if (m_kernel_base != 0) {
-		kernel_collection = m_kernel_collection;
+		is_kc = m_kernel_collection;
 		return m_kernel_base;
 	}
 
@@ -872,11 +891,11 @@ mach_vm_address_t MachInfo::findKernelBase() {
 			// 0xC is MH_FILESET, available exclusively in newer SDKs.
 			if (getKernelVersion() >= KernelVersion::BigSur && mh->filetype == 0xC && mh->flags == 0 && mh->reserved == 0) {
 				DBGLOG("mach", "found kernel nouveau mach-o header address at %llx", tmp);
-				m_kernel_collection = kernel_collection = true;
+				m_kernel_collection = is_kc = true;
 				break;
 			}
 #endif
-			
+
 			// Search for __TEXT segment load command.
 			// 10.5 and older have __PAGEZERO first and __TEXT second.
 			bool foundHeader = false;
@@ -901,7 +920,7 @@ mach_vm_address_t MachInfo::findKernelBase() {
 				}
 				addr += loadCmd->cmdsize;
 			}
-			
+
 			if (foundHeader) {
 				DBGLOG("mach", "found kernel mach-o header address at %llx", tmp);
 				break;
@@ -1334,7 +1353,7 @@ void MachInfo::processMachHeader(void *header) {
 		}
 		addr += loadCmd->cmdsize;
 	}
-	
+
 #if defined(__i386__)
 	// 32-bit MH_OBJECT does not have a __LINKEDIT segment for symbols
 	if (mh->filetype == MH_OBJECT && symboltable_fileoff && !sym_fileoff) {
@@ -1449,7 +1468,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 #if defined (__i386__)
 	// KC is not supported on 32-bit.
 	return KERN_FAILURE;
-	
+
 #elif defined (__x86_64__)
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
@@ -1574,7 +1593,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 	// We are meant to know the base address of kexts
 	mach_vm_address_t base = slide ? slide : findKernelBase();
 
-	if (kernel_collection && !sym_buf)
+	if (is_kc && !sym_buf)
 		return kcGetRunningAddresses(slide);
 
 	if (base != 0) {
@@ -1610,18 +1629,18 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 				else if (mh->filetype == MH_OBJECT && !strncmp(segCmd->segname, "", sizeof(segCmd->segname))) {
 					for (uint32_t j = 0; j < segCmd->nsects; j++) {
 						auto sect = reinterpret_cast<section *>(segCmd + 1) + j;
-						
+
 						if (!strncmp(sect->sectname, "__text", sizeof(sect->sectname))) {
 							running_text_addr = sect->addr;
 							running_mh = mh;
-							
+
 							// MH_OBJECT may have a file offset, align to the next page and add to the slide.
 							slide += alignValue(sect->offset);
 							break;
 						}
 					}
 				}
-				
+
 				if (running_text_addr)
 					break;
 #endif
@@ -1643,7 +1662,7 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		kaslr_slide_set = true;
 
 		DBGLOG("mach", "aslr/load slide is 0x%llx", kaslr_slide);
-				
+
 #if defined(__x86_64__)
 		address_slots = reinterpret_cast<mach_vm_address_t>(running_mh + 1) + running_mh->sizeofcmds;
 		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
@@ -1706,7 +1725,7 @@ bool MachInfo::loadUUID(void *header) {
 	// Versions older than 10.5 may not have UUIDs on system binaries.
 	if (getKernelVersion() < KernelVersion::Leopard)
 		return true;
-	
+
 	auto p = getUUID(header);
 	if (p) {
 		self_uuid[0] = p[0];
@@ -1717,9 +1736,9 @@ bool MachInfo::loadUUID(void *header) {
 }
 
 bool MachInfo::isCurrentBinary(mach_vm_address_t base) {
-	if (kernel_collection)
+	if (is_kc)
 		return true;
-	
+
 	// Versions older than 10.5 may not have UUIDs on system binaries.
 	if (getKernelVersion() < KernelVersion::Leopard)
 		return true;

@@ -107,7 +107,7 @@ class MachInfo {
 	using mach_header_native = mach_header;
 	using segment_command_native = segment_command;
 	using nlist_native = struct nlist;
-	
+
 	static constexpr uint8_t SegmentTypeNative {LC_SEGMENT};
 	static constexpr uint32_t MachMagicNative {MH_MAGIC};
 	static constexpr uint32_t MachCpuTypeNative {CPU_TYPE_I386};
@@ -116,52 +116,51 @@ class MachInfo {
 	using mach_header_native = mach_header_64;
 	using segment_command_native = segment_command_64;
 	using nlist_native = struct nlist_64;
-	
+
 	static constexpr uint8_t SegmentTypeNative {LC_SEGMENT_64};
 	static constexpr uint32_t MachMagicNative {MH_MAGIC_64};
 	static constexpr uint32_t MachCpuTypeNative {CPU_TYPE_X86_64};
-
 #else
 #error Unsupported arch.
 #endif
-	
-	mach_vm_address_t running_text_addr {0}; // the address of running __TEXT segment
-	mach_vm_address_t disk_text_addr {0};    // the same address at from a file
-	uint64_t          text_size {0};         // size of the __TEXT segment
-	mach_vm_address_t kaslr_slide {0};       // the kernel aslr slide, computed as the difference between above's addresses
-	OSDictionary *prelink_dict {nullptr};    // read prealinked kext dictionary
-	uint8_t *prelink_addr {nullptr};         // prelink text base address
-	mach_vm_address_t prelink_vmaddr {0};    // prelink text base vm address (for kexts this is their actual slide)
-	uint8_t *file_buf {nullptr};             // read file data
-	uint32_t file_buf_size {0};              // read file data size
-	uint32_t file_buf_free_start {0};        // start of the free space inside the file (for injecting new prelink info / kexts)
-	uint32_t linkedit_offset {0};            // file offset to __LINKEDIT
-	uint32_t linkedit_free_start {0};        // start of the free space inside the __LINKEDIT segment (for injecting new kexts)
-	uint32_t branch_stubs_offset {0};        // file offset to __BRANCH_STUBS
-	uint32_t branch_gots_offset {0};         // file offset to __BRANCH_GOTS
-	OSDictionary *branch_gots_entries {nullptr};  // entries inside __BRANCH_GOTS
-	uint32_t branch_got_entry_count {0};     // amount of entries inside __BRANCH_GOTS
-	uint8_t *sym_buf {nullptr};              // pointer to buffer (normally __LINKEDIT) containing symbols to solve
-	bool sym_buf_ro {false};                 // sym_buf is read-only (not copy).
-	uint64_t sym_fileoff {0};                // file offset of symbols (normally __LINKEDIT) so we can read
+
+	mach_vm_address_t running_text_addr {0}; 		// the address of running __TEXT segment
+	mach_vm_address_t disk_text_addr {0};    		// the same address at from a file
+	uint64_t          text_size {0};         		// size of the __TEXT segment
+	mach_vm_address_t kaslr_slide {0};       		// the kernel aslr slide, computed as the difference between above's addresses
+	OSDictionary *prelink_dict {nullptr};    		// read prealinked kext dictionary
+	uint8_t *prelink_addr {nullptr};         		// prelink text base address
+	mach_vm_address_t prelink_vmaddr {0};    		// prelink text base vm address (for kexts this is their actual slide)
+	uint8_t *file_buf {nullptr};             		// read file data
+	uint32_t file_buf_size {0};              		// read file data size
+	uint32_t file_buf_free_start {0};        		// start of the free space inside the file (for injecting new prelink info / kexts)
+	uint32_t linkedit_offset {0};            		// file offset to __LINKEDIT
+	uint32_t linkedit_free_start {0};        		// start of the free space inside the __LINKEDIT segment (for injecting new kexts)
+	uint32_t branch_stubs_offset {0};        		// file offset to __BRANCH_STUBS
+	uint32_t branch_gots_offset {0};         		// file offset to __BRANCH_GOTS
+	OSDictionary *branch_gots_entries {nullptr};  	// entries inside __BRANCH_GOTS
+	uint32_t branch_got_entry_count {0};     		// amount of entries inside __BRANCH_GOTS
+	uint8_t *sym_buf {nullptr};              		// pointer to buffer (normally __LINKEDIT) containing symbols to solve
+	bool sym_buf_ro {false};                 		// sym_buf is read-only (not copy).
+	uint64_t sym_fileoff {0};                		// file offset of symbols (normally __LINKEDIT) so we can read
 	size_t sym_size {0};
 	uint32_t symboltable_fileoff {0};        // file offset to symbol table - used to position inside the __LINKEDIT buffer
 	uint32_t symboltable_nr_symbols {0};
 	uint32_t stringtable_fileoff {0};        // file offset to string table
 	uint32_t stringtable_size {0};
-	mach_header_native *running_mh {nullptr};    // pointer to mach-o header of running kernel item
-	mach_vm_address_t address_slots {0};     // pointer after mach-o header to store pointers
-	mach_vm_address_t address_slots_end {0}; // pointer after mach-o header to store pointers
-	off_t fat_offset {0};                    // additional fat offset
-	size_t memory_size {HeaderSize};         // memory size
-	bool kaslr_slide_set {false};            // kaslr can be null, used for disambiguation
-	bool allow_decompress {true};            // allows mach decompression
-	bool prelink_slid {false};               // assume kaslr-slid kext addresses
-	bool kernel_collection {false};          // kernel collection (11.0+)
-	uint64_t self_uuid[2] {};                // saved uuid of the loaded kext or kernel
-	uint32_t kexts_injected {0};             // amount of kexts injected into the KC so far
-	uint32_t kc_index {0};                   // Index of the KC (kc_kind2index)
-	OSDictionary *kc_symbols {nullptr};      // Exported symbols from various KCs
+	mach_header_native *running_mh {nullptr};   // pointer to mach-o header of running kernel item
+	mach_vm_address_t address_slots {0};     	// pointer after mach-o header to store pointers
+	mach_vm_address_t address_slots_end {0}; 	// pointer after mach-o header to store pointers
+	off_t fat_offset {0};                    	// additional fat offset
+	size_t memory_size {HeaderSize};         	// memory size
+	bool kaslr_slide_set {false};            	// kaslr can be null, used for disambiguation
+	bool allow_decompress {true};            	// allows mach decompression
+	bool prelink_slid {false};               	// assume kaslr-slid kext addresses
+	bool is_kc {false};          			 	// kernel collection (11.0+)
+	uint64_t self_uuid[2] {};                	// saved uuid of the loaded kext or kernel
+	uint32_t kexts_injected {0};             	// amount of kexts injected into the KC so far
+	uint32_t kc_index {0};                   	// Index of the KC (kc_kind2index)
+	OSDictionary *kc_symbols {nullptr};      	// Exported symbols from various KCs
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
@@ -470,7 +469,7 @@ public:
 
 	/**
 	 *  Parse all kexts in the KC and add exported symbols to kcSymbols
-	 * 
+	 *
 	 *  @return KERN_SUCCESS if all kexts were parsed successfully
  	 */
 	kern_return_t extractKextsSymbols();
