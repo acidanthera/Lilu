@@ -156,11 +156,12 @@ class MachInfo {
 	bool kaslr_slide_set {false};            	// kaslr can be null, used for disambiguation
 	bool allow_decompress {true};            	// allows mach decompression
 	bool prelink_slid {false};               	// assume kaslr-slid kext addresses
-	bool is_kc {false};          			 	// kernel collection (11.0+)
+	bool is_kc {false};          			 	// Is Kext Collection (11.0+)
 	uint64_t self_uuid[2] {};                	// saved uuid of the loaded kext or kernel
 	uint32_t kexts_injected {0};             	// amount of kexts injected into the KC so far
 	uint32_t kc_index {0};                   	// Index of the KC (kc_kind2index)
 	OSDictionary *kc_symbols {nullptr};      	// Exported symbols from various KCs
+	OSArray *imageArr {nullptr};				// KC Prelink infos
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
