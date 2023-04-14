@@ -383,7 +383,7 @@ bool KernelPatcher::populatePrelinkedSymbolsFromOpenCore() {
 	nvram->deinit();
 	delete nvram;
 
-	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(prelinkedSymbolsAddr,
+	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr),
 		sizeof(LILU_PRELINKED_SYMBOLS_HEADER), kIODirectionIn);
 	auto *map = memDesc->map();
 	auto *header = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
@@ -393,7 +393,7 @@ bool KernelPatcher::populatePrelinkedSymbolsFromOpenCore() {
 	map->release();
 
 	kcSymbols = OSDictionary::withCapacity(count);
-	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(prelinkedSymbolsAddr, size, kIODirectionIn);
+	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr), size, kIODirectionIn);
 	map = memDesc->map();
 	auto *prelinkedSymbols = reinterpret_cast<LILU_PRELINKED_SYMBOLS *>(map->getVirtualAddress());
 	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(prelinkedSymbols->Entries);
@@ -453,7 +453,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
 
 			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
-			kcInfo->initFromBuffer(patchedKCBuf, (uint32_t)patchedKCSize, (uint32_t)oldKcSize);
+			kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
 			kcInfo->setKcSymbols(that->kcSymbols);
 			kcInfo->setKcIndex(1);
 			kcInfo->extractKextsSymbols();
@@ -463,10 +463,10 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			// injectInfo->identifier = "com.apple.driver.AGPM";
 			injectInfo->bundlePath = "/System/Library/Extensions/AppleGraphicsPowerManagement.kext";
 			injectInfo->infoPlist = (const char*)FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/Info.plist", tmpSize);
-			injectInfo->infoPlistSize = (uint32_t)tmpSize;
+			injectInfo->infoPlistSize = static_cast<uint32_t>(tmpSize);
 			injectInfo->executablePath = "Contents/MacOS/AppleGraphicsPowerManagement";
 			injectInfo->executable = FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/MacOS/AppleGraphicsPowerManagement", tmpSize);
-			injectInfo->executableSize = (uint32_t)tmpSize;
+			injectInfo->executableSize = static_cast<uint32_t>(tmpSize);
 
 			kcInfo->injectKextIntoKC(injectInfo);
 			Buffer::deleter((void*)injectInfo->infoPlist);

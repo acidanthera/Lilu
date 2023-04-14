@@ -111,15 +111,15 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 			if (loadCmd->cmd == LC_SEGMENT_64) {
 				segment_command_64 *segCmd = (segment_command_64*)loadCmd;
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					linkedit_offset = (uint32_t)segCmd->fileoff;
-					linkedit_free_start = (uint32_t)segCmd->filesize;
+					linkedit_offset = static_cast<uint32_t>(segCmd->fileoff);
+					linkedit_free_start = static_cast<uint32_t>(segCmd->filesize);
 					segCmd->vmsize += linkeditIncrease;
 					segCmd->filesize += linkeditIncrease;
 					file_buf_free_start += linkeditIncrease;
 				} else if (!strncmp(segCmd->segname, "__BRANCH_STUBS", sizeof(segCmd->segname))) {
-					branch_stubs_offset = (uint32_t)segCmd->fileoff;
+					branch_stubs_offset = static_cast<uint32_t>(segCmd->fileoff);
 				} else if (!strncmp(segCmd->segname, "__BRANCH_GOTS", sizeof(segCmd->segname))) {
-					branch_gots_offset = (uint32_t)segCmd->fileoff;
+					branch_gots_offset = static_cast<uint32_t>(segCmd->fileoff);
 				}
 
 				uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
@@ -355,7 +355,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 						kextLinkeditOffset = linkedit_offset + linkedit_free_start;
 						linkeditDelta = kextLinkeditOffset - segCmd->fileoff;
-						memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, segCmd->filesize);
+						memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, static_cast<size_t>(segCmd->filesize));
 						segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
 						segCmd->vmsize = segCmd->vmsize;
 						DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
@@ -404,7 +404,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 		mh->flags |= MH_DYLIB_IN_CACHE; // OSKext::slidePrelinkedExecutable requires this set
 
 		// Apply fixup to _kmod_info
-		kmodOffset = (uint32_t)kextInfo->solveSymbol("_kmod_info");
+		kmodOffset = static_cast<uint32_t>(kextInfo->solveSymbol("_kmod_info"));
 		if (!kmodOffset) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
 			kextInfo->deinit();
@@ -504,7 +504,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			curNlist->n_value += imageOffset;
 			auto *targetDict = (curNlist->n_type & N_PEXT) ? privateSymbols : (curNlist->n_type & N_EXT) ? kc_symbols : nullptr;
 			if ((curNlist->n_type & N_SECT) && targetDict) {
-				auto *val = OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64);
+				auto *val = OSNumber::withNumber((static_cast<uint64_t>(kc_index) << 32) + curNlist->n_value, 64);
 				if (!val) {
 					SYSLOG("mach", "injectKextIntoKC: Failed to allocate OSNumber for symbol %s", symbolName);
 					kextInfo->deinit();
@@ -704,7 +704,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				curReloc->fixup64.next = 0;
 				curReloc->fixup64.isAuth = 0;
 
-				if (prevReloc) { prevReloc->fixup64.next = (uint64_t)curReloc - (uint64_t)prevReloc; }
+				if (prevReloc) { prevReloc->fixup64.next = reinterpret_cast<uint64_t>(curReloc) - reinterpret_cast<uint64_t>(prevReloc); }
 				prevReloc = curReloc;
 			}
 		}
@@ -928,7 +928,7 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		for (uint32_t i = 0; i < nsyms; i++) {
 			auto *symbolName = reinterpret_cast<const char *>(file_buf + stroff + curNlist->n_un.n_strx);
 			if ((curNlist->n_type & (N_EXT | N_SECT)) == (N_EXT | N_SECT)) {
-				auto *symbolValue = OSNumber::withNumber(((uint64_t)kc_index << 32) + curNlist->n_value, 64);
+				auto *symbolValue = OSNumber::withNumber((static_cast<uint64_t>(kc_index) << 32) + curNlist->n_value, 64);
 				if (!symbolValue) {
 					SYSLOG("mach", "extractKextsSymbols: Failed to create OSNumber");
 					iterator->release();
