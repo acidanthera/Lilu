@@ -306,7 +306,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 			bool found = false;
 			auto *curFat = reinterpret_cast<const fat_arch *>(fatHeader + 1);
 			for (uint32_t i = 0; i < OSSwapInt32(fatHeader->nfat_arch); i++) {
-				if (curFat->cputype == MachCpuTypeNative) {
+				if (curFat->cputype == OSSwapInt32(MachCpuTypeNative)) {
 					executableOrg = executableOrg + OSSwapInt32(curFat->offset);
 					executableSize = OSSwapInt32(curFat->size);
 					found = true;
