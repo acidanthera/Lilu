@@ -302,13 +302,26 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 	auto *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
 		auto *fatHeader = reinterpret_cast<const fat_header *>(executableOrg);
-		if (fatHeader->magic == FAT_CIGAM) {
+		if (fatHeader->magic == FAT_CIGAM || fatHeader->magic == FAT_MAGIC) {
+			bool swapBytes = fatHeader->magic == FAT_CIGAM;
+
+			uint32_t nfat_arch = fatHeader->nfat_arch;
+			if (swapBytes) nfat_arch = OSSwapInt32(nfat_arch);
+
 			bool found = false;
 			auto *curFat = reinterpret_cast<const fat_arch *>(fatHeader + 1);
-			for (uint32_t i = 0; i < OSSwapInt32(fatHeader->nfat_arch); i++) {
-				if (curFat->cputype == OSSwapInt32(MachCpuTypeNative)) {
-					executableOrg = executableOrg + OSSwapInt32(curFat->offset);
-					executableSize = OSSwapInt32(curFat->size);
+			for (uint32_t i = 0; i < nfat_arch; i++) {
+				uint32_t cputype = curFat->cputype;
+				if (swapBytes) cputype = OSSwapInt32(cputype);
+
+				if (cputype == MachCpuTypeNative) {
+					uint32_t fatOffset = curFat->offset;
+					if (swapBytes) fatOffset = OSSwapInt32(fatOffset);
+					executableOrg = executableOrg + fatOffset;
+
+					uint32_t fatSize = curFat->size;
+					if (swapBytes) fatSize = OSSwapInt32(fatSize);
+					executableSize = fatSize;
 					found = true;
 					break;
 				}
