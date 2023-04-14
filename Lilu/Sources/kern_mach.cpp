@@ -280,7 +280,7 @@ SInt32 orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2,
 		SYSLOG("mach", "orderFunction: Invalid object for obj2 %p", obj2);
 		return 0;
 	}
-	return obj1Num->unsigned32BitValue() - obj2Num->unsigned32BitValue();
+	return obj2Num->unsigned32BitValue() - obj1Num->unsigned32BitValue();
 }
 
 kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
