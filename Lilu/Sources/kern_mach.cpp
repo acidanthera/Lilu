@@ -370,7 +370,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 						linkeditDelta = kextLinkeditOffset - segCmd->fileoff;
 						memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, static_cast<size_t>(segCmd->filesize));
 						segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
-						segCmd->vmsize = segCmd->vmsize;
+						segCmd->vmsize = segCmd->filesize;
 						DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
 						linkedit_free_start += segCmd->filesize;
 						break;
