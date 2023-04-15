@@ -617,7 +617,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		while (sizeLeft != 0) {
 			uint32_t copyAmount = min(copyInterval, sizeLeft);
 			DBGLOG("patcher", "onUbcGetobjectFromFilename: Copying 0x%x ~ 0x%x out of 0x%x bytes",
-			       copyOffset, copyOffset + copyInterval, oldKcSize);
+			       copyOffset, copyOffset + copyAmount, oldKcSize);
 			memcpy(patchedKCBuf + copyOffset, kcBuf + copyOffset, copyAmount);
 			copyOffset += copyAmount;
 			sizeLeft -= copyAmount;
