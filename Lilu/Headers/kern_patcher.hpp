@@ -22,6 +22,8 @@ union OSKextLoadedKextSummaryHeaderAny;
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 #ifdef LILU_KCINJECT_SUPPORT
+#include <Headers/IOKit/IOMemoryDescriptor.h>
+
 /**
  *  Taken from pexpert/pexpert/pexpert.h
  */
