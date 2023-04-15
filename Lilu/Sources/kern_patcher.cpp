@@ -610,7 +610,19 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		// Setup patched buffer
 		vm_size_t patchedKCSize = oldKcSize + 64 * 1024 * 1024;
 		uint8_t *patchedKCBuf = (uint8_t*)IOMalloc(patchedKCSize);
-		memcpy(patchedKCBuf, kcBuf, oldKcSize);
+
+		uint32_t copyInterval = 10 * 1024 * 1024;
+		uint32_t copyOffset = 0;
+		uint32_t sizeLeft = oldKcSize;
+		while (sizeLeft != 0) {
+			uint32_t copyAmount = min(copyInterval, sizeLeft);
+			DBGLOG("patcher", "onUbcGetobjectFromFilename: Copying 0x%x ~ 0x%x out of 0x%x bytes",
+			       copyOffset, copyOffset + copyInterval, oldKcSize);
+			memcpy(patchedKCBuf + copyOffset, kcBuf + copyOffset, copyAmount);
+			copyOffset += copyAmount;
+			sizeLeft -= copyAmount;
+		}
+		
 		FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
 
 		// Initialize kcInfo
