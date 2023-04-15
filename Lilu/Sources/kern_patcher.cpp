@@ -362,40 +362,45 @@ void KernelPatcher::setupKextListening() {
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 #ifdef LILU_KCINJECT_SUPPORT
-bool KernelPatcher::populatePrelinkedSymbolsFromOpenCore() {
+bool KernelPatcher::fetchInfoFromOpenCore() {
 	if (kcSymbols != nullptr) {
-		SYSLOG("patcher", "populatePrelinkedSymbolsFromOpenCore: kcSymbols is already initialized");
+		SYSLOG("patcher", "fetchInfoFromOpenCore: kcSymbols is already initialized");
 		return false;
 	}
 
-	// Fetch the address to the prelinked symbols
+	// Fetch lilu-prelinked-symbols-addr
 	auto *nvram = new NVStorage {};
 	nvram->init();
 	auto *prelinkedSymbolsAddrData =
 		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
 	if (!prelinkedSymbolsAddrData) {
-		SYSLOG("patcher", "populatePrelinkedSymbolsFromOpenCore: Failed to fetch lilu-prelinked-symbols-addr");
+		SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-prelinked-symbols-addr");
 		return false;
 	}
 	auto prelinkedSymbolsAddr = *reinterpret_cast<const uint64_t *>(prelinkedSymbolsAddrData->getBytesNoCopy());
 	DBGLOG("patcher", "lilu-prelinked-symbols-addr = 0x%llX", prelinkedSymbolsAddr);
 	prelinkedSymbolsAddrData->free();
-	nvram->deinit();
-	delete nvram;
 
+	// Map lilu-prelinked-symbols
 	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr),
 		sizeof(LILU_PRELINKED_SYMBOLS_HEADER), kIODirectionIn);
 	auto *map = memDesc->map();
-	auto *header = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
-	uint32_t size = header->HeaderSize, count = header->SymbolCount;
-	DBGLOG("patcher", "lilu-prelinked-symbols Size = %d, SymbolCount = %d", size, count);
+	auto *symbolsHeader = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
+	uint32_t headerVersion = symbolsHeader->HeaderVersion, size = symbolsHeader->HeaderSize, count = symbolsHeader->SymbolCount;
+	DBGLOG("patcher", "lilu-prelinked-symbols HeaderVersion = %d, Size = %d, SymbolCount = %d", headerVersion, size, count);
 	memDesc->release();
 	map->release();
+	if (headerVersion != 0) {
+		SYSLOG("patcher", "lilu-prelinked-symbols unsupported header version! Bailing");
+		return false;
+	}
 
 	kcSymbols = OSDictionary::withCapacity(count);
 	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr), size, kIODirectionIn);
 	map = memDesc->map();
 	auto *prelinkedSymbols = reinterpret_cast<LILU_PRELINKED_SYMBOLS *>(map->getVirtualAddress());
+
+	// Fetch the symbols
 	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(prelinkedSymbols->Entries);
 	for (uint32_t i = 0; i < count; i++) {
 		auto *curSymbol = reinterpret_cast<LILU_PRELINKED_SYMBOLS_ENTRY *>(curSymbolAddr);
@@ -409,6 +414,114 @@ bool KernelPatcher::populatePrelinkedSymbolsFromOpenCore() {
 
 	memDesc->release();
 	map->release();
+
+	// Initialize kcInjectInfos
+	for (uint32_t i = 0; i < 4; i++) {
+		kcInjectInfos[i] = OSArray::withCapacity(0);
+	}
+
+	// Fetch lilu-kext-count
+	auto *liluKextCountData =
+		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-kext-count", NVStorage::Options::OptRaw);
+	if (!liluKextCountData) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-kext-count");
+		return false;
+	}
+	auto liluKextCount = *reinterpret_cast<const uint32_t *>(liluKextCountData->getBytesNoCopy());
+	DBGLOG("patcher", "lilu-kext-count = 0x%d", liluKextCount);
+	liluKextCountData->free();
+
+	for (uint32_t i = 0; i < liluKextCount; i++) {
+		// Fetch lilu-injection-info-addr-%d
+		char *varName = IONew(char, 128);
+		snprintf(varName, 128, "E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-injection-info-addr-%d", i);
+
+		auto *liluInjectionInfoAddrData =
+			nvram->read(varName, NVStorage::Options::OptRaw);
+		if (!liluInjectionInfoAddrData) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-injection-info-addr-%d", i);
+			return false;
+		}
+		auto liluInjectionInfoAddr = *reinterpret_cast<const uint64_t *>(liluInjectionInfoAddrData->getBytesNoCopy());
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-addr-%d = 0x%llX", i, liluInjectionInfoAddr);
+		liluInjectionInfoAddrData->free();
+
+		// Map lilu-injection-info-addr-%d
+		auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluInjectionInfoAddr),
+		sizeof(LILU_INJECTION_INFO), kIODirectionIn);
+		auto *map = memDesc->map();
+		auto *injectionHeader = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
+		uint32_t version = injectionHeader->Version, size = injectionHeader->EntryLength, kcType = injectionHeader->KCType;
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%d Version = %d EntryLength = %d, KCType = %d", i, version, size, kcType);
+		memDesc->release();
+		map->release();
+		if (version != 0 || kcType > 2) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%d invalid header! Bailing", i);
+			return false;
+		}
+
+		memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluInjectionInfoAddr), size, kIODirectionIn);
+		map = memDesc->map();
+		auto *liluInjectionInfo = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
+		auto *injectionInfo = reinterpret_cast<KextInjectionInfo *>(IOMalloc(sizeof(KextInjectionInfo)));
+		if (!injectionInfo) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate injectionInfo");
+			return false;
+		}
+
+		auto *bundlePath = Buffer::create<char>(sizeof(liluInjectionInfo->BundlePath));
+		if (!bundlePath) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate bundlePath");
+			return false;
+		}
+		strncpy(bundlePath, liluInjectionInfo->BundlePath, sizeof(liluInjectionInfo->BundlePath));
+		injectionInfo->bundlePath = bundlePath;
+
+		auto *infoPlist = Buffer::create<char>(sizeof(liluInjectionInfo->InfoPlistSize));
+		if (!infoPlist) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate infoPlist");
+			return false;
+		}
+		memcpy(infoPlist,
+			   reinterpret_cast<uint8_t *>(liluInjectionInfo) + liluInjectionInfo->InfoPlistOffset, liluInjectionInfo->InfoPlistSize);
+		injectionInfo->infoPlist = infoPlist;
+		injectionInfo->infoPlistSize = liluInjectionInfo->InfoPlistSize;
+
+		if (liluInjectionInfo->ExecutableOffset) {
+			auto *executablePath = Buffer::create<char>(sizeof(liluInjectionInfo->ExecutablePath));
+			if (!executablePath) {
+				SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate executablePath");
+				return false;
+			}
+			strncpy(executablePath, liluInjectionInfo->ExecutablePath, sizeof(liluInjectionInfo->ExecutablePath));
+			injectionInfo->executablePath = executablePath;
+
+			auto *executable = Buffer::create<uint8_t>(sizeof(liluInjectionInfo->ExecutableSize));
+			if (!executable) {
+				SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate executable");
+				return false;
+			}
+			memcpy(executable,
+				   reinterpret_cast<uint8_t *>(liluInjectionInfo) + liluInjectionInfo->ExecutableOffset, liluInjectionInfo->ExecutableSize);
+			injectionInfo->executable = executable;
+			injectionInfo->executableSize = liluInjectionInfo->ExecutableSize;
+		} else {
+			injectionInfo->executablePath = nullptr;
+			injectionInfo->executable = nullptr;
+			injectionInfo->executableSize = 0;
+		}
+
+		auto *injectionInfoData = OSData::withBytes(injectionInfo, sizeof(*injectionInfo));
+		kcInjectInfos[kcType]->setObject(injectionInfoData);
+		injectionInfoData->release();
+		IOFree(injectionInfo, sizeof(KextInjectionInfo));
+
+		memDesc->release();
+		map->release();
+	}
+
+	nvram->deinit();
+	delete nvram;
 
 	return true;
 }
@@ -431,53 +544,70 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 	if (that) {
 		ret = FunctionCast(onUbcGetobjectFromFilename, that->orgUbcGetobjectFromFilename)(filename, vpp, file_size);
-		if (that->curLoadingKCKind == kc_kind::KCKindPageable || that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
-			that->kcControls[that->curLoadingKCKind] = ret;
-		}
+		that->kcControls[that->curLoadingKCKind] = ret;
 
 		if (that->curLoadingKCKind == kc_kind::KCKindPageable) {
-			PANIC_COND(!that->populatePrelinkedSymbolsFromOpenCore(), "patcher", "populatePrelinkedSymbolsFromOpenCore failed");
-
-			vm_size_t oldKcSize = (vm_size_t)*file_size;
-			uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
-			if (kcBuf == nullptr ||
-			    that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&kcBuf, (vm_map_offset_t)oldKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
-				SYSLOG("patcher", "Failed to map kcBuf");
-				return ret;
-			}
-			SYSLOG("patcher", "Mapped kcBuf at %p", kcBuf);
-
-			vm_size_t patchedKCSize = oldKcSize + 128 * 1024 * 1024;
-			uint8_t *patchedKCBuf = (uint8_t*)IOMalloc(patchedKCSize);
-			memcpy(patchedKCBuf, kcBuf, oldKcSize);
-			FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
-
-			MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
-			kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
-			kcInfo->setKcSymbols(that->kcSymbols);
-			kcInfo->setKcIndex(1);
-			kcInfo->extractKextsSymbols();
-
-			KextInjectionInfo *injectInfo = (KextInjectionInfo*)IOMalloc(sizeof(KextInjectionInfo));
-			size_t tmpSize;
-			// injectInfo->identifier = "com.apple.driver.AGPM";
-			injectInfo->bundlePath = "/System/Library/Extensions/AppleGraphicsPowerManagement.kext";
-			injectInfo->infoPlist = (const char*)FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/Info.plist", tmpSize);
-			injectInfo->infoPlistSize = static_cast<uint32_t>(tmpSize);
-			injectInfo->executablePath = "Contents/MacOS/AppleGraphicsPowerManagement";
-			injectInfo->executable = FileIO::readFileToBuffer("/Users/nyancat/AppleGraphicsPowerManagement.kext/Contents/MacOS/AppleGraphicsPowerManagement", tmpSize);
-			injectInfo->executableSize = static_cast<uint32_t>(tmpSize);
-
-			kcInfo->injectKextIntoKC(injectInfo);
-			Buffer::deleter((void*)injectInfo->infoPlist);
-			Buffer::deleter((void*)injectInfo->executable);
-			IOFree(injectInfo, sizeof(KextInjectionInfo));
-
-			kcInfo->overwritePrelinkInfo();
-			that->kcMachInfos[kc_kind::KCKindPageable] = kcInfo;
-			*file_size = patchedKCSize;
-			IOSleep(5000);
+			PANIC_COND(!that->fetchInfoFromOpenCore(), "patcher", "onUbcGetobjectFromFilename: fetchInfoFromOpenCore failed");
 		}
+
+		auto *injectInfos = that->kcInjectInfos[that->curLoadingKCKind];
+		if (!injectInfos) {
+			SYSLOG("mach", "onUbcGetobjectFromFilename: injectInfos is null");
+			return ret;
+		}
+
+		if (!injectInfos->getCount()) {
+			DBGLOG("mach", "onUbcGetobjectFromFilename: No kexts to inject in KC type %d", that->curLoadingKCKind);
+			return ret;
+		}
+
+		// Map original KC
+		vm_size_t oldKcSize = (vm_size_t)*file_size;
+		uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
+		if (kcBuf == nullptr ||
+			that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&kcBuf, (vm_map_offset_t)oldKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to map kcBuf");
+			return ret;
+		}
+		SYSLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
+
+		// Setup patched buffer
+		vm_size_t patchedKCSize = oldKcSize + 64 * 1024 * 1024;
+		uint8_t *patchedKCBuf = (uint8_t*)IOMalloc(patchedKCSize);
+		memcpy(patchedKCBuf, kcBuf, oldKcSize);
+		FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
+
+		// Initialize kcInfo
+		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
+		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
+		kcInfo->setKcSymbols(that->kcSymbols);
+		kcInfo->setKcIndex(that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
+		kcInfo->extractKextsSymbols();
+
+		// Inject kexts
+		auto *iterator = OSCollectionIterator::withCollection(injectInfos);
+		if (!iterator) {
+			SYSLOG("mach", "onUbcGetobjectFromFilename: iterator is null");
+			return ret;
+		}
+
+		OSObject *curObj = nullptr;
+		while ((curObj = iterator->getNextObject())) {
+			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(OSDynamicCast(OSData, curObj)->getBytesNoCopy());
+			kcInfo->injectKextIntoKC(injectInfo);
+			Buffer::deleter((void*)injectInfo->bundlePath);
+			Buffer::deleter((void*)injectInfo->infoPlist);
+			Buffer::deleter((void*)injectInfo->executablePath);
+			Buffer::deleter((void*)injectInfo->executable);
+		}
+		iterator->release();
+		injectInfos->release();
+		that->kcInjectInfos[that->curLoadingKCKind] = nullptr;
+
+		// Wrap things up
+		kcInfo->overwritePrelinkInfo();
+		that->kcMachInfos[that->curLoadingKCKind] = kcInfo;
+		*file_size = patchedKCSize;
 	}
 
 	return ret;

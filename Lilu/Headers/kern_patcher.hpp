@@ -84,6 +84,18 @@ typedef struct {
   LILU_PRELINKED_SYMBOLS_HEADER Header;
   LILU_PRELINKED_SYMBOLS_ENTRY Entries[0];
 } PACKED LILU_PRELINKED_SYMBOLS;
+
+typedef struct {
+  uint8_t Version;
+  uint32_t EntryLength;
+  uint8_t KCType;
+  char BundlePath[128];
+  uint32_t InfoPlistOffset;
+  uint32_t InfoPlistSize;
+  char ExecutablePath[512];
+  uint32_t ExecutableOffset;
+  uint32_t ExecutableSize;
+} PACKED LILU_INJECTION_INFO;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
@@ -502,9 +514,9 @@ public:
 		boolean_t       flags);
 
 	/**
-	 *  Initialize and populate the kcSymbols dictionary with symbols from OpenCore
+	 *  Initialize kcSymbols and with info from OpenCore
 	 */
-	bool populatePrelinkedSymbolsFromOpenCore();
+	bool fetchInfoFromOpenCore();
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -983,6 +995,11 @@ private:
 	 *  MachInfo of SysKC and AuxKC
 	 */
 	MachInfo *kcMachInfos[4] = {nullptr};
+
+	/**
+	 *  Injection infos of SysKC and AuxKC
+	 */
+	OSArray *kcInjectInfos[4] = {nullptr};
 
 	/**
 	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()

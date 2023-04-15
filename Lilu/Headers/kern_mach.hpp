@@ -459,7 +459,7 @@ public:
 	 *
 	 *  @return KERN_SUCCESS if the kext was injected
 	 */
-	kern_return_t injectKextIntoKC(KextInjectionInfo *injectInfo);
+	kern_return_t injectKextIntoKC(const KextInjectionInfo *injectInfo);
 
 	/**
 	 *  Overwrite the prelink info in the file buffer

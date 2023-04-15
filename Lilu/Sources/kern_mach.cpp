@@ -283,7 +283,7 @@ SInt32 orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2,
 	return obj2Num->unsigned32BitValue() - obj1Num->unsigned32BitValue();
 }
 
-kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
+kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 	MachInfo *kextInfo = MachInfo::create();
 	if (!kextInfo) {
 		SYSLOG("mach", "injectKextIntoKC: failed to create kextInfo");
@@ -720,6 +720,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 				if (prevReloc) { prevReloc->fixup64.next = reinterpret_cast<uint64_t>(curReloc) - reinterpret_cast<uint64_t>(prevReloc); }
 				prevReloc = curReloc;
 			}
+			iterator->release();
 		}
 
 		// Add LC_DYLD_CHAINED_FIXUPS mach command
