@@ -593,7 +593,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		}
 
 		if (!doHijack) {
-			DBGLOG("mach", "onUbcGetobjectFromFilename: Nothing to do with KC type %u", that->curLoadingKCKind);
+			DBGLOG("mach", "onUbcGetobjectFromFilename: Nothing to do with KC kind %u", that->curLoadingKCKind);
 			return ret;
 		}
 
@@ -611,7 +611,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		vm_size_t patchedKCSize = oldKcSize + 64 * 1024 * 1024;
 		uint8_t *patchedKCBuf = (uint8_t*)IOMalloc(patchedKCSize);
 
-		uint32_t copyInterval = 10 * 1024 * 1024;
+		uint32_t copyInterval = 8 * 1024 * 1024;
 		uint32_t copyOffset = 0;
 		uint32_t sizeLeft = static_cast<uint32_t>(oldKcSize);
 		while (sizeLeft != 0) {
