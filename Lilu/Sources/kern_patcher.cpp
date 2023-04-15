@@ -531,7 +531,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	}
 
 	auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
-	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", i, liluInjectionInfoAddr);
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", liluInjectionInfoAddr);
 	liluExclusionInfoAddrData->free();
 
 	// Map lilu-exclusion-info-addr
@@ -541,10 +541,10 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	uint32_t version = exclusionHeader->Header.Version;
 	size = exclusionHeader->Header.Size;
 	uint32_t kextCount = exclusionHeader->Header.KextCount;
-	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", i, version, size, kextCount);
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", version, size, kextCount);
 	memDesc->release();
 	if (version != 0) {
-		SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing", i);
+		SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing");
 		return false;
 	}
 
