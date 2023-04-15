@@ -593,7 +593,13 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 		OSObject *curObj = nullptr;
 		while ((curObj = iterator->getNextObject())) {
-			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(OSDynamicCast(OSData, curObj)->getBytesNoCopy());
+			auto *curObjData = OSDynamicCast(OSData, curObj);
+			if (!curObjData) {
+				SYSLOG("mach", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				return ret;
+			}
+
+			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(curObjData->getBytesNoCopy());
 			kcInfo->injectKextIntoKC(injectInfo);
 			Buffer::deleter((void*)injectInfo->bundlePath);
 			Buffer::deleter((void*)injectInfo->infoPlist);
