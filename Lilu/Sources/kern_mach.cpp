@@ -390,7 +390,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 						if (sect->offset) { sect->offset += imageOffset; }
 						sect++;
 					}
-				}
+				} break;
 				case LC_SYMTAB: {
 					auto *symtabCmd = reinterpret_cast<symtab_command *>(loadCmd);
 					symtabCmd->symoff += linkeditDelta;
@@ -398,7 +398,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					nsyms = symtabCmd->nsyms;
 					symtabCmd->stroff += linkeditDelta;
 					stroff = symtabCmd->stroff;
-				}
+				} break;
 				case LC_DYSYMTAB: {
 					auto *dysymtabCmd = reinterpret_cast<dysymtab_command *>(loadCmd);
 					extreloff = dysymtabCmd->extreloff;
@@ -408,7 +408,7 @@ kern_return_t MachInfo::injectKextIntoKC(KextInjectionInfo *injectInfo) {
 					dysymtabCmd->locreloff = 0;
 					nlocrel = dysymtabCmd->nlocrel;
 					dysymtabCmd->nlocrel = 0;
-				}
+				} break;
 			}
 
 			addr += loadCmd->cmdsize;
