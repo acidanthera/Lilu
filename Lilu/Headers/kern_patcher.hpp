@@ -67,6 +67,7 @@ typedef struct {
 
 typedef uint16_t vm_tag_t;
 
+
 typedef struct {
   uint8_t HeaderVersion;
   uint32_t HeaderSize;
@@ -85,6 +86,7 @@ typedef struct {
   LILU_PRELINKED_SYMBOLS_ENTRY Entries[0];
 } PACKED LILU_PRELINKED_SYMBOLS;
 
+
 typedef struct {
   uint8_t Version;
   uint32_t EntryLength;
@@ -96,6 +98,27 @@ typedef struct {
   uint32_t ExecutableOffset;
   uint32_t ExecutableSize;
 } PACKED LILU_INJECTION_INFO;
+
+
+typedef struct {
+  uint8_t Version;
+  uint32_t Size;
+  uint32_t KextCount;
+} LILU_EXCLUSION_INFO_HEADER;
+
+typedef struct {
+  char Identifier[128];
+  bool Exclude;
+  uint8_t KCType;
+} LILU_EXCLUSION_INFO_ENTRY;
+
+typedef struct {
+  LILU_EXCLUSION_INFO_HEADER Header;
+  LILU_EXCLUSION_INFO_ENTRY Entries[0];
+} LILU_EXCLUSION_INFO;
+
+// The maximize size of LILU_EXCLUSION_INFO allowed on version 0
+#define LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0 16384
 #endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
@@ -517,6 +540,13 @@ public:
 	 *  Initialize kcSymbols and with info from OpenCore
 	 */
 	bool fetchInfoFromOpenCore();
+
+	/**
+	 *  Get the Lilu exclusion info
+	 */
+	LILU_EXCLUSION_INFO *getLiluExclusionInfo() {
+		return reinterpret_cast<LILU_EXCLUSION_INFO *>(liluExclusionInfoMap->getVirtualAddress());
+	}
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -1010,6 +1040,11 @@ private:
 	 *  Stores exported symbols from various KCs
 	 */
 	OSDictionary *kcSymbols;
+
+	/**
+	 *  A memory map to the LILU_EXCLUSION_INFO
+	 */
+	IOMemoryMap *liluExclusionInfoMap = nullptr;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**

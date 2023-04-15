@@ -520,6 +520,32 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 
 		memDesc->release();
 		map->release();
+
+		// Fetch lilu-exclusion-info-addr
+		auto *liluExclusionInfoAddrData =
+			nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-exclusion-info-addr", NVStorage::Options::OptRaw);
+		if (!liluExclusionInfoAddrData) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-exclusion-info-addr");
+			return false;
+		}
+
+		auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", i, liluInjectionInfoAddr);
+		liluExclusionInfoAddrData->free();
+
+		// Map lilu-exclusion-info-addr
+		memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
+		map = memDesc->map();
+		auto *exclusionHeader = reinterpret_cast<LILU_EXCLUSION_INFO *>(map->getVirtualAddress());
+		uint32_t version = exclusionHeader->Header.Version, size = exclusionHeader->Header.Size, kextCount = exclusionHeader->Header.KextCount;
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", i, version, size, kextCount);
+		memDesc->release();
+		if (version != 0) {
+			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing", i);
+			return false;
+		}
+
+		liluExclusionInfoMap = map;
 	}
 
 	nvram->deinit();
@@ -585,6 +611,14 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		kcInfo->setKcSymbols(that->kcSymbols);
 		kcInfo->setKcIndex(that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
 		kcInfo->extractKextsSymbols();
+
+		// Block kexts
+		auto *liluExclusionInfo = that->getLiluExclusionInfo();
+		for (uint32_t i = 0; i < liluExclusionInfo->Header.KextCount; i++) {
+			auto *curEntry = &liluExclusionInfo->Entries[i];
+			if (curEntry->KCType != that->curLoadingKCKind) { continue; }
+			kcInfo->blockKextFromKC(curEntry->Identifier, curEntry->Exclude);
+		}
 
 		// Inject kexts
 		auto *iterator = OSCollectionIterator::withCollection(injectInfos);

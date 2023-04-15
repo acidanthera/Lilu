@@ -448,11 +448,11 @@ public:
 	kern_return_t initFromBuffer(uint8_t *buf, uint32_t bufSize, uint32_t origBufSize);
 
 	/**
-	 *  Exclude a kext from the KC
+	 *  Block a kext from the KC
 	 *
-	 *  @return KERN_SUCCESS if the kext was found and excluded
+	 *  @return KERN_SUCCESS if the kext was found and blocked/excluded
 	 */
-	kern_return_t excludeKextFromKC(const char *kextName);
+	kern_return_t blockKextFromKC(const char *identifier, bool exclude);
 
 	/**
 	 *  Inject a kext from the KC

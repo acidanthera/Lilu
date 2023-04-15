@@ -194,8 +194,12 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	return KERN_SUCCESS;
 }
 
-kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
-	DBGLOG("mach", "excludeKextFromKC: Excluding %s", kextName);
+kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
+	if (!exclude) {
+		DBGLOG("mach", "blockKextFromKC: TODO: Kext block");
+	}
+
+	DBGLOG("mach", "blockKextFromKC: Excluding %s", identifier);
 
 	// Remove the related LC_FILESET_ENTRY command
 	auto header = (mach_header*)(file_buf);
@@ -211,12 +215,12 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	auto dstCmd = orgCmd;
 	for (uint32_t no = 0; no < header->ncmds; no++) {
 		if (!isAligned(orgCmd)) {
-			SYSLOG("mach", "excludeKextFromKC: Invalid command %u position for section lookup", no);
+			SYSLOG("mach", "blockKextFromKC: Invalid command %u position for section lookup", no);
 			return KERN_FAILURE;
 		}
 
 		if (reinterpret_cast<uint8_t *>(orgCmd) + sizeof(load_command) > endaddr || reinterpret_cast<uint8_t *>(orgCmd) + orgCmd->cmdsize > endaddr) {
-			SYSLOG("mach", "excludeKextFromKC: Header command %u exceeds header size for section lookup", no);
+			SYSLOG("mach", "blockKextFromKC: Header command %u exceeds header size for section lookup", no);
 			return KERN_FAILURE;
 		}
 
@@ -226,16 +230,16 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 			// If this is the kext we are trying to exclude
 			const char *curEntryName = (char*)fcmd + fcmd->stringOffset;
 			uint32_t curEntryCapacity = fcmd->commandSize - fcmd->stringOffset;
-			// DBGLOG("mach", "excludeKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
-			if (!strncmp(kextName, curEntryName, curEntryCapacity)) {
-				// DBGLOG("mach", "excludeKextFromKC: Skipping related LC_FILESET_ENTRY");
+			// DBGLOG("mach", "blockKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
+			if (!strncmp(identifier, curEntryName, curEntryCapacity)) {
+				// DBGLOG("mach", "blockKextFromKC: Skipping related LC_FILESET_ENTRY");
 				header->sizeofcmds -= cmdsize;
 				goto skipCommand;
 			}
 		}
 
 		if (orgCmd != dstCmd) {
-			// DBGLOG("mach", "excludeKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
+			// DBGLOG("mach", "blockKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
 			memcpy(dstCmd, orgCmd, cmdsize);
 		}
 		reinterpret_cast<uintptr_t &>(dstCmd) += cmdsize;
@@ -245,7 +249,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	}
 
 	if (orgCmd == dstCmd) {
-		SYSLOG("mach", "excludeKextFromKC: Unable to locate related LC_FILESET_ENTRY");
+		SYSLOG("mach", "blockKextFromKC: Unable to locate related LC_FILESET_ENTRY");
 		return KERN_FAILURE;
 	}
 	header->ncmds--;
@@ -255,7 +259,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	uint32_t imageSize;
 	mach_vm_address_t slide;
 	bool missing;
-	uint8_t *imagePtr = findImage(kextName, imageIndex, imageSize, slide, missing);
+	uint8_t *imagePtr = findImage(identifier, imageIndex, imageSize, slide, missing);
 	if (imagePtr == nullptr) return KERN_FAILURE;
 
 	imageArr = imageArr ?: OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
@@ -265,7 +269,7 @@ kern_return_t MachInfo::excludeKextFromKC(const char * kextName) {
 	// Overwrite the kext image with zero
 	memset(imagePtr, 0, imageSize);
 
-	DBGLOG("mach", "excludeKextFromKC: %s is now blocked", kextName);
+	DBGLOG("mach", "blockKextFromKC: %s is now excluded", identifier);
 	return KERN_SUCCESS;
 }
 
@@ -762,7 +766,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		identifier = bundleIdentifier->getCStringNoCopy();
 		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
 	}
-	excludeKextFromKC(identifier);
+	blockKextFromKC(identifier);
 
 	// Append the image
 	if (executable) {
