@@ -457,7 +457,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%d Version = %d EntryLength = %d, KCType = %d", i, version, size, kcType);
 		memDesc->release();
 		map->release();
-		if (version != 0 || kcType > 2) {
+		if (version != 0 || kcType > 3) {
 			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%d invalid header! Bailing", i);
 			return false;
 		}
