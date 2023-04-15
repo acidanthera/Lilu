@@ -520,35 +520,35 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 
 		memDesc->release();
 		map->release();
-
-		// Fetch lilu-exclusion-info-addr
-		auto *liluExclusionInfoAddrData =
-			nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-exclusion-info-addr", NVStorage::Options::OptRaw);
-		if (!liluExclusionInfoAddrData) {
-			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-exclusion-info-addr");
-			return false;
-		}
-
-		auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
-		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", i, liluInjectionInfoAddr);
-		liluExclusionInfoAddrData->free();
-
-		// Map lilu-exclusion-info-addr
-		memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
-		map = memDesc->map();
-		auto *exclusionHeader = reinterpret_cast<LILU_EXCLUSION_INFO *>(map->getVirtualAddress());
-		version = exclusionHeader->Header.Version;
-		size = exclusionHeader->Header.Size;
-		uint32_t kextCount = exclusionHeader->Header.KextCount;
-		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", i, version, size, kextCount);
-		memDesc->release();
-		if (version != 0) {
-			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing", i);
-			return false;
-		}
-
-		liluExclusionInfoMap = map;
 	}
+
+	// Fetch lilu-exclusion-info-addr
+	auto *liluExclusionInfoAddrData =
+		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-exclusion-info-addr", NVStorage::Options::OptRaw);
+	if (!liluExclusionInfoAddrData) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-exclusion-info-addr");
+		return false;
+	}
+
+	auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", i, liluInjectionInfoAddr);
+	liluExclusionInfoAddrData->free();
+
+	// Map lilu-exclusion-info-addr
+	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
+	map = memDesc->map();
+	auto *exclusionHeader = reinterpret_cast<LILU_EXCLUSION_INFO *>(map->getVirtualAddress());
+	version = exclusionHeader->Header.Version;
+	size = exclusionHeader->Header.Size;
+	uint32_t kextCount = exclusionHeader->Header.KextCount;
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", i, version, size, kextCount);
+	memDesc->release();
+	if (version != 0) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing", i);
+		return false;
+	}
+
+	liluExclusionInfoMap = map;
 
 	nvram->deinit();
 	delete nvram;
