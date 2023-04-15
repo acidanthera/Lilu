@@ -596,6 +596,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
 				SYSLOG("mach", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				iterator->release();
 				return ret;
 			}
 
