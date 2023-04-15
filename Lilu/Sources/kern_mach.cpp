@@ -105,7 +105,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 		uint8_t *addr = (uint8_t*)(mh + 1);
 
 		// Reserve more space in __LINKEDIT
-		uint32_t linkeditIncrease = min(16 * 1024 * 1024, alignValue(0.9 * origBufSize));
+		uint32_t linkeditIncrease = min(16 * 1024 * 1024, alignValue(static_cast<uint32_t>(0.9 * origBufSize)));
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
