@@ -586,8 +586,15 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			return ret;
 		}
 
-		if (!injectInfos->getCount()) {
-			DBGLOG("mach", "onUbcGetobjectFromFilename: No kexts to inject in KC type %u", that->curLoadingKCKind);
+		bool doHijack = injectInfos->getCount();
+		auto *liluExclusionInfo = that->getLiluExclusionInfo();
+		for (uint32_t i = 0; i < liluExclusionInfo->Header.KextCount; i++) {
+			auto *curEntry = &liluExclusionInfo->Entries[i];
+			doHijack |= curEntry->KCType == that->curLoadingKCKind;
+		}
+
+		if (!doHijack) {
+			DBGLOG("mach", "onUbcGetobjectFromFilename: Nothing to do with KC type %u", that->curLoadingKCKind);
 			return ret;
 		}
 
@@ -615,7 +622,6 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
-		auto *liluExclusionInfo = that->getLiluExclusionInfo();
 		for (uint32_t i = 0; i < liluExclusionInfo->Header.KextCount; i++) {
 			auto *curEntry = &liluExclusionInfo->Entries[i];
 			if (curEntry->KCType != that->curLoadingKCKind) { continue; }
