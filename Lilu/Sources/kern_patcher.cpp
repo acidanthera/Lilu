@@ -540,8 +540,8 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	auto *exclusionHeader = reinterpret_cast<LILU_EXCLUSION_INFO *>(map->getVirtualAddress());
 	uint32_t version = exclusionHeader->Header.Version;
 	size = exclusionHeader->Header.Size;
-	uint32_t kextCount = exclusionHeader->Header.KextCount;
-	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %u Size = %u, KextCount = %u", version, size, kextCount);
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %u Size = %u, KextCount = %u",
+	       version, size, exclusionHeader->Header.KextCount);
 	memDesc->release();
 	if (version != 0) {
 		SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing");
