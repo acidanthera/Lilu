@@ -538,7 +538,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
 	map = memDesc->map();
 	auto *exclusionHeader = reinterpret_cast<LILU_EXCLUSION_INFO *>(map->getVirtualAddress());
-	version = exclusionHeader->Header.Version;
+	uint32_t version = exclusionHeader->Header.Version;
 	size = exclusionHeader->Header.Size;
 	uint32_t kextCount = exclusionHeader->Header.KextCount;
 	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", i, version, size, kextCount);
