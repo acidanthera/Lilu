@@ -531,7 +531,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	}
 
 	auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
-	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", liluInjectionInfoAddr);
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", liluExclusionInfoAddr);
 	liluExclusionInfoAddrData->free();
 
 	// Map lilu-exclusion-info-addr
