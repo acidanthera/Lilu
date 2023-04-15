@@ -387,7 +387,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	auto *map = memDesc->map();
 	auto *symbolsHeader = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
 	uint32_t headerVersion = symbolsHeader->HeaderVersion, size = symbolsHeader->HeaderSize, count = symbolsHeader->SymbolCount;
-	DBGLOG("patcher", "lilu-prelinked-symbols HeaderVersion = %d, Size = %d, SymbolCount = %d", headerVersion, size, count);
+	DBGLOG("patcher", "lilu-prelinked-symbols HeaderVersion = %u, Size = %u, SymbolCount = %u", headerVersion, size, count);
 	memDesc->release();
 	map->release();
 	if (headerVersion != 0) {
@@ -404,7 +404,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(prelinkedSymbols->Entries);
 	for (uint32_t i = 0; i < count; i++) {
 		auto *curSymbol = reinterpret_cast<LILU_PRELINKED_SYMBOLS_ENTRY *>(curSymbolAddr);
-		DBGLOG_COND((i % 1000) == 0, "patcher", "lilu-prelinked-symbols[%d]: SymbolValue 0x%llX SymbolName %s", i,
+		DBGLOG_COND((i % 1000) == 0, "patcher", "lilu-prelinked-symbols[%u]: SymbolValue 0x%llX SymbolName %s", i,
 			curSymbol->SymbolValue, curSymbol->SymbolName);
 		auto *symbolValue = OSNumber::withNumber(curSymbol->SymbolValue & 0xFFFFFFFF, 64);
 		kcSymbols->setObject(curSymbol->SymbolName, symbolValue);
@@ -428,37 +428,37 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 		return false;
 	}
 	auto liluKextCount = *reinterpret_cast<const uint32_t *>(liluKextCountData->getBytesNoCopy());
-	DBGLOG("patcher", "lilu-kext-count = 0x%d", liluKextCount);
+	DBGLOG("patcher", "lilu-kext-count = 0x%u", liluKextCount);
 	liluKextCountData->free();
 
 	for (uint32_t i = 0; i < liluKextCount; i++) {
-		// Fetch lilu-injection-info-addr-%d
+		// Fetch lilu-injection-info-addr-%u
 		char *varName = IONew(char, 128);
-		snprintf(varName, 128, "E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-injection-info-addr-%d", i);
+		snprintf(varName, 128, "E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-injection-info-addr-%u", i);
 
 		auto *liluInjectionInfoAddrData =
 			nvram->read(varName, NVStorage::Options::OptRaw);
 		IOFree(varName, 128);
 		if (!liluInjectionInfoAddrData) {
-			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-injection-info-addr-%d", i);
+			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-injection-info-addr-%u", i);
 			return false;
 		}
 
 		auto liluInjectionInfoAddr = *reinterpret_cast<const uint64_t *>(liluInjectionInfoAddrData->getBytesNoCopy());
-		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-addr-%d = 0x%llX", i, liluInjectionInfoAddr);
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-addr-%u = 0x%llX", i, liluInjectionInfoAddr);
 		liluInjectionInfoAddrData->free();
 
-		// Map lilu-injection-info-addr-%d
+		// Map lilu-injection-info-addr-%u
 		auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluInjectionInfoAddr),
 		sizeof(LILU_INJECTION_INFO), kIODirectionIn);
 		auto *map = memDesc->map();
 		auto *injectionHeader = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
 		uint32_t version = injectionHeader->Version, size = injectionHeader->EntryLength, kcType = injectionHeader->KCType;
-		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%d Version = %d EntryLength = %d, KCType = %d", i, version, size, kcType);
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%u Version = %u EntryLength = %u, KCType = %u", i, version, size, kcType);
 		memDesc->release();
 		map->release();
 		if (version != 0 || kcType > 3) {
-			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%d invalid header! Bailing", i);
+			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%u invalid header! Bailing", i);
 			return false;
 		}
 
@@ -541,7 +541,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	uint32_t version = exclusionHeader->Header.Version;
 	size = exclusionHeader->Header.Size;
 	uint32_t kextCount = exclusionHeader->Header.KextCount;
-	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %d Size = %d, KextCount = %d", version, size, kextCount);
+	DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info Version = %u Size = %u, KextCount = %u", version, size, kextCount);
 	memDesc->release();
 	if (version != 0) {
 		SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing");
@@ -587,7 +587,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		}
 
 		if (!injectInfos->getCount()) {
-			DBGLOG("mach", "onUbcGetobjectFromFilename: No kexts to inject in KC type %d", that->curLoadingKCKind);
+			DBGLOG("mach", "onUbcGetobjectFromFilename: No kexts to inject in KC type %u", that->curLoadingKCKind);
 			return ret;
 		}
 

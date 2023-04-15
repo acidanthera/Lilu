@@ -189,7 +189,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	sectionCmdPtr->offset = file_buf_free_start;
 
 	file_buf_free_start += infoLength;
-	DBGLOG("mach", "overwritePrelinkInfo: Wrote %d bytes of prelink info", infoLength);
+	DBGLOG("mach", "overwritePrelinkInfo: Wrote %u bytes of prelink info", infoLength);
 	newPrelinkInfo->release();
 	return KERN_SUCCESS;
 }
@@ -437,7 +437,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		// Assumes that every local relocations are within the __DATA segment
 		auto dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
 		auto *dataPages = OSArray::withCapacity(dataPageCount);
-		DBGLOG("mach", "injectKextIntoKC: dataPageCount=%d", dataPageCount);
+		DBGLOG("mach", "injectKextIntoKC: dataPageCount=%u", dataPageCount);
 		if (!dataPages) {
 			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
@@ -473,7 +473,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
 			auto *set = OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId));
 			if (!set) {
-				DBGLOG("mach", "injectKextIntoKC: Failed to get the page set for page %d", pageId);
+				DBGLOG("mach", "injectKextIntoKC: Failed to get the page set for page %u", pageId);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
 				dataPages->release();
@@ -544,7 +544,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		for (uint32_t i = 0; i < nextrel; i++) {
 			OSString *wantedSymbolOSStr = OSDynamicCast(OSString, symbolTable->getObject(extRelocInfo->r_symbolnum));
 			if (!wantedSymbolOSStr) {
-				SYSLOG("mach", "injectKextIntoKC: Failed to get the symbol name for symbol %d", extRelocInfo->r_symbolnum);
+				SYSLOG("mach", "injectKextIntoKC: Failed to get the symbol name for symbol %u", extRelocInfo->r_symbolnum);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
 				dataPages->release();
@@ -690,7 +690,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
 			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
 			if (!pageToReloc) {
-				SYSLOG("mach", "injectKextIntoKC: pageToReloc at %d is null", i);
+				SYSLOG("mach", "injectKextIntoKC: pageToReloc at %u is null", i);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
 				dataPages->release();
@@ -855,7 +855,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 	auto *scmd = reinterpret_cast<segment_command_64 *>(file_buf + sizeof(mach_header_64) + header->sizeofcmds);
 	scmd->cmd = LC_SEGMENT_64;
 	scmd->cmdsize = sizeof(segment_command_64);
-	snprintf(scmd->segname, 16, "__LILU%d", kexts_injected);
+	snprintf(scmd->segname, 16, "__LILU%u", kexts_injected);
 	kexts_injected++;
 	scmd->vmaddr = scmd->fileoff = imageOffset;
 	scmd->vmsize = alignValue(executableSize);
