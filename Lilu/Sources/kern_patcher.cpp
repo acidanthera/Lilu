@@ -438,10 +438,12 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 
 		auto *liluInjectionInfoAddrData =
 			nvram->read(varName, NVStorage::Options::OptRaw);
+		IOFree(varName, 128);
 		if (!liluInjectionInfoAddrData) {
 			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-injection-info-addr-%d", i);
 			return false;
 		}
+
 		auto liluInjectionInfoAddr = *reinterpret_cast<const uint64_t *>(liluInjectionInfoAddrData->getBytesNoCopy());
 		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-addr-%d = 0x%llX", i, liluInjectionInfoAddr);
 		liluInjectionInfoAddrData->free();
@@ -477,7 +479,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 		strncpy(bundlePath, liluInjectionInfo->BundlePath, sizeof(liluInjectionInfo->BundlePath));
 		injectionInfo->bundlePath = bundlePath;
 
-		auto *infoPlist = Buffer::create<char>(sizeof(liluInjectionInfo->InfoPlistSize));
+		auto *infoPlist = Buffer::create<char>(liluInjectionInfo->InfoPlistSize);
 		if (!infoPlist) {
 			SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate infoPlist");
 			return false;
@@ -496,7 +498,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 			strncpy(executablePath, liluInjectionInfo->ExecutablePath, sizeof(liluInjectionInfo->ExecutablePath));
 			injectionInfo->executablePath = executablePath;
 
-			auto *executable = Buffer::create<uint8_t>(sizeof(liluInjectionInfo->ExecutableSize));
+			auto *executable = Buffer::create<uint8_t>(liluInjectionInfo->ExecutableSize);
 			if (!executable) {
 				SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to allocate executable");
 				return false;
