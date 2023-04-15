@@ -92,7 +92,7 @@ typedef struct {
 typedef struct {
   uint8_t Version;
   uint32_t EntryLength;
-  uint8_t KCType;
+  uint8_t KCKind;
   char BundlePath[128];
   uint32_t InfoPlistOffset;
   uint32_t InfoPlistSize;
@@ -111,7 +111,7 @@ typedef struct {
 typedef struct {
   char Identifier[128];
   bool Exclude;
-  uint8_t KCType;
+  uint8_t KCKind;
 } PACKED LILU_EXCLUSION_INFO_ENTRY;
 
 typedef struct {
@@ -1014,7 +1014,7 @@ private:
 	t_getAddressFromKextMap orgGetAddressFromKextMap {nullptr};
 
 	/**
-	 *  The type of KC OSKext::loadKCFileSet is currently loading, if any
+	 *  The kind of KC OSKext::loadKCFileSet is currently loading, if any
 	 */
 	kc_kind_t curLoadingKCKind = kc_kind::KCKindNone;
 

@@ -453,11 +453,11 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 		sizeof(LILU_INJECTION_INFO), kIODirectionIn);
 		auto *map = memDesc->map();
 		auto *injectionHeader = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
-		uint32_t version = injectionHeader->Version, size = injectionHeader->EntryLength, kcType = injectionHeader->KCType;
-		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%u Version = %u EntryLength = %u, KCType = %u", i, version, size, kcType);
+		uint32_t version = injectionHeader->Version, size = injectionHeader->EntryLength, kcKind = injectionHeader->KCKind;
+		DBGLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%u Version = %u EntryLength = %u, KCKind = %u", i, version, size, kcKind);
 		memDesc->release();
 		map->release();
-		if (version != 0 || kcType > 3) {
+		if (version != 0 || kcKind > 3) {
 			SYSLOG("patcher", "fetchInfoFromOpenCore: lilu-injection-info-%u invalid header! Bailing", i);
 			return false;
 		}
@@ -514,7 +514,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 		}
 
 		auto *injectionInfoData = OSData::withBytes(injectionInfo, sizeof(*injectionInfo));
-		kcInjectInfos[kcType]->setObject(injectionInfoData);
+		kcInjectInfos[kcKind]->setObject(injectionInfoData);
 		injectionInfoData->release();
 		IOFree(injectionInfo, sizeof(KextInjectionInfo));
 
@@ -590,7 +590,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		auto *liluExclusionInfo = that->getLiluExclusionInfo();
 		for (uint32_t i = 0; i < liluExclusionInfo->Header.KextCount; i++) {
 			auto *curEntry = &liluExclusionInfo->Entries[i];
-			doHijack |= curEntry->KCType == that->curLoadingKCKind;
+			doHijack |= curEntry->KCKind == that->curLoadingKCKind;
 		}
 
 		if (!doHijack) {
@@ -624,7 +624,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		// Block kexts
 		for (uint32_t i = 0; i < liluExclusionInfo->Header.KextCount; i++) {
 			auto *curEntry = &liluExclusionInfo->Entries[i];
-			if (curEntry->KCType != that->curLoadingKCKind) { continue; }
+			if (curEntry->KCKind != that->curLoadingKCKind) { continue; }
 			kcInfo->blockKextFromKC(curEntry->Identifier, curEntry->Exclude);
 		}
 
@@ -683,20 +683,20 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 
 	if (that) {
 		const char * kcName = nullptr;
-		kc_kind kcType = kc_kind::KCKindNone;
+		kc_kind kcKind = kc_kind::KCKindNone;
 		if (target_map == *that->gKextMap) {
 			kcName = "Unknown";
-			kcType = kc_kind::KCKindUnknown;
+			kcKind = kc_kind::KCKindUnknown;
 			if (control == that->kcControls[kc_kind::KCKindPageable]) {
 				kcName = "Sys";
-				kcType = kc_kind::KCKindPageable;
+				kcKind = kc_kind::KCKindPageable;
 			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
 				kcName = "Aux";
-				kcType = kc_kind::KCKindAuxiliary;
+				kcKind = kc_kind::KCKindAuxiliary;
 			}
 		}
 
-		bool doOverride = kcType != kc_kind::KCKindNone && that->kcMachInfos[kcType] != nullptr;
+		bool doOverride = kcKind != kc_kind::KCKindNone && that->kcMachInfos[kcKind] != nullptr;
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
@@ -707,7 +707,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 			   control, offset, copy, cur_protection, max_protection, inheritance);
 		if (doOverride) {
 			if (ret) SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
-			uint8_t *patchedKC = that->kcMachInfos[kcType]->getFileBuf();
+			uint8_t *patchedKC = that->kcMachInfos[kcKind]->getFileBuf();
 			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
 		}
 	}
