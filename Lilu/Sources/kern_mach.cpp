@@ -766,7 +766,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		identifier = bundleIdentifier->getCStringNoCopy();
 		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
 	}
-	blockKextFromKC(identifier);
+	blockKextFromKC(identifier, true);
 
 	// Append the image
 	if (executable) {
