@@ -362,15 +362,13 @@ void KernelPatcher::setupKextListening() {
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 #ifdef LILU_KCINJECT_SUPPORT
-bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore() {
+bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram) {
 	if (kcSymbols != nullptr) {
 		SYSLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: kcSymbols is already initialized");
 		return true;
 	}
 
 	// Fetch lilu-prelinked-symbols-addr
-	auto *nvram = new NVStorage {};
-	nvram->init();
 	auto *prelinkedSymbolsAddrData =
 		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
 	if (!prelinkedSymbolsAddrData) {
@@ -414,15 +412,11 @@ bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore() {
 
 	memDesc->release();
 	map->release();
-	nvram->deinit();
-	delete nvram;
 	return true;
 }
 
-bool KernelPatcher::fetchInjectionInfoFromOpenCore() {
+bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 	// Fetch lilu-kext-count
-	auto *nvram = new NVStorage {};
-	nvram->init();
 	auto *liluKextCountData =
 		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-kext-count", NVStorage::Options::OptRaw);
 	if (!liluKextCountData) {
@@ -470,12 +464,16 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore() {
 		auto *injectionInfo = reinterpret_cast<KextInjectionInfo *>(IOMalloc(sizeof(KextInjectionInfo)));
 		if (!injectionInfo) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate injectionInfo");
+			memDesc->release();
+			map->release();
 			return false;
 		}
 
 		auto *bundlePath = Buffer::create<char>(sizeof(liluInjectionInfo->BundlePath));
 		if (!bundlePath) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate bundlePath");
+			memDesc->release();
+			map->release();
 			return false;
 		}
 		strncpy(bundlePath, liluInjectionInfo->BundlePath, sizeof(liluInjectionInfo->BundlePath));
@@ -484,6 +482,8 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore() {
 		auto *infoPlist = Buffer::create<char>(liluInjectionInfo->InfoPlistSize);
 		if (!infoPlist) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate infoPlist");
+			memDesc->release();
+			map->release();
 			return false;
 		}
 		memcpy(infoPlist,
@@ -495,6 +495,8 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore() {
 			auto *executablePath = Buffer::create<char>(sizeof(liluInjectionInfo->ExecutablePath));
 			if (!executablePath) {
 				SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate executablePath");
+				memDesc->release();
+				map->release();
 				return false;
 			}
 			strncpy(executablePath, liluInjectionInfo->ExecutablePath, sizeof(liluInjectionInfo->ExecutablePath));
@@ -503,6 +505,8 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore() {
 			auto *executable = Buffer::create<uint8_t>(liluInjectionInfo->ExecutableSize);
 			if (!executable) {
 				SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate executable");
+				memDesc->release();
+				map->release();
 				return false;
 			}
 			memcpy(executable,
@@ -523,16 +527,11 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore() {
 		memDesc->release();
 		map->release();
 	}
-
-	nvram->deinit();
-	delete nvram;
 	return true;
 }
 
-bool KernelPatcher::fetchExclusionInfoFromOpenCore() {
+bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
 	// Fetch lilu-exclusion-info-addr
-	auto *nvram = new NVStorage {};
-	nvram->init();
 	auto *liluExclusionInfoAddrData =
 		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-exclusion-info-addr", NVStorage::Options::OptRaw);
 	if (!liluExclusionInfoAddrData) {
@@ -553,6 +552,8 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore() {
 	       version, exclusionInfo->Header.Size, exclusionInfo->Header.KextCount);
 	if (version != 0) {
 		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing");
+		memDesc->release();
+		map->release();
 		return false;
 	}
 
@@ -570,13 +571,14 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore() {
 
 	memDesc->release();
 	map->release();
-	nvram->deinit();
-	delete nvram;
 	return true;
 }
 
 bool KernelPatcher::fetchInfoFromOpenCore() {
-	if (!fetchPrelinkedSymbolsFromOpenCore()) {
+	auto *nvram = new NVStorage {};
+	nvram->init();
+
+	if (!fetchPrelinkedSymbolsFromOpenCore(nvram)) {
 		kcSymbols = OSDictionary::withCapacity(0);
 	}
 
@@ -584,14 +586,16 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	for (uint32_t i = 0; i < 4; i++) {
 		kcInjectInfos[i] = OSArray::withCapacity(0);
 	}
-	fetchInjectionInfoFromOpenCore();
+	fetchInjectionInfoFromOpenCore(nvram);
 
 	// Initialize kcExclusionInfos
 	for (uint32_t i = 0; i < 4; i++) {
 		kcExclusionInfos[i] = OSArray::withCapacity(0);
 	}
-	fetchExclusionInfoFromOpenCore();
+	fetchExclusionInfoFromOpenCore(nvram);
 
+	nvram->deinit();
+	delete nvram;
 	return true;
 }
 

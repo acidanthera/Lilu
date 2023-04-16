@@ -546,17 +546,17 @@ public:
 	/**
 	 *  Initialize kcSymbols with info from OpenCore
 	 */
-	bool fetchPrelinkedSymbolsFromOpenCore();
+	bool fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram);
 
 	/**
 	 *  Initialize kcInjectInfos with info from OpenCore
 	 */
-	bool fetchInjectionInfoFromOpenCore();
+	bool fetchInjectionInfoFromOpenCore(NVStorage *nvram);
 
 	/**
 	 *  Initialize kcExclusionInfos with info from OpenCore
 	 */
-	bool fetchExclusionInfoFromOpenCore();
+	bool fetchExclusionInfoFromOpenCore(NVStorage *nvram);
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
