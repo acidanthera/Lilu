@@ -227,8 +227,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 		}
 
 		auto kmodInfo = reinterpret_cast<kmod_info_64_v1 *>(file_buf + kmodOffset);
-		auto startAddr = reinterpret_cast<ChainedFixupPointerOnDisk *>(kmodInfo->start_addr)->fixup64.target;
-		DBGLOG("mach", "blockKextFromKC: startAddr raw64=%llX fixup64.target=%llX", kmodInfo->start_addr, startAddr);
+		auto startAddr = reinterpret_cast<ChainedFixupPointerOnDisk *>(&kmodInfo->start_addr)->fixup64.target;
 
 		//
 		// mov eax, KMOD_RETURN_FAILURE
