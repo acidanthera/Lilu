@@ -681,8 +681,8 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
 			} else {
 				if (r_address < dataVmaddr || (dataVmaddr + dataFilesize) <= r_address) {
-					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
-						r_address, dataVmaddr, dataVmaddr + dataFilesize);
+					// DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
+					// 	r_address, dataVmaddr, dataVmaddr + dataFilesize);
 					kextInfo->deinit();
 					MachInfo::deleter(kextInfo);
 					dataPages->release();
