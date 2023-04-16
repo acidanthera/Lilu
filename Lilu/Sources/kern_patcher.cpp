@@ -531,27 +531,27 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 }
 
 bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
-	// Fetch lilu-exclusion-info-addr
+	// Fetch lilu-block-info-addr
 	auto *liluExclusionInfoAddrData =
-		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-exclusion-info-addr", NVStorage::Options::OptRaw);
+		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-block-info-addr", NVStorage::Options::OptRaw);
 	if (!liluExclusionInfoAddrData) {
-		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: Failed to fetch lilu-exclusion-info-addr");
+		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: Failed to fetch lilu-block-info-addr");
 		return false;
 	}
 
 	auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
-	DBGLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-exclusion-info-addr = 0x%llX", liluExclusionInfoAddr);
+	DBGLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info-addr = 0x%llX", liluExclusionInfoAddr);
 	liluExclusionInfoAddrData->free();
 
-	// Map lilu-exclusion-info-addr
-	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
+	// Map lilu-block-info-addr
+	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
 	auto *map = memDesc->map();
-	auto *exclusionInfo = reinterpret_cast<LILU_EXCLUSION_INFO *>(map->getVirtualAddress());
+	auto *exclusionInfo = reinterpret_cast<LILU_BLOCK_INFO *>(map->getVirtualAddress());
 	uint32_t version = exclusionInfo->Header.Version;
-	DBGLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-exclusion-info Version = %u Size = %u, KextCount = %u",
+	DBGLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info Version = %u Size = %u, KextCount = %u",
 	       version, exclusionInfo->Header.Size, exclusionInfo->Header.KextCount);
 	if (version != 0) {
-		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-exclusion-info invalid header! Bailing");
+		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info invalid header! Bailing");
 		memDesc->release();
 		map->release();
 		return false;
@@ -564,7 +564,7 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
 			continue;
 		}
 
-		auto *entryData = OSData::withBytes(entry, sizeof(LILU_EXCLUSION_INFO_ENTRY));
+		auto *entryData = OSData::withBytes(entry, sizeof(LILU_BLOCK_INFO_ENTRY));
 		kcExclusionInfos[entry->KCKind]->setObject(entryData);
 		entryData->release();
 	}
@@ -692,7 +692,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 				return ret;
 			}
 
-			auto *exclusionInfo = reinterpret_cast<const LILU_EXCLUSION_INFO_ENTRY *>(curObjData->getBytesNoCopy());
+			auto *exclusionInfo = reinterpret_cast<const LILU_BLOCK_INFO_ENTRY *>(curObjData->getBytesNoCopy());
 			kcInfo->blockKextFromKC(exclusionInfo->Identifier, exclusionInfo->Exclude);
 		}
 		iterator->release();

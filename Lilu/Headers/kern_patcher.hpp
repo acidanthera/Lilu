@@ -107,21 +107,21 @@ typedef struct {
   uint8_t Version;
   uint32_t Size;
   uint32_t KextCount;
-} PACKED LILU_EXCLUSION_INFO_HEADER;
+} PACKED LILU_BLOCK_INFO_HEADER;
 
 typedef struct {
   char Identifier[128];
   bool Exclude;
   uint8_t KCKind;
-} PACKED LILU_EXCLUSION_INFO_ENTRY;
+} PACKED LILU_BLOCK_INFO_ENTRY;
 
 typedef struct {
-  LILU_EXCLUSION_INFO_HEADER Header;
-  LILU_EXCLUSION_INFO_ENTRY Entries[0];
-} PACKED LILU_EXCLUSION_INFO;
+  LILU_BLOCK_INFO_HEADER Header;
+  LILU_BLOCK_INFO_ENTRY Entries[0];
+} PACKED LILU_BLOCK_INFO;
 
-// The maximize size of LILU_EXCLUSION_INFO allowed on version 0
-#define LILU_EXCLUSION_INFO_SIZE_LIMIT_VERSION_0 16384
+// The maximize size of LILU_BLOCK_INFO allowed on version 0
+#define LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0 16384
 #endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
