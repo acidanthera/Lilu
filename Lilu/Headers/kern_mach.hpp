@@ -503,6 +503,21 @@ public:
 	void setKcSymbols(OSDictionary *kcSymbols) {
 		kc_symbols = kcSymbols;
 	}
+
+	/**
+	 *  Get the file offset of the symbols
+	 */
+	uint64_t getSymFileOff() {
+		return sym_fileoff;
+	}
+
+	/**
+	 *  Set the symbol buffer
+	 */
+	void setSymBuf(uint8_t *symBuf, size_t symSize) {
+		sym_buf = symBuf;
+		sym_size = symSize;
+	}
 };
 
 #endif /* kern_mach_hpp */

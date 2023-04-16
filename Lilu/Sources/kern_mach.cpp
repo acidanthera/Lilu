@@ -215,12 +215,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 
 		kextInfo->initFromBuffer(imagePtr, imageSize, imageSize);
 		kextInfo->processMachHeader(kextInfo->getFileBuf());
-		kern_return_t error = kextInfo->readSymbols(NULLVP, nullptr);
-		if (error != KERN_SUCCESS) {
-			kextInfo->deinit();
-			MachInfo::deleter(kextInfo);
-			return error;
-		}
+		kextInfo->setSymBuf(file_buf + kextInfo->getSymFileOff());
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
 		uint32_t kmodOffset = static_cast<uint32_t>(kextInfo->solveSymbol("_kmod_info"));
