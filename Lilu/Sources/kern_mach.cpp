@@ -899,6 +899,7 @@ kern_return_t MachInfo::extractKextsSymbols() {
 		return KERN_FAILURE;
 	}
 
+	uint32_t kextsParsed = 0;
 	for (OSObject *curObj; (curObj = iterator->getNextObject());) {
 		// Fetch the executable
 		auto *curKextInfo = OSDynamicCast(OSDictionary, curObj);
@@ -956,6 +957,11 @@ kern_return_t MachInfo::extractKextsSymbols() {
 				symbolValue->release();
 			}
 			curNlist++;
+		}
+
+		kextsParsed++;
+		if (kextsParsed % 10 == 0) {
+			DBGLOG("mach", "extractKextsSymbols: Parsed %u kexts", kextsParsed);
 		}
 	}
 	iterator->release();
