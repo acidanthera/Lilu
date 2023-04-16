@@ -221,7 +221,6 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 		uint32_t kmodOffset = static_cast<uint32_t>(kextInfo->solveSymbol("_kmod_info"));
 		if (!kmodOffset) {
 			SYSLOG("mach", "blockKextFromKC: Failed to resolve _kmod_info");
-			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
 			return KERN_FAILURE;
 		}
@@ -241,7 +240,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 		patchAddr[4] = 0x00;
 		patchAddr[5] = 0xC3;
 
-		kextInfo->deinit();
+		// Don't call kextInfo->deinit() as none of its buffers were copied
 		MachInfo::deleter(kextInfo);
 	} else {
 		DBGLOG("mach", "blockKextFromKC: Excluding %s", identifier);
