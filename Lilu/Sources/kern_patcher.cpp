@@ -771,13 +771,13 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
+			DBGLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
 			   control, offset, copy, cur_protection, max_protection, inheritance);
 		if (doOverride) {
-			if (ret) SYSLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
+			if (ret) DBGLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
 			uint8_t *patchedKC = that->kcMachInfos[kcKind]->getFileBuf();
 			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
 		}
@@ -796,9 +796,29 @@ kern_return_t KernelPatcher::onVmMapRemove(
 
 	if (that) {
 		if (map == *that->gKextMap) {
-			SYSLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from g_kext_map", start, end);
+			DBGLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from g_kext_map", start, end);
 		}
 		ret = FunctionCast(onVmMapRemove, that->orgVmMapRemove)(map, start, end, flags);
+	}
+
+	return ret;
+}
+
+kern_return_t KernelPatcher::onVmMapProtect(
+	vm_map_t        map,
+	vm_map_offset_t start,
+	vm_map_offset_t end,
+	vm_prot_t       new_prot,
+	boolean_t       set_max)
+{
+	kern_return_t ret = -1;
+
+	if (that) {
+		if (map == *that->gKextMap) {
+			DBGLOG("patcher", "onVmMapProtect: Protecting range %llX ~ %llX in g_kext_map new_prot=%d set_max=%u",
+			       start, end, new_prot, set_max);
+		}
+		ret = FunctionCast(onVmMapProtect, that->orgVmMapProtect)(map, start, end, new_prot, set_max);
 	}
 
 	return ret;
@@ -831,6 +851,7 @@ void KernelPatcher::setupKCListening() {
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
 		{ "_vm_map_remove", onVmMapRemove, orgVmMapRemove },
+		{ "_vm_map_protect", onVmMapProtect, orgVmMapProtect },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {

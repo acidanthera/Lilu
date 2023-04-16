@@ -540,6 +540,21 @@ public:
 		boolean_t       flags);
 
 	/**
+	 *  A pointer to vm_map_protect()
+	 */
+	mach_vm_address_t orgVmMapProtect {};
+
+	/**
+	 *  Called during vm map protect if KC listening is enabled
+	 */
+	static kern_return_t onVmMapProtect(
+		vm_map_t        map,
+		vm_map_offset_t start,
+		vm_map_offset_t end,
+		vm_prot_t       new_prot,
+	    boolean_t       set_max);
+
+	/**
 	 *  Initialize kcSymbols, kcInjectInfos, and kcExclusionInfos with info from OpenCore
 	 */
 	bool fetchInfoFromOpenCore();
