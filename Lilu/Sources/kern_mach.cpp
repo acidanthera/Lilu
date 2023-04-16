@@ -104,7 +104,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 		mach_header_64 *mh = (mach_header_64*)file_buf;
 		uint8_t *addr = (uint8_t*)(mh + 1);
 
-		// Reserve more space in __LINKEDIT
+		// Reserve more space in __LINKEDIT and find some useful values
 		uint32_t linkeditIncrease = min(16 * 1024 * 1024, alignValue(static_cast<uint32_t>(0.5 * origBufSize)));
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
@@ -120,6 +120,8 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 					branch_stubs_offset = static_cast<uint32_t>(segCmd->fileoff);
 				} else if (!strncmp(segCmd->segname, "__BRANCH_GOTS", sizeof(segCmd->segname))) {
 					branch_gots_offset = static_cast<uint32_t>(segCmd->fileoff);
+				} else if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
+					disk_text_addr = segCmd->vmaddr;
 				}
 
 				uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
