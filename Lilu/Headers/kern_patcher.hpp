@@ -81,12 +81,12 @@ typedef struct {
   uint32_t EntryLength;
   uint64_t SymbolValue;
   uint32_t SymbolNameLength;
-  char SymbolName[0];
+  char SymbolName[];
 } PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
 
 typedef struct {
   LILU_PRELINKED_SYMBOLS_HEADER Header;
-  LILU_PRELINKED_SYMBOLS_ENTRY Entries[0];
+  LILU_PRELINKED_SYMBOLS_ENTRY Entries[];
 } PACKED LILU_PRELINKED_SYMBOLS;
 
 
@@ -117,7 +117,7 @@ typedef struct {
 
 typedef struct {
   LILU_BLOCK_INFO_HEADER Header;
-  LILU_BLOCK_INFO_ENTRY Entries[0];
+  LILU_BLOCK_INFO_ENTRY Entries[];
 } PACKED LILU_BLOCK_INFO;
 
 // The maximize size of LILU_BLOCK_INFO allowed on version 0
