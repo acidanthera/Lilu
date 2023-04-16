@@ -771,7 +771,8 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
-			DBGLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
+			// TODO: Find a way to change this to DBGLOG without breaking release build
+			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
@@ -850,12 +851,21 @@ void KernelPatcher::setupKCListening() {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
-		{ "_vm_map_remove", onVmMapRemove, orgVmMapRemove },
-		{ "_vm_map_protect", onVmMapProtect, orgVmMapProtect },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
 		SYSLOG("patcher", "failed to route KC listener functions");
+		return;
+	}
+
+	if (getKernelVersion() != KernelVersion::BigSur) return;
+	KernelPatcher::RouteRequest debugRequests[] = {
+		{ "_vm_map_remove", onVmMapRemove, orgVmMapRemove },
+		{ "_vm_map_protect", onVmMapProtect, orgVmMapProtect },
+	};
+
+	if (!routeMultiple(KernelID, debugRequests, arrsize(debugRequests))) {
+		SYSLOG("patcher", "failed to route KC functions for debugging");
 		return;
 	}
 }
