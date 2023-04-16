@@ -514,9 +514,8 @@ public:
 	/**
 	 *  Set the symbol buffer
 	 */
-	void setSymBuf(uint8_t *symBuf, size_t symSize) {
+	void setSymBuf(uint8_t *symBuf) {
 		sym_buf = symBuf;
-		sym_size = symSize;
 	}
 };
 
