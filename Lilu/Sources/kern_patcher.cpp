@@ -572,6 +572,7 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore() {
 	map->release();
 	nvram->deinit();
 	delete nvram;
+	return true;
 }
 
 bool KernelPatcher::fetchInfoFromOpenCore() {
@@ -701,7 +702,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			return ret;
 		}
 
-		OSObject *curObj = nullptr;
+		curObj = nullptr;
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
