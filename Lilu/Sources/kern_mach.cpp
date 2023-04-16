@@ -195,81 +195,125 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 }
 
 kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
-	if (!exclude) {
-		DBGLOG("mach", "blockKextFromKC: TODO: Kext block");
-	}
-
-	DBGLOG("mach", "blockKextFromKC: Excluding %s", identifier);
-
-	// Remove the related LC_FILESET_ENTRY command
-	auto header = (mach_header*)(file_buf);
-	auto orgCmd = (load_command*)(file_buf);
-
-	if (header->magic == MH_MAGIC_64) {
-		reinterpret_cast<uintptr_t &>(orgCmd) += sizeof(mach_header_64);
-	} else if (header->magic == MH_MAGIC) {
-		reinterpret_cast<uintptr_t &>(orgCmd) += sizeof(mach_header);
-	}
-
-	uint8_t *endaddr = file_buf + file_buf_free_start;
-	auto dstCmd = orgCmd;
-	for (uint32_t no = 0; no < header->ncmds; no++) {
-		if (!isAligned(orgCmd)) {
-			SYSLOG("mach", "blockKextFromKC: Invalid command %u position for section lookup", no);
-			return KERN_FAILURE;
-		}
-
-		if (reinterpret_cast<uint8_t *>(orgCmd) + sizeof(load_command) > endaddr || reinterpret_cast<uint8_t *>(orgCmd) + orgCmd->cmdsize > endaddr) {
-			SYSLOG("mach", "blockKextFromKC: Header command %u exceeds header size for section lookup", no);
-			return KERN_FAILURE;
-		}
-
-		uint32_t cmdsize = orgCmd->cmdsize;
-		if (orgCmd->cmd == LC_FILESET_ENTRY) {
-			auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
-			// If this is the kext we are trying to exclude
-			const char *curEntryName = (char*)fcmd + fcmd->stringOffset;
-			uint32_t curEntryCapacity = fcmd->commandSize - fcmd->stringOffset;
-			// DBGLOG("mach", "blockKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
-			if (!strncmp(identifier, curEntryName, curEntryCapacity)) {
-				// DBGLOG("mach", "blockKextFromKC: Skipping related LC_FILESET_ENTRY");
-				header->sizeofcmds -= cmdsize;
-				goto skipCommand;
-			}
-		}
-
-		if (orgCmd != dstCmd) {
-			// DBGLOG("mach", "blockKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
-			memcpy(dstCmd, orgCmd, cmdsize);
-		}
-		reinterpret_cast<uintptr_t &>(dstCmd) += cmdsize;
-
-		skipCommand:
-		reinterpret_cast<uintptr_t &>(orgCmd) += cmdsize;
-	}
-
-	if (orgCmd == dstCmd) {
-		SYSLOG("mach", "blockKextFromKC: Unable to locate related LC_FILESET_ENTRY");
-		return KERN_FAILURE;
-	}
-	header->ncmds--;
-
-	// Remove the kext from the prelink info
 	uint32_t imageIndex;
 	uint32_t imageSize;
 	mach_vm_address_t slide;
 	bool missing;
 	uint8_t *imagePtr = findImage(identifier, imageIndex, imageSize, slide, missing);
-	if (imagePtr == nullptr) return KERN_FAILURE;
+	if (imagePtr == nullptr) {
+		SYSLOG("mach", "blockKextFromKC: Kext identifier %s not found in the KC", identifier);
+		return KERN_FAILURE;
+	}
 
-	imageArr = imageArr ?: OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
-	if (!imageArr) return KERN_FAILURE;
-	imageArr->removeObject(imageIndex);
+	if (!exclude) {
+		DBGLOG("mach", "blockKextFromKC: Disabling %s", identifier);
+		MachInfo *kextInfo = MachInfo::create();
+		if (!kextInfo) {
+			SYSLOG("mach", "blockKextFromKC: failed to create kextInfo");
+			return KERN_RESOURCE_SHORTAGE;
+		}
 
-	// Overwrite the kext image with zero
-	memset(imagePtr, 0, imageSize);
+		kextInfo->initFromBuffer(imagePtr, imageSize, imageSize);
+		kextInfo->processMachHeader(kextInfo->getFileBuf());
+		kern_return_t error = kextInfo->readSymbols(NULLVP, nullptr);
+		if (error != KERN_SUCCESS) {
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			return error;
+		}
+		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
-	DBGLOG("mach", "blockKextFromKC: %s is now excluded", identifier);
+		uint32_t kmodOffset = static_cast<uint32_t>(kextInfo->solveSymbol("_kmod_info"));
+		if (!kmodOffset) {
+			SYSLOG("mach", "blockKextFromKC: Failed to resolve _kmod_info");
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			return KERN_FAILURE;
+		}
+
+		auto kmodInfo = reinterpret_cast<kmod_info_64_v1 *>(file_buf + kmodOffset);
+		auto startAddr = reinterpret_cast<ChainedFixupPointerOnDisk *>(kmodInfo->start_addr)->fixup64.target;
+
+		//
+		// mov eax, KMOD_RETURN_FAILURE
+		// ret
+		//
+		auto *patchAddr = file_buf + startAddr;
+		patchAddr[0] = 0xB8;
+		patchAddr[1] = KMOD_RETURN_FAILURE;
+		patchAddr[2] = 0x00;
+		patchAddr[3] = 0x00;
+		patchAddr[4] = 0x00;
+		patchAddr[5] = 0xC3;
+
+		kextInfo->deinit();
+		MachInfo::deleter(kextInfo);
+	} else {
+		DBGLOG("mach", "blockKextFromKC: Excluding %s", identifier);
+		// Remove the related LC_FILESET_ENTRY command
+		auto header = (mach_header*)(file_buf);
+		auto orgCmd = (load_command*)(file_buf);
+
+		if (header->magic == MH_MAGIC_64) {
+			reinterpret_cast<uintptr_t &>(orgCmd) += sizeof(mach_header_64);
+		} else if (header->magic == MH_MAGIC) {
+			reinterpret_cast<uintptr_t &>(orgCmd) += sizeof(mach_header);
+		}
+
+		uint8_t *endaddr = file_buf + file_buf_free_start;
+		auto dstCmd = orgCmd;
+		for (uint32_t no = 0; no < header->ncmds; no++) {
+			if (!isAligned(orgCmd)) {
+				SYSLOG("mach", "blockKextFromKC: Invalid command %u position for section lookup", no);
+				return KERN_FAILURE;
+			}
+
+			if (reinterpret_cast<uint8_t *>(orgCmd) + sizeof(load_command) > endaddr ||
+			    reinterpret_cast<uint8_t *>(orgCmd) + orgCmd->cmdsize > endaddr) {
+				SYSLOG("mach", "blockKextFromKC: Header command %u exceeds header size for section lookup", no);
+				return KERN_FAILURE;
+			}
+
+			uint32_t cmdsize = orgCmd->cmdsize;
+			if (orgCmd->cmd == LC_FILESET_ENTRY) {
+				auto fcmd = reinterpret_cast<fileset_entry_command *>(orgCmd);
+				// If this is the kext we are trying to exclude
+				const char *curEntryName = (char*)fcmd + fcmd->stringOffset;
+				uint32_t curEntryCapacity = fcmd->commandSize - fcmd->stringOffset;
+				// DBGLOG("mach", "blockKextFromKC: Found %s entry with capacity of %d", curEntryName, curEntryCapacity);
+				if (!strncmp(identifier, curEntryName, curEntryCapacity)) {
+					// DBGLOG("mach", "blockKextFromKC: Skipping related LC_FILESET_ENTRY");
+					header->sizeofcmds -= cmdsize;
+					goto skipCommand;
+				}
+			}
+
+			if (orgCmd != dstCmd) {
+				// DBGLOG("mach", "blockKextFromKC: Copying %d bytes to %p from %p", cmdsize, dstCmd, orgCmd);
+				memcpy(dstCmd, orgCmd, cmdsize);
+			}
+			reinterpret_cast<uintptr_t &>(dstCmd) += cmdsize;
+
+			skipCommand:
+			reinterpret_cast<uintptr_t &>(orgCmd) += cmdsize;
+		}
+
+		if (orgCmd == dstCmd) {
+			SYSLOG("mach", "blockKextFromKC: Unable to locate related LC_FILESET_ENTRY");
+			return KERN_FAILURE;
+		}
+		header->ncmds--;
+
+		// Remove the kext from the prelink info
+		imageArr = imageArr ?: OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
+		if (!imageArr) return KERN_FAILURE;
+		imageArr->removeObject(imageIndex);
+
+		// Overwrite the kext image with zero
+		memset(imagePtr, 0, imageSize);
+	}
+
+	DBGLOG("mach", "blockKextFromKC: %s is now blocked", identifier);
 	return KERN_SUCCESS;
 }
 
