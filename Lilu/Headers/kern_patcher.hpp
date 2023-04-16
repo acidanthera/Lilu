@@ -13,6 +13,7 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_mach.hpp>
 #include <Headers/kern_disasm.hpp>
+#include <Headers/kern_nvram.hpp>
 
 #include <mach/mach_types.h>
 
