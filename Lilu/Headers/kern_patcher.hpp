@@ -539,16 +539,24 @@ public:
 		boolean_t       flags);
 
 	/**
-	 *  Initialize kcSymbols and with info from OpenCore
+	 *  Initialize kcSymbols, kcInjectInfos, and kcExclusionInfos with info from OpenCore
 	 */
 	bool fetchInfoFromOpenCore();
 
 	/**
-	 *  Get the Lilu exclusion info
+	 *  Initialize kcSymbols with info from OpenCore
 	 */
-	LILU_EXCLUSION_INFO *getLiluExclusionInfo() {
-		return reinterpret_cast<LILU_EXCLUSION_INFO *>(liluExclusionInfoMap->getVirtualAddress());
-	}
+	bool fetchPrelinkedSymbolsFromOpenCore();
+
+	/**
+	 *  Initialize kcInjectInfos with info from OpenCore
+	 */
+	bool fetchInjectionInfoFromOpenCore();
+
+	/**
+	 *  Initialize kcExclusionInfos with info from OpenCore
+	 */
+	bool fetchExclusionInfoFromOpenCore();
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -1034,6 +1042,11 @@ private:
 	OSArray *kcInjectInfos[4] = {nullptr};
 
 	/**
+	 *  Exclusion infos of SysKC and AuxKC
+	 */
+	OSArray *kcExclusionInfos[4] = {nullptr};
+
+	/**
 	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()
 	 */
 	vm_map_t *gKextMap = nullptr;
@@ -1042,11 +1055,6 @@ private:
 	 *  Stores exported symbols from various KCs
 	 */
 	OSDictionary *kcSymbols;
-
-	/**
-	 *  A memory map to the LILU_EXCLUSION_INFO
-	 */
-	IOMemoryMap *liluExclusionInfoMap = nullptr;
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
