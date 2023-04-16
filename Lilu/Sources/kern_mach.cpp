@@ -675,7 +675,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 					}
 					serializer->clearText();
 
-					jumpTarget = branch_stubs_offset + disk_text_addr + 6 * gotEntryId;
+					jumpTarget = branch_stubs_offset + static_cast<uint32_t>(disk_text_addr) + 6 * gotEntryId;
 				}
 
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
