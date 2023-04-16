@@ -506,7 +506,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				return KERN_FAILURE;
 			}
 			auto *curReloc = reinterpret_cast<ChainedFixupPointerOnDisk *>(executable + r_address);
-			curReloc->fixup64.target += imageOffset;
+			curReloc->fixup64.target += imageOffset - disk_text_addr;
 			curReloc->fixup64.cacheLevel = kc_index;
 			DBGLOG("mach", "injectKextIntoKC: r_address=%x target=%llx raw64=%llx", r_address, curReloc->fixup64.target, curReloc->raw64);
 
@@ -653,6 +653,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 						gotVal->raw64 = 0;
 						gotVal->fixup64.cacheLevel = resolvedSymbolKCIndex;
 						gotVal->fixup64.target = resolvedSymbolOffset;
+						if (resolvedSymbolKCIndex == kc_index) gotVal->fixup64.target -= disk_text_addr;
 						(gotVal - 1)->fixup64.next = 8;
 
 						auto *gotEntryIdObj = OSNumber::withNumber(gotEntryId, 32);
@@ -689,8 +690,9 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 					return KERN_FAILURE;
 				}
 				ChainedFixupPointerOnDisk *curReloc = (ChainedFixupPointerOnDisk*)(executable + r_address);
-				curReloc->fixup64.target = resolvedSymbolOffset;
 				curReloc->fixup64.cacheLevel = resolvedSymbolKCIndex;
+				curReloc->fixup64.target = resolvedSymbolOffset;
+				if (resolvedSymbolKCIndex == kc_index) curReloc->fixup64.target -= disk_text_addr;
 
 				auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
 				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
