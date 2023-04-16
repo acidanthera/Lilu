@@ -565,7 +565,7 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
 		}
 
 		auto *entryData = OSData::withBytes(entry, sizeof(LILU_EXCLUSION_INFO_ENTRY));
-		kcExclusionInfos[i]->setObject(entryData);
+		kcExclusionInfos[entry->KCKind]->setObject(entryData);
 		entryData->release();
 	}
 
