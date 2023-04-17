@@ -263,7 +263,7 @@ extern proc_t kernproc;
  *
  *  @param format  formatted string
  */
-EXPORT extern "C" void lilu_os_log(const char *format, ...);
+EXPORT extern "C" void lilu_os_log(const char *format, ...) __printflike(1, 2);
 
 /**
  *  Two-way substring search
