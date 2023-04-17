@@ -482,7 +482,7 @@ kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 	// on 32-bit MH_OBJECT, symbols are not contained within a segment
 	sym_buf = Buffer::create<uint8_t>(sym_size);
 	if (!sym_buf) {
-		SYSLOG("mach", "Could not allocate enough memory (%lld) for symbols", sym_size);
+		SYSLOG("mach", "Could not allocate enough memory (%zu) for symbols", sym_size);
 		return KERN_FAILURE;
 	}
 
@@ -492,7 +492,7 @@ kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 			lilu_os_memcpy(sym_buf, file_buf + sym_fileoff, sym_size);
 			return KERN_SUCCESS;
 		}
-		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", sym_fileoff, sym_size, file_buf_size);
+		SYSLOG("mach", "requested linkedit (%llu %zu) exceeds file buf size (%u)", sym_fileoff, sym_size, file_buf_size);
 	} else
 #endif /* LILU_COMPRESSION_SUPPORT */
 	{

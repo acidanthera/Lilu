@@ -881,7 +881,7 @@ bool UserPatcher::loadFilesForPatching() {
 								off_t valueOff = reinterpret_cast<uintptr_t>(start - pageOff - reinterpret_cast<uintptr_t>(sectionptr));
 								off_t segOff = vmsection-vmsegment+sectOff;
 
-								DBGLOG("user", "using it off %llX pageOff %llX new %lX segOff %llX", sectOff, pageOff, vmpage, segOff);
+								DBGLOG("user", "using it off %llX pageOff %lX new %lX segOff %llX", sectOff, pageOff, vmpage, segOff);
 
 								// We need binary entry, i.e. the page our patch belong to
 								LookupStorage *entry = nullptr;
