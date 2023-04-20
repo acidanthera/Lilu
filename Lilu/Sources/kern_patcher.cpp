@@ -673,7 +673,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
 		kcInfo->setKcSymbols(that->kcSymbols);
-		kcInfo->setKcKind(that->curLoadingKCKind);
+		kcInfo->setKcKind(that->curLoadingKCKind, that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
