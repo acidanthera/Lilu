@@ -26,6 +26,13 @@ enum MachType {
 	KextCollection
 };
 
+const char *kcNames[4] = {
+	"UnknownKC",
+	"PrimaryKC",
+	"SysKC",
+	"AuxKC"
+};
+
 #define LC_FILESET_ENTRY 0x80000035
 typedef struct {
   	uint32_t commandType;
@@ -159,6 +166,7 @@ class MachInfo {
 	bool is_kc {false};          			 	// Is Kext Collection (11.0+)
 	uint64_t self_uuid[2] {};                	// saved uuid of the loaded kext or kernel
 	uint32_t kexts_injected {0};             	// amount of kexts injected into the KC so far
+	uint32_t kc_kind {0};                       // Kind of the KC
 	uint32_t kc_index {0};                   	// Index of the KC (kc_kind2index)
 	OSDictionary *kc_symbols {nullptr};      	// Exported symbols from various KCs
 	OSArray *imageArr {nullptr};				// KC Prelink infos
@@ -490,11 +498,12 @@ public:
 	}
 
 	/**
-	 *  Set the KC index
+	 *  Set the KC kind and index
 	 *  KCKindPageable -> 1, KCKindAuxiliary -> 3
 	 */
-	void setKcIndex(uint32_t index) {
-		kc_index = index;
+	void setKcKind(uint32_t kind) {
+		kc_kind = kind;
+		kc_index = kc_kind == kc_kind::KCKindPageable ? 1 : 3;
 	}
 
     /**

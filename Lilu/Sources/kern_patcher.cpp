@@ -649,7 +649,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to map kcBuf");
 			return ret;
 		}
-		SYSLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
+		DBGLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
 
 		// Setup patched buffer
 		vm_size_t patchedKCSize = oldKcSize + 64 * 1024 * 1024;
@@ -673,7 +673,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
 		kcInfo->setKcSymbols(that->kcSymbols);
-		kcInfo->setKcIndex(that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
+		kcInfo->setKcKind(that->curLoadingKCKind);
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
@@ -756,13 +756,10 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		const char * kcName = nullptr;
 		kc_kind kcKind = kc_kind::KCKindNone;
 		if (target_map == *that->gKextMap) {
-			kcName = "Unknown";
 			kcKind = kc_kind::KCKindUnknown;
 			if (control == that->kcControls[kc_kind::KCKindPageable]) {
-				kcName = "Sys";
 				kcKind = kc_kind::KCKindPageable;
 			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
-				kcName = "Aux";
 				kcKind = kc_kind::KCKindAuxiliary;
 			}
 		}
@@ -771,8 +768,7 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
 			offset = 0;
-			// TODO: Find a way to change this to DBGLOG without breaking release build
-			SYSLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %sKC range %llX ~ %llX", kcName, realOffset, realOffset + initial_size);
+			DBGLOG("patcher", "onVmMapEnterMemObjectControl: Mapping %s range %llX ~ %llX", kcNames[kcKind], realOffset, realOffset + initial_size);
 		}
 		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
 			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
