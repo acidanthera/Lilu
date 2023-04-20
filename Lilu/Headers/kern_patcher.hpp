@@ -526,19 +526,6 @@ public:
 		vm_inherit_t            inheritance);
 
 	/**
-	 *  A pointer to mach_vm_deallocate()
-	 */
-	mach_vm_address_t orgMachVmDeallocate {};
-
-	/**
-	 *  Called during mach vm deallocate if KC listening is enabled
-	 */
-	static kern_return_t onMachVmDeallocate(
-		vm_map_t         map,
-		mach_vm_offset_t start,
-		mach_vm_size_t   size);
-
-	/**
 	 *  Initialize kcSymbols, kcInjectInfos, and kcExclusionInfos with info from OpenCore
 	 */
 	bool fetchInfoFromOpenCore();
@@ -1014,12 +1001,14 @@ private:
 	 */
 	using t_vmMapKcfilesetSegment = kern_return_t (*)(vm_map_offset_t*, vm_map_offset_t, void*, vm_object_offset_t, vm_prot_t);
 	using t_getAddressFromKextMap = vm_offset_t (*)(vm_size_t);
+	using t_machVmDeallocate = kern_return_t (*)(vm_map_t, vm_map_offset_t, mach_vm_size_t);
 
 	/**
 	 *  Original kernel function trampolines
 	 */
 	t_vmMapKcfilesetSegment orgVmMapKcfilesetSegment {nullptr};
 	t_getAddressFromKextMap orgGetAddressFromKextMap {nullptr};
+	t_machVmDeallocate orgMachVmDeallocate {nullptr};
 
 	/**
 	 *  The kind of KC OSKext::loadKCFileSet is currently loading, if any

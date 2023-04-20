@@ -667,7 +667,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			sizeLeft -= copyAmount;
 		}
 		
-		FunctionCast(onMachVmDeallocate, that->orgMachVmDeallocate)(*that->gKextMap, (vm_map_offset_t)kcBuf, *file_size);
+		that->orgMachVmDeallocate(*that->gKextMap, (vm_map_offset_t)kcBuf, *file_size);
 
 		// Initialize kcInfo
 		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
@@ -787,23 +787,6 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	return ret;
 }
 
-kern_return_t KernelPatcher::onMachVmDeallocate(
-	vm_map_t        map,
-	vm_map_offset_t start,
-	mach_vm_size_t  size)
-{
-	kern_return_t ret = -1;
-
-	if (that) {
-		if (map == *that->gKextMap) {
-			DBGLOG("patcher", "onMachVmDeallocate: Unmapping range %llX ~ %llX from g_kext_map", start, start + size);
-		}
-		ret = FunctionCast(onMachVmDeallocate, that->orgMachVmDeallocate)(map, start, size);
-	}
-
-	return ret;
-}
-
 void KernelPatcher::setupKCListening() {
 	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
 	if (getError() != Error::NoError) {
@@ -826,11 +809,17 @@ void KernelPatcher::setupKCListening() {
 		return;
 	}
 
+	orgMachVmDeallocate = reinterpret_cast<t_machVmDeallocate>(solveSymbol(KernelPatcher::KernelID, "_mach_vm_deallocate"));
+	if (getError() != Error::NoError) {
+		DBGLOG("patcher", "failed to resolve _mach_vm_deallocate");
+		clearError();
+		return;
+	}
+
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
-		{ "_mach_vm_deallocate", onMachVmDeallocate, orgMachVmDeallocate },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
