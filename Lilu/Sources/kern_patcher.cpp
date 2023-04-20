@@ -804,26 +804,6 @@ kern_return_t KernelPatcher::onMachVmDeallocate(
 	return ret;
 }
 
-kern_return_t KernelPatcher::onVmMapProtect(
-	vm_map_t        map,
-	vm_map_offset_t start,
-	vm_map_offset_t end,
-	vm_prot_t       new_prot,
-	boolean_t       set_max)
-{
-	kern_return_t ret = -1;
-
-	if (that) {
-		if (map == *that->gKextMap) {
-			DBGLOG("patcher", "onVmMapProtect: Protecting range %llX ~ %llX in g_kext_map new_prot=%d set_max=%u",
-			       start, end, new_prot, set_max);
-		}
-		ret = FunctionCast(onVmMapProtect, that->orgVmMapProtect)(map, start, end, new_prot, set_max);
-	}
-
-	return ret;
-}
-
 void KernelPatcher::setupKCListening() {
 	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
 	if (getError() != Error::NoError) {
@@ -851,7 +831,6 @@ void KernelPatcher::setupKCListening() {
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
 		{ "_mach_vm_deallocate", onMachVmDeallocate, orgMachVmDeallocate },
-		{ "_vm_map_protect", onVmMapProtect, orgVmMapProtect },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
