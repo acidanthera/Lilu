@@ -510,7 +510,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			auto *curReloc = reinterpret_cast<ChainedFixupPointerOnDisk *>(executable + r_address);
 			curReloc->fixup64.target += imageOffset - disk_text_addr;
 			curReloc->fixup64.cacheLevel = kc_index;
-			DBGLOG("mach", "injectKextIntoKC: r_address=%x target=%llx raw64=%llx", r_address, curReloc->fixup64.target, curReloc->raw64);
+			// DBGLOG("mach", "injectKextIntoKC: r_address=%x target=%llx raw64=%llx", r_address, curReloc->fixup64.target, curReloc->raw64);
 
 			auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
 			auto *set = OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId));
@@ -681,8 +681,8 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
 			} else {
 				if (r_address < dataVmaddr || (dataVmaddr + dataFilesize) <= r_address) {
-					// DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
-					// 	r_address, dataVmaddr, dataVmaddr + dataFilesize);
+					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
+					       r_address, dataVmaddr, dataVmaddr + dataFilesize);
 					kextInfo->deinit();
 					MachInfo::deleter(kextInfo);
 					dataPages->release();
