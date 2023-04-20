@@ -673,7 +673,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
 		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
 		kcInfo->setKcSymbols(that->kcSymbols);
-		kcInfo->setKcKind(that->curLoadingKCKind, that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
+		kcInfo->setKcKindAndIndex(that->curLoadingKCKind, that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
@@ -753,7 +753,6 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	kern_return_t ret = -1;
 
 	if (that) {
-		const char * kcName = nullptr;
 		kc_kind kcKind = kc_kind::KCKindNone;
 		if (target_map == *that->gKextMap) {
 			kcKind = kc_kind::KCKindUnknown;
