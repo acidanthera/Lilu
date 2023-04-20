@@ -526,18 +526,17 @@ public:
 		vm_inherit_t            inheritance);
 
 	/**
-	 *  A pointer to vm_map_remove()
+	 *  A pointer to mach_vm_deallocate()
 	 */
-	mach_vm_address_t orgVmMapRemove {};
+	mach_vm_address_t orgMachVmDeallocate {};
 
 	/**
-	 *  Called during vm map remove if KC listening is enabled
+	 *  Called during mach vm deallocate if KC listening is enabled
 	 */
-	static kern_return_t onVmMapRemove(
-		vm_map_t        map,
-		vm_map_offset_t start,
-		vm_map_offset_t end,
-		boolean_t       flags);
+	static kern_return_t onMachVmDeallocate(
+		vm_map_t         map,
+		mach_vm_offset_t start,
+		mach_vm_size_t   size);
 
 	/**
 	 *  A pointer to vm_map_protect()

@@ -667,7 +667,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			sizeLeft -= copyAmount;
 		}
 		
-		FunctionCast(onVmMapRemove, that->orgVmMapRemove)(*that->gKextMap, (vm_map_offset_t)kcBuf, (vm_map_offset_t)kcBuf + *file_size, 0);
+		FunctionCast(onMachVmDeallocate, that->orgMachVmDeallocate)(*that->gKextMap, (vm_map_offset_t)kcBuf, *file_size);
 
 		// Initialize kcInfo
 		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
@@ -787,19 +787,18 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	return ret;
 }
 
-kern_return_t KernelPatcher::onVmMapRemove(
+kern_return_t KernelPatcher::onMachVmDeallocate(
 	vm_map_t        map,
 	vm_map_offset_t start,
-	vm_map_offset_t end,
-	boolean_t       flags)
+	mach_vm_size_t  size)
 {
 	kern_return_t ret = -1;
 
 	if (that) {
 		if (map == *that->gKextMap) {
-			DBGLOG("patcher", "onVmMapRemove: Unmapping range %llX ~ %llX from g_kext_map", start, end);
+			DBGLOG("patcher", "onMachVmDeallocate: Unmapping range %llX ~ %llX from g_kext_map", start, start + size);
 		}
-		ret = FunctionCast(onVmMapRemove, that->orgVmMapRemove)(map, start, end, flags);
+		ret = FunctionCast(onMachVmDeallocate, that->orgMachVmDeallocate)(map, start, size);
 	}
 
 	return ret;
@@ -851,21 +850,12 @@ void KernelPatcher::setupKCListening() {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
 		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
+		{ "_mach_vm_deallocate", onMachVmDeallocate, orgMachVmDeallocate },
+		{ "_vm_map_protect", onVmMapProtect, orgVmMapProtect },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
 		SYSLOG("patcher", "failed to route KC listener functions");
-		return;
-	}
-
-	if (getKernelVersion() != KernelVersion::BigSur) return;
-	KernelPatcher::RouteRequest debugRequests[] = {
-		{ "_vm_map_remove", onVmMapRemove, orgVmMapRemove },
-		{ "_vm_map_protect", onVmMapProtect, orgVmMapProtect },
-	};
-
-	if (!routeMultiple(KernelID, debugRequests, arrsize(debugRequests))) {
-		SYSLOG("patcher", "failed to route KC functions for debugging");
 		return;
 	}
 }
