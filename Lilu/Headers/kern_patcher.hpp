@@ -72,52 +72,52 @@ typedef uint16_t vm_tag_t;
 
 
 typedef struct {
-  uint8_t HeaderVersion;
-  uint32_t HeaderSize;
-  uint32_t SymbolCount;
+	uint8_t HeaderVersion;
+	uint32_t HeaderSize;
+	uint32_t SymbolCount;
 } PACKED LILU_PRELINKED_SYMBOLS_HEADER;
 
 typedef struct {
-  uint32_t EntryLength;
-  uint64_t SymbolValue;
-  uint32_t SymbolNameLength;
-  char SymbolName[];
+	uint32_t EntryLength;
+	uint64_t SymbolValue;
+	uint32_t SymbolNameLength;
+	char SymbolName[];
 } PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
 
 typedef struct {
-  LILU_PRELINKED_SYMBOLS_HEADER Header;
-  LILU_PRELINKED_SYMBOLS_ENTRY Entries[];
+	LILU_PRELINKED_SYMBOLS_HEADER Header;
+	LILU_PRELINKED_SYMBOLS_ENTRY Entries[];
 } PACKED LILU_PRELINKED_SYMBOLS;
 
 
 typedef struct {
-  uint8_t Version;
-  uint32_t EntryLength;
-  uint8_t KCKind;
-  char BundlePath[128];
-  uint32_t InfoPlistOffset;
-  uint32_t InfoPlistSize;
-  char ExecutablePath[512];
-  uint32_t ExecutableOffset;
-  uint32_t ExecutableSize;
+	uint8_t Version;
+	uint32_t EntryLength;
+	uint8_t KCKind;
+	char BundlePath[128];
+	uint32_t InfoPlistOffset;
+	uint32_t InfoPlistSize;
+	char ExecutablePath[512];
+	uint32_t ExecutableOffset;
+	uint32_t ExecutableSize;
 } PACKED LILU_INJECTION_INFO;
 
 
 typedef struct {
-  uint8_t Version;
-  uint32_t Size;
-  uint32_t KextCount;
+	uint8_t Version;
+	uint32_t Size;
+	uint32_t KextCount;
 } PACKED LILU_BLOCK_INFO_HEADER;
 
 typedef struct {
-  char Identifier[128];
-  bool Exclude;
-  uint8_t KCKind;
+	char Identifier[128];
+	bool Exclude;
+	uint8_t KCKind;
 } PACKED LILU_BLOCK_INFO_ENTRY;
 
 typedef struct {
-  LILU_BLOCK_INFO_HEADER Header;
-  LILU_BLOCK_INFO_ENTRY Entries[];
+	LILU_BLOCK_INFO_HEADER Header;
+	LILU_BLOCK_INFO_ENTRY Entries[];
 } PACKED LILU_BLOCK_INFO;
 
 // The maximize size of LILU_BLOCK_INFO allowed on version 0
@@ -510,7 +510,7 @@ public:
 	/**
 	 *  Called during KC FileSet content access if KC listening is enabled
 	 */
-	static kern_return_t onVmMapEnterMemObjectControl(
+	static kern_return_t onVmMapEnterMemObjectControlLegacy(
 		vm_map_t                target_map,
 		vm_map_offset_t         *address,
 		vm_map_size_t           initial_size,
@@ -537,6 +537,23 @@ public:
 		vm_prot_t               cur_protection,
 		vm_prot_t               max_protection,
 		vm_inherit_t            inheritance);
+
+	static void onVmMapEnterMemObjectControlPreCall(
+		vm_map_t                target_map,
+		memory_object_control_t control,
+		vm_map_size_t           initial_size,
+		kc_kind                 &kcKind,
+		vm_object_offset_t      &offset,
+		vm_object_offset_t      &realOffset,
+		bool                    &doOverride);
+
+	static void onVmMapEnterMemObjectControlPostCall(
+		vm_map_offset_t         *address,
+		vm_map_size_t           initial_size,
+		kc_kind                 kcKind,
+		vm_object_offset_t      realOffset,
+		bool                    doOverride
+	);
 
 	/**
 	 *  Initialize kcSymbols, kcInjectInfos, and kcExclusionInfos with info from OpenCore
@@ -1029,24 +1046,29 @@ private:
 	kc_kind_t curLoadingKCKind = kc_kind::KCKindNone;
 
 	/**
-	 *  The "memory control objects" of SysKC and AuxKC
+	 *  The "memory control objects" of KCs
 	 */
 	void *kcControls[4] = {nullptr};
 
 	/**
-	 *  MachInfo of SysKC and AuxKC
-	 */
-	MachInfo *kcMachInfos[4] = {nullptr};
-
-	/**
-	 *  Injection infos of SysKC and AuxKC
+	 *  Injection infos of KCs
 	 */
 	OSArray *kcInjectInfos[4] = {nullptr};
 
 	/**
-	 *  Exclusion infos of SysKC and AuxKC
+	 *  Exclusion infos of KCs
 	 */
 	OSArray *kcExclusionInfos[4] = {nullptr};
+
+	/**
+	 *  Size of KCs on the disk
+	 */
+	vm_size_t kcDiskSizes[4] = {0};
+
+	/**
+	 *  Patch infos of KCs
+	 */
+	OSArray *kcPatchInfos[4] = {nullptr};
 
 	/**
 	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()

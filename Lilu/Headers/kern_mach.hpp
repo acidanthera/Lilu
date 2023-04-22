@@ -102,6 +102,12 @@ struct KextInjectionInfo {
 	uint32_t executableSize; // Used iff executable != nullptr
 };
 
+struct KCPatchInfo {
+	uint64_t patchStart;
+	uint64_t patchEnd; // Inclusive
+	uint8_t *patchWith;
+};
+
 class MachInfo {
 #if defined(__i386__)
 	using mach_header_native = mach_header;
@@ -133,6 +139,7 @@ class MachInfo {
 	mach_vm_address_t prelink_vmaddr {0};    		// prelink text base vm address (for kexts this is their actual slide)
 	uint8_t *file_buf {nullptr};             		// read file data
 	uint32_t file_buf_size {0};              		// read file data size
+	uint32_t file_orig_size {0};                    // original size of the file without the free space
 	uint32_t file_buf_free_start {0};        		// start of the free space inside the file (for injecting new prelink info / kexts)
 	uint32_t linkedit_offset {0};            		// file offset to __LINKEDIT
 	uint32_t linkedit_free_start {0};        		// start of the free space inside the __LINKEDIT segment (for injecting new kexts)
@@ -163,6 +170,7 @@ class MachInfo {
 	uint32_t kc_index {0};                   	// Index of the KC (kc_kind2index)
 	OSDictionary *kc_symbols {nullptr};      	// Exported symbols from various KCs
 	OSArray *imageArr {nullptr};				// KC Prelink infos
+	OSArray *kc_patch_info                      // Ranges of the KC to patch and what to patch them with
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
@@ -463,11 +471,11 @@ public:
 	kern_return_t injectKextIntoKC(const KextInjectionInfo *injectInfo);
 
 	/**
-	 *  Overwrite the prelink info in the file buffer
+	 *  Overwrite the prelink info in the file buffer and add header/appendix patch info
 	 *
-	 *  @return KERN_SUCCESS if the prelink info was overwritten
+	 *  @return KERN_SUCCESS if nothing went wrong
 	 */
-	kern_return_t overwritePrelinkInfo();
+	kern_return_t finalizeKCInject();
 
 	/**
 	 *  Parse all kexts in the KC and add exported symbols to kcSymbols
@@ -475,6 +483,11 @@ public:
 	 *  @return KERN_SUCCESS if all kexts were parsed successfully
  	 */
 	kern_return_t extractKextsSymbols();
+
+	/**
+	 *  Create and append KC patch info based on file_buf
+	 */
+	void addKCPatchInfo(uint64_t patchStart, uint64_t patchSize);
 
 	/**
 	 *  Get the file buffer of the initialised image
@@ -518,6 +531,13 @@ public:
 	 */
 	void setSymBuf(uint8_t *symBuf) {
 		sym_buf = symBuf;
+	}
+
+	/**
+	 *  Set the KC patch info
+	 */
+	void setKcPatchInfo(OSArray *kcPatchInfo) {
+		kc_patch_info = kcPatchInfo;
 	}
 };
 

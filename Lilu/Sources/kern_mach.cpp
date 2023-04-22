@@ -96,6 +96,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 	is_kc = machType != MachType::Kext;
 	file_buf = buf;
 	file_buf_size = bufSize;
+	file_orig_size = origBufSize;
 	file_buf_free_start = origBufSize;
 
 	if (is_kc) updatePrelinkInfo();
@@ -153,7 +154,16 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 	return KERN_SUCCESS;
 }
 
-kern_return_t MachInfo::overwritePrelinkInfo() {
+void MachInfo::addKCPatchInfo(uint64_t patchStart, uint64_t patchSize) {
+	KCPatchInfo *patchInfo = Buffer::create<KCPatchInfo>(1);
+	patchInfo->patchStart = patchStart;
+	patchInfo->patchEnd = patchStart + patchSize - 1;
+	patchInfo->patchWith = Buffer::create<uint8_t>(patchSize);
+	memcpy(patchInfo->patchWith, file_buf + patchStart, patchSize);
+	kc_patch_info->setObject(OSData::withBytesNoCopy(patchInfo, sizeof(*patchInfo)));
+}
+
+kern_return_t MachInfo::finalizeKCInject() {
 	vm_address_t tmpSeg, tmpSect;
 	void *tmpSectPtr;
 	size_t tmpSectSize;
@@ -162,7 +172,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 
 	OSSerialize *newPrelinkInfo = OSSerialize::withCapacity(2 * 1024 * 1024);
 	if (!newPrelinkInfo) {
-		SYSLOG("mach", "overwritePrelinkInfo: Failed to allocate newPrelinkInfo");
+		SYSLOG("mach", "finalizeKCInject: Failed to allocate newPrelinkInfo");
 		return KERN_RESOURCE_SHORTAGE;
 	}
 	prelink_dict->serialize(newPrelinkInfo);
@@ -170,7 +180,7 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	uint32_t infoLength = newPrelinkInfo->getLength() + 1;
 
 	if (file_buf_free_start + infoLength >= file_buf_size) {
-		SYSLOG("mach", "overwritePrelinkInfo: Ran out of free space");
+		SYSLOG("mach", "finalizeKCInject: Ran out of free space");
 		newPrelinkInfo->release();
 		return KERN_FAILURE;
 	}
@@ -191,8 +201,11 @@ kern_return_t MachInfo::overwritePrelinkInfo() {
 	sectionCmdPtr->offset = file_buf_free_start;
 
 	file_buf_free_start += infoLength;
-	DBGLOG("mach", "overwritePrelinkInfo: Wrote %u bytes of prelink info", infoLength);
+	DBGLOG("mach", "finalizeKCInject: Wrote %u bytes of prelink info", infoLength);
 	newPrelinkInfo->release();
+
+	addKCPatchInfo(0, 512 * 1024);
+	addKCPatchInfo(file_orig_size, file_buf_free_start - file_orig_size);
 	return KERN_SUCCESS;
 }
 
@@ -241,6 +254,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 		patchAddr[3] = 0x00;
 		patchAddr[4] = 0x00;
 		patchAddr[5] = 0xC3;
+		addKCPatchInfo(startAddr, 6);
 
 		// Don't call kextInfo->deinit() as none of its buffers were copied
 		MachInfo::deleter(kextInfo);
@@ -307,6 +321,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 
 		// Overwrite the kext image with zero
 		memset(imagePtr, 0, imageSize);
+		addKCPatchInfo(imagePtr - file_buf, imageSize);
 	}
 
 	DBGLOG("mach", "blockKextFromKC: %s is now blocked", identifier);
@@ -926,6 +941,11 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 }
 
 kern_return_t MachInfo::extractKextsSymbols() {
+	if (!kc_symbols) {
+		DBGLOG("mach", "extractKextsSymbols: kc_symbols is unset or is null. Don't extract symbols");
+		return KERN_SUCCESS;
+	}
+
 	if (!prelink_dict) {
 		SYSLOG("mach", "extractKextsSymbols: prelink_dict is null");
 		return KERN_FAILURE;

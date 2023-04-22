@@ -625,24 +625,33 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 		auto *injectInfos = that->kcInjectInfos[that->curLoadingKCKind];
 		if (!injectInfos) {
-			SYSLOG("mach", "onUbcGetobjectFromFilename: injectInfos is null");
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos is null");
 			return ret;
 		}
 
 		auto *exclusionInfos = that->kcExclusionInfos[that->curLoadingKCKind];
 		if (!exclusionInfos) {
-			SYSLOG("mach", "onUbcGetobjectFromFilename: exclusionInfos is null");
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: exclusionInfos is null");
 			return ret;
 		}
 
-		bool doHijack = (injectInfos->getCount() + exclusionInfos->getCount()) != 0;
-		if (!doHijack) {
-			DBGLOG("mach", "onUbcGetobjectFromFilename: Nothing to do with KC kind %u", that->curLoadingKCKind);
+		bool mappingRequired = exclusionInfos->getCount() != 0;
+		// Injection into AuxKC requires parsing SysKC
+		for (uint i = that->curLoadingKCKind; i < kc_kind::KCNumKinds; i++) {
+			mappingRequired |= that->kcInjectInfos[i] != nullptr && that->kcInjectInfos[i]->getCount() != 0;
+		}
+
+		if (!mappingRequired) {
+			DBGLOG("patcher", "onUbcGetobjectFromFilename: Nothing to do with KC kind %u", that->curLoadingKCKind);
+			// The symbols are no longer needed. Free them
+			that->kcSymbols->release();
+			that->kcSymbols = nullptr;
 			return ret;
 		}
 
 		// Map original KC
 		vm_size_t oldKcSize = (vm_size_t)*file_size;
+		that->kcDiskSizes[that->curLoadingKCKind] = oldKcSize;
 		uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
 		if (kcBuf == nullptr ||
 			that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&kcBuf, (vm_map_offset_t)oldKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
@@ -653,7 +662,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 		// Setup patched buffer
 		vm_size_t patchedKCSize = oldKcSize + 64 * 1024 * 1024;
-		uint8_t *patchedKCBuf = (uint8_t*)IOMalloc(patchedKCSize);
+		uint8_t *patchedKCBuf = Buffer::create<uint8_t>(patchedKCSize);
 
 		uint32_t copyInterval = 8 * 1024 * 1024;
 		uint32_t copyOffset = 0;
@@ -674,12 +683,16 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
 		kcInfo->setKcSymbols(that->kcSymbols);
 		kcInfo->setKcKindAndIndex(that->curLoadingKCKind, that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
+		that->kcPatchInfos[that->curLoadingKCKind] = OSArray::withCapacity(0);
+		kcInfo->setKcPatchInfo(that->kcPatchInfos[that->curLoadingKCKind]);
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
 		auto *iterator = OSCollectionIterator::withCollection(exclusionInfos);
 		if (!iterator) {
-			SYSLOG("mach", "onUbcGetobjectFromFilename: iterator is null");
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: iterator is null");
+			kcInfo->deinit();
+			MachInfo::deleter(kcInfo);
 			return ret;
 		}
 
@@ -687,8 +700,10 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
-				SYSLOG("mach", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
 				iterator->release();
+				kcInfo->deinit();
+				MachInfo::deleter(kcInfo);
 				return ret;
 			}
 
@@ -702,7 +717,9 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		// Inject kexts
 		iterator = OSCollectionIterator::withCollection(injectInfos);
 		if (!iterator) {
-			SYSLOG("mach", "onUbcGetobjectFromFilename: iterator is null");
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: iterator is null");
+			kcInfo->deinit();
+			MachInfo::deleter(kcInfo);
 			return ret;
 		}
 
@@ -710,8 +727,10 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
-				SYSLOG("mach", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
 				iterator->release();
+				kcInfo->deinit();
+				MachInfo::deleter(kcInfo);
 				return ret;
 			}
 
@@ -727,15 +746,88 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		that->kcInjectInfos[that->curLoadingKCKind] = nullptr;
 
 		// Wrap things up
-		kcInfo->overwritePrelinkInfo();
-		that->kcMachInfos[that->curLoadingKCKind] = kcInfo;
+		kcInfo->finalizeKCInject();
 		*file_size = patchedKCSize;
+
+		kcInfo->deinit();
+		MachInfo::deleter(kcInfo);
+
+		// We are done with the injections. Free the symbols
+		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
+			that->kcSymbols->release();
+			that->kcSymbols = nullptr;
+		}
 	}
 
 	return ret;
 }
 
-kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
+void KernelPatcher::onVmMapEnterMemObjectControlPreCall(
+	vm_map_t                target_map,
+	memory_object_control_t control,
+	vm_map_size_t           initial_size,
+	kc_kind                 &kcKind,
+	vm_object_offset_t      &offset,
+	vm_object_offset_t      &realOffset,
+	bool                    &doOverride
+) {
+	kcKind = kc_kind::KCKindNone;
+	if (target_map == *that->gKextMap) {
+		kcKind = kc_kind::KCKindUnknown;
+		if (control == that->kcControls[kc_kind::KCKindPageable]) {
+			kcKind = kc_kind::KCKindPageable;
+		} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
+			kcKind = kc_kind::KCKindAuxiliary;
+		}
+	}
+
+	doOverride = kcKind != kc_kind::KCKindNone && that->kcPatchInfos[kcKind] != nullptr;
+	realOffset = offset;
+	if (!doOverride) return;
+
+	DBGLOG("patcher", "onVmMapEnterMemObjectControlPreCall: Mapping KC kind %u range %llX ~ %llX", kcKind, realOffset, realOffset + initial_size);
+	if (offset >= that->kcDiskSizes[kcKind]) {
+		offset = 0;
+	} else if (offset + initial_size - 1 >= that->kcDiskSizes[kcKind]) {
+		PANIC("patcher", "onVmMapEnterMemObjectControlPreCall: Required range overlaps with both the disk range and the appendix range!");
+	}
+}
+
+void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
+	vm_map_offset_t         *address,
+	vm_map_size_t           initial_size,
+	kc_kind                 kcKind,
+	vm_object_offset_t      rangeStart,
+	bool                    doOverride
+) {
+	if (!doOverride) return;
+
+	auto *iterator = OSCollectionIterator::withCollection(that->kcPatchInfos[kcKind]);
+	if (!iterator) {
+		SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: iterator is null");
+		return;
+	}
+
+	OSObject *curObj = nullptr;
+	uint64_t rangeEnd = rangeStart + initial_size - 1; // Inclusive
+	while ((curObj = iterator->getNextObject())) {
+		auto *curObjData = OSDynamicCast(OSData, curObj);
+		if (!curObjData) {
+			SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Failed to cast object in injectInfos");
+			iterator->release();
+			return;
+		}
+
+		auto *patch = reinterpret_cast<const KCPatchInfo *>(curObjData->getBytesNoCopy());
+		if (patch->patchEnd < rangeStart || patch->patchStart > rangeEnd) continue;
+		uint64_t patchFrom = max(rangeStart, patch->patchStart), patchTo = min(rangeEnd, patch->patchEnd);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range %llX ~ %llX", kcKind, patchFrom, patchTo);
+		memcpy(reinterpret_cast<void*>(*address + patchFrom - rangeStart), patch->patchWith, static_cast<size_t>(patchTo - patchFrom + 1));
+	}
+	iterator->release();
+}
+
+kern_return_t KernelPatcher::onVmMapEnterMemObjectControlLegacy(
 	vm_map_t                target_map,
 	vm_map_offset_t         *address,
 	vm_map_size_t           initial_size,
@@ -748,42 +840,23 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	boolean_t               copy,
 	vm_prot_t               cur_protection,
 	vm_prot_t               max_protection,
-	vm_inherit_t            inheritance)
-{
-	kern_return_t ret = -1;
-
-	if (that) {
-		kc_kind kcKind = kc_kind::KCKindNone;
-		if (target_map == *that->gKextMap) {
-			kcKind = kc_kind::KCKindUnknown;
-			if (control == that->kcControls[kc_kind::KCKindPageable]) {
-				kcKind = kc_kind::KCKindPageable;
-			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
-				kcKind = kc_kind::KCKindAuxiliary;
-			}
-		}
-
-		if (getKernelVersion() == KernelVersion::Ventura) {
-			DBGLOG("patcher", "onVmMapEnterMemObjectControl: target_map=%p address=%p initial_size=%llX mask=%llX flags=%X vmk_flags=%X tag=%X control=%p offset=%llX copy=%X cur_protection=%X max_protection=%X inheritance=%X",
-			       target_map, address, initial_size, mask, flags, vmk_flags, tag, control, offset, copy, cur_protection, max_protection, inheritance);
-		}
-
-		bool doOverride = kcKind != kc_kind::KCKindNone && that->kcMachInfos[kcKind] != nullptr;
-		vm_object_offset_t realOffset = offset;
-		if (doOverride) {
-			offset = 0;
-			DBGLOG("patcher", "onVmMapEnterMemObjectControl: Mapping KC kind %u range %llX ~ %llX", kcKind, realOffset, realOffset + initial_size);
-		}
-		ret = FunctionCast(onVmMapEnterMemObjectControl, that->orgVmMapEnterMemObjectControl)
-			  (target_map, address, initial_size, mask, flags, vmk_flags, tag,
-			   control, offset, copy, cur_protection, max_protection, inheritance);
-		if (doOverride) {
-			if (ret) DBGLOG("patcher", "onVmMapEnterMemObjectControl: ret=%d with *address set to %p", ret, *address);
-			uint8_t *patchedKC = that->kcMachInfos[kcKind]->getFileBuf();
-			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
-		}
+	vm_inherit_t            inheritance
+) {
+	if (!that) {
+		PANIC("patcher", "onVmMapEnterMemObjectControlLegacy: Called before calling setupKextListening");
 	}
 
+	kern_return_t ret = -1;
+	kc_kind kcKind;
+	vm_object_offset_t realOffset;
+	bool doOverride;
+	onVmMapEnterMemObjectControlPreCall(target_map, control, initial_size, kcKind, offset, realOffset, doOverride);
+
+	ret = FunctionCast(onVmMapEnterMemObjectControlLegacy, that->orgVmMapEnterMemObjectControl)
+			(target_map, address, initial_size, mask, flags, vmk_flags, tag,
+			control, offset, copy, cur_protection, max_protection, inheritance);
+
+	onVmMapEnterMemObjectControlPostCall(address, initial_size, kcKind, realOffset, doOverride);
 	return ret;
 }
 
@@ -798,37 +871,23 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControlVer22Point4(
 	boolean_t               copy,
 	vm_prot_t               cur_protection,
 	vm_prot_t               max_protection,
-	vm_inherit_t            inheritance)
-{
-	kern_return_t ret = -1;
-
-	if (that) {
-		kc_kind kcKind = kc_kind::KCKindNone;
-		if (target_map == *that->gKextMap) {
-			kcKind = kc_kind::KCKindUnknown;
-			if (control == that->kcControls[kc_kind::KCKindPageable]) {
-				kcKind = kc_kind::KCKindPageable;
-			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
-				kcKind = kc_kind::KCKindAuxiliary;
-			}
-		}
-
-		bool doOverride = kcKind != kc_kind::KCKindNone && that->kcMachInfos[kcKind] != nullptr;
-		vm_object_offset_t realOffset = offset;
-		if (doOverride) {
-			offset = 0;
-			DBGLOG("patcher", "onVmMapEnterMemObjectControlVer22Point4: Mapping KC kind %u range %llX ~ %llX", kcKind, realOffset, realOffset + initial_size);
-		}
-		ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
-			  (target_map, address, initial_size, mask, vmk_flags, control,
-			   offset, copy, cur_protection, max_protection, inheritance);
-		if (doOverride) {
-			if (ret) DBGLOG("patcher", "onVmMapEnterMemObjectControlVer22Point4: ret=%d with *address set to %p", ret, *address);
-			uint8_t *patchedKC = that->kcMachInfos[kcKind]->getFileBuf();
-			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
-		}
+	vm_inherit_t            inheritance
+) {
+	if (!that) {
+		PANIC("patcher", "onVmMapEnterMemObjectControlVer22Point4: Called before calling setupKextListening");
 	}
 
+	kern_return_t ret = -1;
+	kc_kind kcKind;
+	vm_object_offset_t realOffset;
+	bool doOverride;
+	onVmMapEnterMemObjectControlPreCall(target_map, control, initial_size, kcKind, offset, realOffset, doOverride);
+
+	ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
+			(target_map, address, initial_size, mask, vmk_flags, control,
+			offset, copy, cur_protection, max_protection, inheritance);
+
+	onVmMapEnterMemObjectControlPostCall(address, initial_size, kcKind, realOffset, doOverride);
 	return ret;
 }
 
@@ -883,7 +942,7 @@ void KernelPatcher::setupKCListening() {
 		}
 	} else {
 		KernelPatcher::RouteRequest requestsLegacy[] = {
-			{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
+			{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControlLegacy, orgVmMapEnterMemObjectControl },
 		};
 
 		if (!routeMultiple(KernelID, requestsLegacy, arrsize(requestsLegacy))) {
