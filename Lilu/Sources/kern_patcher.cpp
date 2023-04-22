@@ -787,6 +787,51 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 	return ret;
 }
 
+kern_return_t KernelPatcher::onVmMapEnterMemObjectControlVer22Point4(
+	vm_map_t                target_map,
+	vm_map_offset_t         *address,
+	vm_map_size_t           initial_size,
+	vm_map_offset_t         mask,
+	vm_map_kernel_flags_t   vmk_flags,
+	memory_object_control_t control,
+	vm_object_offset_t      offset,
+	boolean_t               copy,
+	vm_prot_t               cur_protection,
+	vm_prot_t               max_protection,
+	vm_inherit_t            inheritance)
+{
+	kern_return_t ret = -1;
+
+	if (that) {
+		kc_kind kcKind = kc_kind::KCKindNone;
+		if (target_map == *that->gKextMap) {
+			kcKind = kc_kind::KCKindUnknown;
+			if (control == that->kcControls[kc_kind::KCKindPageable]) {
+				kcKind = kc_kind::KCKindPageable;
+			} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
+				kcKind = kc_kind::KCKindAuxiliary;
+			}
+		}
+
+		bool doOverride = kcKind != kc_kind::KCKindNone && that->kcMachInfos[kcKind] != nullptr;
+		vm_object_offset_t realOffset = offset;
+		if (doOverride) {
+			offset = 0;
+			DBGLOG("patcher", "onVmMapEnterMemObjectControlVer22Point4: Mapping KC kind %u range %llX ~ %llX", kcKind, realOffset, realOffset + initial_size);
+		}
+		ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
+			  (target_map, address, initial_size, mask, vmk_flags, control,
+			   offset, copy, cur_protection, max_protection, inheritance);
+		if (doOverride) {
+			if (ret) DBGLOG("patcher", "onVmMapEnterMemObjectControlVer22Point4: ret=%d with *address set to %p", ret, *address);
+			uint8_t *patchedKC = that->kcMachInfos[kcKind]->getFileBuf();
+			memcpy((void*)*address, patchedKC + realOffset, (size_t)initial_size);
+		}
+	}
+
+	return ret;
+}
+
 void KernelPatcher::setupKCListening() {
 	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
 	if (getError() != Error::NoError) {
@@ -819,12 +864,32 @@ void KernelPatcher::setupKCListening() {
 	KernelPatcher::RouteRequest requests[] = {
 		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
 		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
-		{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
 	};
 
 	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
 		SYSLOG("patcher", "failed to route KC listener functions");
 		return;
+	}
+
+	if ((getKernelVersion() > KernelVersion::Ventura) ||
+	    (getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() >= 4)) {
+		KernelPatcher::RouteRequest requestsVer22Point4[] = {
+			{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControlVer22Point4, orgVmMapEnterMemObjectControl },
+		};
+
+		if (!routeMultiple(KernelID, requestsVer22Point4, arrsize(requestsVer22Point4))) {
+			SYSLOG("patcher", "failed to route >= Ventura 13.3 KC listener functions");
+			return;
+		}
+	} else {
+		KernelPatcher::RouteRequest requestsLegacy[] = {
+			{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControl, orgVmMapEnterMemObjectControl },
+		};
+
+		if (!routeMultiple(KernelID, requestsLegacy, arrsize(requestsLegacy))) {
+			SYSLOG("patcher", "failed to route legacy KC listener functions");
+			return;
+		}
 	}
 }
 #endif /* LILU_KCINJECT_SUPPORT */

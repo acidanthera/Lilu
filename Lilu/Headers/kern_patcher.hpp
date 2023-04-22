@@ -525,6 +525,19 @@ public:
 		vm_prot_t               max_protection,
 		vm_inherit_t            inheritance);
 
+	static kern_return_t onVmMapEnterMemObjectControlVer22Point4(
+		vm_map_t                target_map,
+		vm_map_offset_t         *address,
+		vm_map_size_t           initial_size,
+		vm_map_offset_t         mask,
+		vm_map_kernel_flags_t   vmk_flags,
+		memory_object_control_t control,
+		vm_object_offset_t      offset,
+		boolean_t               copy,
+		vm_prot_t               cur_protection,
+		vm_prot_t               max_protection,
+		vm_inherit_t            inheritance);
+
 	/**
 	 *  Initialize kcSymbols, kcInjectInfos, and kcExclusionInfos with info from OpenCore
 	 */
