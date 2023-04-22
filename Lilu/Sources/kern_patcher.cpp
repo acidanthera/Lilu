@@ -763,6 +763,11 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControl(
 			}
 		}
 
+		if (getKernelVersion() == KernelVersion::Ventura) {
+			DBGLOG("patcher", "onVmMapEnterMemObjectControl: target_map=%p address=%p initial_size=%llX mask=%llX flags=%X vmk_flags=%X tag=%X control=%p offset=%llX copy=%X cur_protection=%X max_protection=%X inheritance=%X",
+			       target_map, address, initial_size, mask, flags, vmk_flags, tag, control, offset, copy, cur_protection, max_protection, inheritance);
+		}
+
 		bool doOverride = kcKind != kc_kind::KCKindNone && that->kcMachInfos[kcKind] != nullptr;
 		vm_object_offset_t realOffset = offset;
 		if (doOverride) {
