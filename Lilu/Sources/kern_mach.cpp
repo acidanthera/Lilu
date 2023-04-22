@@ -158,8 +158,8 @@ void MachInfo::addKCPatchInfo(uint64_t patchStart, uint64_t patchSize) {
 	KCPatchInfo *patchInfo = Buffer::create<KCPatchInfo>(1);
 	patchInfo->patchStart = patchStart;
 	patchInfo->patchEnd = patchStart + patchSize - 1;
-	patchInfo->patchWith = Buffer::create<uint8_t>(patchSize);
-	memcpy(patchInfo->patchWith, file_buf + patchStart, patchSize);
+	patchInfo->patchWith = Buffer::create<uint8_t>(static_cast<size_t>(patchSize));
+	memcpy(patchInfo->patchWith, file_buf + patchStart, static_cast<size_t>(patchSize));
 	kc_patch_info->setObject(OSData::withBytesNoCopy(patchInfo, sizeof(*patchInfo)));
 }
 
