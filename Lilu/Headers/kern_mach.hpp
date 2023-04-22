@@ -170,7 +170,7 @@ class MachInfo {
 	uint32_t kc_index {0};                   	// Index of the KC (kc_kind2index)
 	OSDictionary *kc_symbols {nullptr};      	// Exported symbols from various KCs
 	OSArray *imageArr {nullptr};				// KC Prelink infos
-	OSArray *kc_patch_info                      // Ranges of the KC to patch and what to patch them with
+	OSArray *kc_patch_info;                     // Ranges of the KC to patch and what to patch them with
 
 	/**
 	 *  Kernel slide is aligned by 20 bits
