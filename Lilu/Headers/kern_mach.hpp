@@ -26,13 +26,6 @@ enum MachType {
 	KextCollection
 };
 
-const char *kcNames[4] = {
-	"UnknownKC",
-	"PrimaryKC",
-	"SysKC",
-	"AuxKC"
-};
-
 #define LC_FILESET_ENTRY 0x80000035
 typedef struct {
   	uint32_t commandType;

@@ -203,7 +203,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 	bool missing;
 	uint8_t *imagePtr = findImage(identifier, imageIndex, imageSize, slide, missing);
 	if (imagePtr == nullptr) {
-		SYSLOG("mach", "blockKextFromKC: Kext identifier %s not found in the %s", identifier, kcNames[cur_kc_kind]);
+		SYSLOG("mach", "blockKextFromKC: Kext identifier %s not found in KC kind %u", identifier, cur_kc_kind);
 		return KERN_FAILURE;
 	}
 
