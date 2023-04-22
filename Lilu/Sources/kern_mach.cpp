@@ -342,7 +342,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		MachInfo::deleter(kextInfo);
 		return KERN_FAILURE;
 	}
-	DBGLOG("mach", "injectKextIntoKC: imageOffset = 0x%x", imageOffset);
+	DBGLOG("mach", "injectKextIntoKC: imageOffset = 0x%X", imageOffset);
 
 	auto *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
@@ -416,7 +416,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 						memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, static_cast<size_t>(segCmd->filesize));
 						segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
 						segCmd->vmsize = segCmd->filesize;
-						DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llx vmsize=0x%llx", segCmd->vmaddr, segCmd->vmsize);
+						DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llX vmsize=0x%llX", segCmd->vmaddr, segCmd->vmsize);
 						linkedit_free_start += segCmd->filesize;
 						break;
 					}
@@ -500,7 +500,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		for (uint32_t i = 0; i < nlocrel; i++) {
 			uint32_t r_address = locRelocInfo->r_address;
 			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
-				SYSLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
+				SYSLOG("mach", "injectKextIntoKC: r_address (0x%X) it not within the __DATA segment (0x%X ~ 0x%X)! Bailing...",
 				       r_address, dataVmaddr, dataVmaddr + dataFilesize);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
@@ -510,7 +510,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			auto *curReloc = reinterpret_cast<ChainedFixupPointerOnDisk *>(executable + r_address);
 			curReloc->fixup64.target += imageOffset - disk_text_addr;
 			curReloc->fixup64.cacheLevel = kc_index;
-			// DBGLOG("mach", "injectKextIntoKC: r_address=%x target=%llx raw64=%llx", r_address, curReloc->fixup64.target, curReloc->raw64);
+			// DBGLOG("mach", "injectKextIntoKC: r_address=%X target=%llX raw64=%llX", r_address, curReloc->fixup64.target, curReloc->raw64);
 
 			auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
 			auto *set = OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId));
@@ -681,7 +681,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
 			} else {
 				if (r_address < dataVmaddr || (dataVmaddr + dataFilesize) <= r_address) {
-					DBGLOG("mach", "injectKextIntoKC: r_address (0x%x) it not within the __DATA segment (0x%x ~ 0x%x)! Bailing...",
+					DBGLOG("mach", "injectKextIntoKC: r_address (0x%X) it not within the __DATA segment (0x%X ~ 0x%X)! Bailing...",
 					       r_address, dataVmaddr, dataVmaddr + dataFilesize);
 					kextInfo->deinit();
 					MachInfo::deleter(kextInfo);
