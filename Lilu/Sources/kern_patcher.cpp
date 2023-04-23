@@ -827,6 +827,10 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 		memcpy(reinterpret_cast<void*>(*address + patchOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
 	}
 	iterator->release();
+
+	for (uint i = 0; i < sizeof(mach_header_64); i++) {
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: [%llX] = %X", rangeStart + i, *address + i);
+	}
 }
 
 kern_return_t KernelPatcher::onVmMapEnterMemObjectControlLegacy(
