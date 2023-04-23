@@ -620,8 +620,9 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 
 		auto *iterator = OSCollectionIterator::withCollection(that->kcPatchInfos[type]);
 		if (!iterator) {
-			SYSLOG("patcher", "onOSKextLoadKCFileSet: iterator is null");
-			return;
+			DBGLOG("patcher", "onOSKextLoadKCFileSet: kcPatchInfos[%u] is null. Not freeing it", type);
+			that->curLoadingKCKind = kc_kind::KCKindNone;
+			return status;
 		}
 
 		OSObject *curObj = nullptr;
@@ -630,7 +631,7 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 			if (!curObjData) {
 				SYSLOG("patcher", "onOSKextLoadKCFileSet: Failed to cast object in kcPatchInfos");
 				iterator->release();
-				return;
+				return status;
 			}
 
 			auto *patch = reinterpret_cast<const KCPatchInfo *>(curObjData->getBytesNoCopy());
