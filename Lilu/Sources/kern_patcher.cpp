@@ -617,6 +617,29 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 		PANIC_COND(that->curLoadingKCKind != kc_kind::KCKindNone, "patcher", "OSKext::loadKCFileSet entered twice");
 		that->curLoadingKCKind = type;
 		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(filepath, type);
+
+		auto *iterator = OSCollectionIterator::withCollection(that->kcPatchInfos[type]);
+		if (!iterator) {
+			SYSLOG("patcher", "onOSKextLoadKCFileSet: iterator is null");
+			return;
+		}
+
+		OSObject *curObj = nullptr;
+		while ((curObj = iterator->getNextObject())) {
+			auto *curObjData = OSDynamicCast(OSData, curObj);
+			if (!curObjData) {
+				SYSLOG("patcher", "onOSKextLoadKCFileSet: Failed to cast object in kcPatchInfos");
+				iterator->release();
+				return;
+			}
+
+			auto *patch = reinterpret_cast<const KCPatchInfo *>(curObjData->getBytesNoCopy());
+			Buffer::deleter(patch->patchWith);
+		}
+		iterator->release();
+		that->kcPatchInfos[type]->release();
+		that->kcPatchInfos[type] = nullptr;
+
 		that->curLoadingKCKind = kc_kind::KCKindNone;
 	}
 
@@ -713,7 +736,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
-				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in exclusionInfos");
 				iterator->release();
 				kcInfo->deinit();
 				MachInfo::deleter(kcInfo);
@@ -828,7 +851,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 	while ((curObj = iterator->getNextObject())) {
 		auto *curObjData = OSDynamicCast(OSData, curObj);
 		if (!curObjData) {
-			SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Failed to cast object in injectInfos");
+			SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Failed to cast object in kcPatchInfos");
 			iterator->release();
 			return;
 		}
