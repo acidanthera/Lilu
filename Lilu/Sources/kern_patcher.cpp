@@ -783,6 +783,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPreCall(
 	}
 
 	doOverride = kcKind != kc_kind::KCKindNone && that->kcPatchInfos[kcKind] != nullptr;
+	rangeOverlaps = false;
 	realOffset = offset;
 	if (!doOverride) return;
 
