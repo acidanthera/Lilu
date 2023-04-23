@@ -643,9 +643,11 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 		if (!mappingRequired) {
 			DBGLOG("patcher", "onUbcGetobjectFromFilename: Nothing to do with KC kind %u", that->curLoadingKCKind);
-			// The symbols are no longer needed. Free them
-			that->kcSymbols->release();
-			that->kcSymbols = nullptr;
+			if (that->kcSymbols != nullptr) {
+				// The symbols are no longer needed. Free them
+				that->kcSymbols->release();
+				that->kcSymbols = nullptr;
+			}
 			return ret;
 		}
 
@@ -753,7 +755,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		MachInfo::deleter(kcInfo);
 
 		// We are done with the injections. Free the symbols
-		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary) {
+		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary && that->kcSymbols != nullptr) {
 			that->kcSymbols->release();
 			that->kcSymbols = nullptr;
 		}
