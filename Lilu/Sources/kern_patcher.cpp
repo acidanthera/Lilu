@@ -822,7 +822,8 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 		if (patch->patchEnd < rangeStart || patch->patchStart > rangeEnd) continue;
 		uint64_t patchFrom = max(rangeStart, patch->patchStart), patchTo = min(rangeEnd, patch->patchEnd);
 		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range %llX ~ %llX", kcKind, patchFrom, patchTo);
-		memcpy(reinterpret_cast<void*>(*address + patchFrom - rangeStart), patch->patchWith, static_cast<size_t>(patchTo - patchFrom + 1));
+    uint64_t patchOffset = patchFrom - rangeStart;
+		memcpy(reinterpret_cast<void*>(*address + patchOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
 	}
 	iterator->release();
 }
