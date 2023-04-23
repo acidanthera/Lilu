@@ -429,12 +429,12 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 
 	for (uint32_t i = 0; i < liluKextCount; i++) {
 		// Fetch lilu-injection-info-addr-%u
-		char *varName = IONew(char, 128);
+		char *varName = Buffer::create<char>(128);
 		snprintf(varName, 128, "E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-injection-info-addr-%u", i);
 
 		auto *liluInjectionInfoAddrData =
 			nvram->read(varName, NVStorage::Options::OptRaw);
-		IOFree(varName, 128);
+		Buffer::deleter(varName);
 		if (!liluInjectionInfoAddrData) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to fetch lilu-injection-info-addr-%u", i);
 			return false;
@@ -461,7 +461,7 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 		memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluInjectionInfoAddr), size, kIODirectionIn);
 		map = memDesc->map();
 		auto *liluInjectionInfo = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
-		auto *injectionInfo = reinterpret_cast<KextInjectionInfo *>(IOMalloc(sizeof(KextInjectionInfo)));
+		auto *injectionInfo = Buffer::create<KextInjectionInfo>(1);
 		if (!injectionInfo) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate injectionInfo");
 			memDesc->release();
@@ -522,7 +522,7 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 		auto *injectionInfoData = OSData::withBytes(injectionInfo, sizeof(*injectionInfo));
 		kcInjectInfos[kcKind]->setObject(injectionInfoData);
 		injectionInfoData->release();
-		IOFree(injectionInfo, sizeof(KextInjectionInfo));
+		Buffer::deleter(injectionInfo);
 
 		memDesc->release();
 		map->release();

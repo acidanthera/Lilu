@@ -163,7 +163,7 @@ void MachInfo::addKCPatchInfo(uint64_t patchStart, uint64_t patchSize) {
 	OSData *data = OSData::withBytesNoCopy(patchInfo, sizeof(*patchInfo));
 	kc_patch_info->setObject(data);
 	data->release();
-	DBGLOG("mach", "addKCPatchInfo: Added KC patch info range %llX ~ %llX", patchInfo->patchStart, patchInfo->patchEnd);
+	DBGLOG("mach", "addKCPatchInfo: Added KC patch info range 0x%llX ~ 0x%llX", patchInfo->patchStart, patchInfo->patchEnd);
 }
 
 kern_return_t MachInfo::finalizeKCInject() {
@@ -400,7 +400,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		}
 
 		// Setup kextInfo
-		executable = IONew(uint8_t, executableSize);
+		executable = Buffer::create<uint8_t>(executableSize);
 		memcpy(executable, executableOrg, executableSize);
 
 		kextInfo->initFromBuffer(executable, executableSize, executableSize);
