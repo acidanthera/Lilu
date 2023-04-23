@@ -823,7 +823,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 		if (patch->patchEnd < rangeStart || patch->patchStart > rangeEnd) continue;
 		uint64_t patchFrom = max(rangeStart, patch->patchStart), patchTo = min(rangeEnd, patch->patchEnd);
 		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range %llX ~ %llX", kcKind, patchFrom, patchTo);
-    uint64_t patchOffset = patchFrom - rangeStart;
+    	uint64_t patchOffset = patchFrom - rangeStart;
 		memcpy(reinterpret_cast<void*>(*address + patchOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
 	}
 	iterator->release();
@@ -857,20 +857,17 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControlLegacy(
 	if (rangeOverlaps) {
 		vm_map_offset_t tempAddress = *address;
 		vm_object_offset_t sizeOnDisk = that->kcDiskSizes[kcKind] - offset;
-		FunctionCast(onVmMapEnterMemObjectControlLegacy, that->orgVmMapEnterMemObjectControl)
-				(target_map, &tempAddress, sizeOnDisk, mask, flags, vmk_flags, tag,
-				control, offset, copy, cur_protection, max_protection, inheritance);
+		onVmMapEnterMemObjectControlLegacy(target_map, &tempAddress, sizeOnDisk, mask, flags, vmk_flags, tag,
+				                           control, offset, copy, cur_protection, max_protection, inheritance);
 
 		tempAddress = *address + that->kcDiskSizes[kcKind] - offset;
-		ret = FunctionCast(onVmMapEnterMemObjectControlLegacy, that->orgVmMapEnterMemObjectControl)
-				(target_map, &tempAddress, initial_size - sizeOnDisk, mask, flags, vmk_flags, tag,
-				control, 0, copy, cur_protection, max_protection, inheritance);
-	} else {
-		ret = FunctionCast(onVmMapEnterMemObjectControlLegacy, that->orgVmMapEnterMemObjectControl)
-				(target_map, address, initial_size, mask, flags, vmk_flags, tag,
-				control, offset, copy, cur_protection, max_protection, inheritance);
+		return onVmMapEnterMemObjectControlLegacy(target_map, &tempAddress, initial_size - sizeOnDisk, mask, flags, vmk_flags, tag,
+				                                  control, offset + sizeOnDisk, copy, cur_protection, max_protection, inheritance);
 	}
 
+	ret = FunctionCast(onVmMapEnterMemObjectControlLegacy, that->orgVmMapEnterMemObjectControl)
+			(target_map, address, initial_size, mask, flags, vmk_flags, tag,
+			control, offset, copy, cur_protection, max_protection, inheritance);
 	onVmMapEnterMemObjectControlPostCall(address, initial_size, kcKind, realOffset, doOverride);
 	return ret;
 }
@@ -901,20 +898,17 @@ kern_return_t KernelPatcher::onVmMapEnterMemObjectControlVer22Point4(
 	if (rangeOverlaps) {
 		vm_map_offset_t tempAddress = *address;
 		vm_object_offset_t sizeOnDisk = that->kcDiskSizes[kcKind] - offset;
-		FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
-				(target_map, &tempAddress, sizeOnDisk, mask, vmk_flags, control,
-				offset, copy, cur_protection, max_protection, inheritance);
+		onVmMapEnterMemObjectControlVer22Point4(target_map, &tempAddress, sizeOnDisk, mask, vmk_flags, control,
+											    offset, copy, cur_protection, max_protection, inheritance);
 
 		tempAddress = *address + that->kcDiskSizes[kcKind] - offset;
-		ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
-				(target_map, &tempAddress, initial_size - sizeOnDisk, mask, vmk_flags, control,
-				0, copy, cur_protection, max_protection, inheritance);
-	} else {
-		ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
-				(target_map, address, initial_size, mask, vmk_flags, control,
-				offset, copy, cur_protection, max_protection, inheritance);
+		return onVmMapEnterMemObjectControlVer22Point4(target_map, &tempAddress, initial_size - sizeOnDisk, mask, vmk_flags, control,
+				                                       offset + sizeOnDisk, copy, cur_protection, max_protection, inheritance);
 	}
 
+	ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
+			(target_map, address, initial_size, mask, vmk_flags, control,
+			offset, copy, cur_protection, max_protection, inheritance);
 	onVmMapEnterMemObjectControlPostCall(address, initial_size, kcKind, realOffset, doOverride);
 	return ret;
 }
