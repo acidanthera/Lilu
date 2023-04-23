@@ -830,7 +830,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 	iterator->release();
 
 	for (uint i = 0; i < sizeof(mach_header_64); i++) {
-		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: [%llX] = %X", rangeStart + i, *address + i);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: [%llX] = %X", rangeStart + i, *reinterpret_cast<uint8_t*>(*address + i));
 	}
 }
 
