@@ -135,10 +135,10 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 					auto *osCurGot = OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32);
 					if (!osCurGot) { return KERN_RESOURCE_SHORTAGE; }
 					osCurGot->serialize(serializer);
-					auto *osCount =  OSNumber::withNumber(branch_got_entry_count, 64);
+					/*auto *osCount =  OSNumber::withNumber(branch_got_entry_count, 64);
 					if (!osCount) { return KERN_RESOURCE_SHORTAGE; }
 					branch_gots_entries->setObject(serializer->text(), osCount);
-					osCount->release();
+					osCount->release();*/
 					serializer->clearText();
 					osCurGot->release();
 
