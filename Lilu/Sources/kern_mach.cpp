@@ -125,7 +125,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 					disk_text_addr = segCmd->vmaddr;
 				}
 
-				/*uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
+				uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
 				branch_gots_entries = OSDictionary::withCapacity(0);
 				if (!branch_gots_entries) { return KERN_RESOURCE_SHORTAGE; }
 				branch_got_entry_count = 0;
@@ -145,7 +145,7 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 					branch_got_entry_count++;
 					curGot++;
 				}
-				serializer->release();*/
+				serializer->release();
 			}
 
 			addr += loadCmd->cmdsize;
