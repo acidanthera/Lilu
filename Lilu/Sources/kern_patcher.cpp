@@ -772,7 +772,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			}
 
 			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(curObjData->getBytesNoCopy());
-			kcInfo->injectKextIntoKC(injectInfo);
+			// kcInfo->injectKextIntoKC(injectInfo);
 			Buffer::deleter((void*)injectInfo->bundlePath);
 			Buffer::deleter((void*)injectInfo->infoPlist);
 			Buffer::deleter((void*)injectInfo->executablePath);
