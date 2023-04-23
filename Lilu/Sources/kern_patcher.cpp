@@ -829,7 +829,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range %llX ~ %llX", kcKind, patchFrom, patchTo);
 
 		uint64_t memoryOffset = patchFrom - rangeStart;
-    	uint64_t patchOffset = rangeStart - patch->patchStart;
+    	uint64_t patchOffset = patchFrom - patch->patchStart;
 		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: memoryOffset=%llX, patchOffset=%llX, copying %llX bytes", memoryOffset, patchOffset, patchTo - patchFrom + 1);
 		memcpy(reinterpret_cast<void*>(*address + memoryOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
 	}
