@@ -545,7 +545,8 @@ public:
 		kc_kind                 &kcKind,
 		vm_object_offset_t      &offset,
 		vm_object_offset_t      &realOffset,
-		bool                    &doOverride);
+		bool                    &doOverride,
+		bool                    &rangeOverlaps);
 
 	static void onVmMapEnterMemObjectControlPostCall(
 		vm_map_offset_t         *address,
