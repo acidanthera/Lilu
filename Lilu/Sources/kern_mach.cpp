@@ -539,7 +539,9 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				dataPages->release();
 				return KERN_FAILURE;
 			}
-			set->setObject(OSNumber::withNumber(r_address, 32));
+			auto *rAddressNumber = OSNumber::withNumber(r_address, 32);
+			set->setObject(rAddressNumber);
+			rAddressNumber->release();
 
 			locRelocInfo++;
 		}
@@ -715,7 +717,9 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				if (resolvedSymbolKCIndex == kc_index) curReloc->fixup64.target -= disk_text_addr;
 
 				auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
-				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(OSNumber::withNumber(r_address, 32));
+				auto *rAddressNumber = OSNumber::withNumber(r_address, 32);
+				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(rAddressNumber);
+				rAddressNumber->release();
 			}
 
 			extRelocInfo++;

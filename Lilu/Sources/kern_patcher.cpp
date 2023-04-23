@@ -386,8 +386,9 @@ bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram) {
 	auto *symbolsHeader = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
 	uint32_t headerVersion = symbolsHeader->HeaderVersion, size = symbolsHeader->HeaderSize, count = symbolsHeader->SymbolCount;
 	DBGLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols HeaderVersion = %u, Size = %u, SymbolCount = %u", headerVersion, size, count);
-	memDesc->release();
+	map->unmap();
 	map->release();
+	memDesc->release();
 	if (headerVersion != 0) {
 		SYSLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols unsupported header version! Bailing");
 		return false;
@@ -410,8 +411,9 @@ bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram) {
 		curSymbolAddr += curSymbol->EntryLength;
 	}
 
-	memDesc->release();
+	map->unmap();
 	map->release();
+	memDesc->release();
 	return true;
 }
 
@@ -451,8 +453,9 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 		auto *injectionHeader = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
 		uint32_t version = injectionHeader->Version, size = injectionHeader->EntryLength, kcKind = injectionHeader->KCKind;
 		DBGLOG("patcher", "fetchInjectionInfoFromOpenCore: lilu-injection-info-%u Version = %u EntryLength = %u, KCKind = %u", i, version, size, kcKind);
-		memDesc->release();
+		map->unmap();
 		map->release();
+		memDesc->release();
 		if (version != 0 || kcKind > 3) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: lilu-injection-info-%u invalid header! Bailing", i);
 			return false;
@@ -464,16 +467,18 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 		auto *injectionInfo = Buffer::create<KextInjectionInfo>(1);
 		if (!injectionInfo) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate injectionInfo");
-			memDesc->release();
+			map->unmap();
 			map->release();
+			memDesc->release();
 			return false;
 		}
 
 		auto *bundlePath = Buffer::create<char>(sizeof(liluInjectionInfo->BundlePath));
 		if (!bundlePath) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate bundlePath");
-			memDesc->release();
+			map->unmap();
 			map->release();
+			memDesc->release();
 			return false;
 		}
 		strncpy(bundlePath, liluInjectionInfo->BundlePath, sizeof(liluInjectionInfo->BundlePath));
@@ -482,8 +487,9 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 		auto *infoPlist = Buffer::create<char>(liluInjectionInfo->InfoPlistSize);
 		if (!infoPlist) {
 			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate infoPlist");
-			memDesc->release();
+			map->unmap();
 			map->release();
+			memDesc->release();
 			return false;
 		}
 		memcpy(infoPlist,
@@ -495,8 +501,9 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 			auto *executablePath = Buffer::create<char>(sizeof(liluInjectionInfo->ExecutablePath));
 			if (!executablePath) {
 				SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate executablePath");
-				memDesc->release();
+				map->unmap();
 				map->release();
+				memDesc->release();
 				return false;
 			}
 			strncpy(executablePath, liluInjectionInfo->ExecutablePath, sizeof(liluInjectionInfo->ExecutablePath));
@@ -505,8 +512,9 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 			auto *executable = Buffer::create<uint8_t>(liluInjectionInfo->ExecutableSize);
 			if (!executable) {
 				SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate executable");
-				memDesc->release();
+				map->unmap();
 				map->release();
+				memDesc->release();
 				return false;
 			}
 			memcpy(executable,
@@ -524,8 +532,9 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 		injectionInfoData->release();
 		Buffer::deleter(injectionInfo);
 
-		memDesc->release();
+		map->unmap();
 		map->release();
+		memDesc->release();
 	}
 	return true;
 }
@@ -552,8 +561,9 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
 	       version, exclusionInfo->Header.Size, exclusionInfo->Header.KextCount);
 	if (version != 0) {
 		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info invalid header! Bailing");
-		memDesc->release();
+		map->unmap();
 		map->release();
+		memDesc->release();
 		return false;
 	}
 
@@ -569,8 +579,9 @@ bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
 		entryData->release();
 	}
 
-	memDesc->release();
+	map->unmap();
 	map->release();
+	memDesc->release();
 	return true;
 }
 
