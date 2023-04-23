@@ -78,8 +78,8 @@ typedef struct {
 } PACKED LILU_PRELINKED_SYMBOLS_HEADER;
 
 typedef struct {
-	uint32_t EntryLength;
 	uint64_t SymbolValue;
+	uint32_t EntryLength;
 	uint32_t SymbolNameLength;
 	char SymbolName[];
 } PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
