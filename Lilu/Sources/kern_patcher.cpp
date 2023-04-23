@@ -824,15 +824,11 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 		if (patch->patchEnd < rangeStart || patch->patchStart > rangeEnd) continue;
 		uint64_t patchFrom = max(rangeStart, patch->patchStart), patchTo = min(rangeEnd, patch->patchEnd);
 		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range %llX ~ %llX", kcKind, patchFrom, patchTo);
-    	uint64_t patchOffset = patchFrom - rangeStart;
+    	uint64_t patchOffset = patch->patchStart - rangeStart;
 		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: patchOffset=%llX, copying %llX bytes", patchOffset, patchTo - patchFrom + 1);
 		memcpy(reinterpret_cast<void*>(*address + patchOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
 	}
 	iterator->release();
-
-	for (uint i = 0; i < sizeof(mach_header_64); i++) {
-		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: [%llX] = %X", rangeStart + i, *reinterpret_cast<uint8_t*>(*address + i));
-	}
 }
 
 kern_return_t KernelPatcher::onVmMapEnterMemObjectControlLegacy(
