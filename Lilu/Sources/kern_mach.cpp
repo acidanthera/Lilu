@@ -124,32 +124,36 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 				} else if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 					disk_text_addr = segCmd->vmaddr;
 				}
-
-				uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
-				branch_gots_entries = OSDictionary::withCapacity(0);
-				if (!branch_gots_entries) { return KERN_RESOURCE_SHORTAGE; }
-				branch_got_entry_count = 0;
-				OSSerialize *serializer = OSSerialize::withCapacity(sizeof(uint64_t));
-				if (!serializer) { return KERN_RESOURCE_SHORTAGE; }
-				while (*curGot != 0) {
-					auto *osCurGot = OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32);
-					if (!osCurGot) { return KERN_RESOURCE_SHORTAGE; }
-					osCurGot->serialize(serializer);
-					/*auto *osCount =  OSNumber::withNumber(branch_got_entry_count, 64);
-					if (!osCount) { return KERN_RESOURCE_SHORTAGE; }
-					branch_gots_entries->setObject(serializer->text(), osCount);
-					osCount->release();*/
-					serializer->clearText();
-					osCurGot->release();
-
-					branch_got_entry_count++;
-					curGot++;
-				}
-				serializer->release();
 			}
 
 			addr += loadCmd->cmdsize;
 		}
+
+		if (!branch_gots_offset) {
+			SYSLOG("mach", "initFromBuffer: branch_gots_offset is 0");
+			return KERN_FAILURE;
+		}
+		uint64_t *curGot = (uint64_t*)(file_buf + branch_gots_offset);
+		branch_gots_entries = OSDictionary::withCapacity(0);
+		if (!branch_gots_entries) { return KERN_RESOURCE_SHORTAGE; }
+		branch_got_entry_count = 0;
+		OSSerialize *serializer = OSSerialize::withCapacity(sizeof(uint64_t));
+		if (!serializer) { return KERN_RESOURCE_SHORTAGE; }
+		while (*curGot != 0) {
+			auto *osCurGot = OSNumber::withNumber((*curGot) & 0xFFFFFFFF, 32);
+			if (!osCurGot) { return KERN_RESOURCE_SHORTAGE; }
+			osCurGot->serialize(serializer);
+			auto *osCount =  OSNumber::withNumber(branch_got_entry_count, 64);
+			if (!osCount) { return KERN_RESOURCE_SHORTAGE; }
+			branch_gots_entries->setObject(serializer->text(), osCount);
+			osCount->release();
+			serializer->clearText();
+			osCurGot->release();
+
+			branch_got_entry_count++;
+			curGot++;
+		}
+		serializer->release();
 	}
 	return KERN_SUCCESS;
 }
