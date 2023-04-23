@@ -163,6 +163,10 @@ void MachInfo::addKCPatchInfo(uint64_t patchStart, uint64_t patchSize) {
 	OSData *data = OSData::withBytesNoCopy(patchInfo, sizeof(*patchInfo));
 	kc_patch_info->setObject(data);
 	data->release();
+	DBGLOG("mach", "addKCPatchInfo: Added patch info range %llX ~ %llX", patchInfo->patchStart, patchInfo->patchEnd);
+	for (uint i = 0; i < sizeof(mach_header_64); i++) {
+		DBGLOG("mach", "addKCPatchInfo: [%llX] = %X", patchInfo->patchStart + i, patchInfo->patchWith[i]);
+	}
 }
 
 kern_return_t MachInfo::finalizeKCInject() {
