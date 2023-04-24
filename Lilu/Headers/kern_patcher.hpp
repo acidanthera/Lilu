@@ -122,6 +122,16 @@ typedef struct {
 
 // The maximize size of LILU_BLOCK_INFO allowed on version 0
 #define LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0 16384
+
+typedef struct {
+	uint32_t Magic;
+	uint32_t KextCount;
+	uint64_t PrelinkedSymbolsAddr;
+	uint64_t BlockInfoAddr;
+} PACKED LILU_INFO;
+
+// The magic header of LILU_INFO
+#define LILU_INFO_MAGIC  0xC4EF7155
 #endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
@@ -557,24 +567,24 @@ public:
 	);
 
 	/**
-	 *  Initialize kcSymbols, kcInjectInfos, and kcExclusionInfos with info from OpenCore
+	 *  Initialize kcSymbols, kcInjectInfos, and kcBlockInfos with info from OpenCore
 	 */
 	bool fetchInfoFromOpenCore();
 
 	/**
 	 *  Initialize kcSymbols with info from OpenCore
 	 */
-	bool fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram);
+	bool fetchPrelinkedSymbolsFromOpenCore(uint64_t prelinkedSymbolsAddr);
 
 	/**
 	 *  Initialize kcInjectInfos with info from OpenCore
 	 */
-	bool fetchInjectionInfoFromOpenCore(NVStorage *nvram);
+	bool fetchInjectionInfoFromOpenCore(NVStorage *nvram, uint32_t liluKextCount);
 
 	/**
-	 *  Initialize kcExclusionInfos with info from OpenCore
+	 *  Initialize kcBlockInfos with info from OpenCore
 	 */
-	bool fetchExclusionInfoFromOpenCore(NVStorage *nvram);
+	bool fetchBlockInfoFromOpenCore(uint64_t liluBlockInfoAddr);
 #endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
@@ -1057,9 +1067,9 @@ private:
 	OSArray *kcInjectInfos[4] = {nullptr};
 
 	/**
-	 *  Exclusion infos of KCs
+	 *  Block infos of KCs
 	 */
-	OSArray *kcExclusionInfos[4] = {nullptr};
+	OSArray *kcBlockInfos[4] = {nullptr};
 
 	/**
 	 *  Size of KCs on the disk

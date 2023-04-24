@@ -362,22 +362,12 @@ void KernelPatcher::setupKextListening() {
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
 #ifdef LILU_KCINJECT_SUPPORT
-bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram) {
+bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(uint64_t prelinkedSymbolsAddr) {
 	if (kcSymbols != nullptr) {
 		SYSLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: kcSymbols is already initialized");
 		return true;
 	}
-
-	// Fetch lilu-prelinked-symbols-addr
-	auto *prelinkedSymbolsAddrData =
-		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-prelinked-symbols-addr", NVStorage::Options::OptRaw);
-	if (!prelinkedSymbolsAddrData) {
-		SYSLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: Failed to fetch lilu-prelinked-symbols-addr");
-		return false;
-	}
-	auto prelinkedSymbolsAddr = *reinterpret_cast<const uint64_t *>(prelinkedSymbolsAddrData->getBytesNoCopy());
 	DBGLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols-addr = 0x%llX", prelinkedSymbolsAddr);
-	prelinkedSymbolsAddrData->free();
 
 	// Map lilu-prelinked-symbols
 	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr),
@@ -417,17 +407,8 @@ bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(NVStorage *nvram) {
 	return true;
 }
 
-bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
-	// Fetch lilu-kext-count
-	auto *liluKextCountData =
-		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-kext-count", NVStorage::Options::OptRaw);
-	if (!liluKextCountData) {
-		SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to fetch lilu-kext-count");
-		return false;
-	}
-	auto liluKextCount = *reinterpret_cast<const uint32_t *>(liluKextCountData->getBytesNoCopy());
+bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram, uint32_t liluKextCount) {
 	DBGLOG("patcher", "lilu-kext-count = 0x%u", liluKextCount);
-	liluKextCountData->free();
 
 	for (uint32_t i = 0; i < liluKextCount; i++) {
 		// Fetch lilu-injection-info-addr-%u
@@ -539,43 +520,33 @@ bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram) {
 	return true;
 }
 
-bool KernelPatcher::fetchExclusionInfoFromOpenCore(NVStorage *nvram) {
-	// Fetch lilu-block-info-addr
-	auto *liluExclusionInfoAddrData =
-		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-block-info-addr", NVStorage::Options::OptRaw);
-	if (!liluExclusionInfoAddrData) {
-		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: Failed to fetch lilu-block-info-addr");
-		return false;
-	}
-
-	auto liluExclusionInfoAddr = *reinterpret_cast<const uint64_t *>(liluExclusionInfoAddrData->getBytesNoCopy());
-	DBGLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info-addr = 0x%llX", liluExclusionInfoAddr);
-	liluExclusionInfoAddrData->free();
+bool KernelPatcher::fetchBlockInfoFromOpenCore(uint64_t liluBlockInfoAddr) {
+	DBGLOG("patcher", "fetchBlockInfoFromOpenCore: lilu-block-info-addr = 0x%llX", liluBlockInfoAddr);
 
 	// Map lilu-block-info-addr
-	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluExclusionInfoAddr), LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
+	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluBlockInfoAddr), LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
 	auto *map = memDesc->map();
-	auto *exclusionInfo = reinterpret_cast<LILU_BLOCK_INFO *>(map->getVirtualAddress());
-	uint32_t version = exclusionInfo->Header.Version;
-	DBGLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info Version = %u Size = %u, KextCount = %u",
-	       version, exclusionInfo->Header.Size, exclusionInfo->Header.KextCount);
+	auto *blockInfo = reinterpret_cast<LILU_BLOCK_INFO *>(map->getVirtualAddress());
+	uint32_t version = blockInfo->Header.Version;
+	DBGLOG("patcher", "fetchBlockInfoFromOpenCore: lilu-block-info Version = %u Size = %u, KextCount = %u",
+	       version, blockInfo->Header.Size, blockInfo->Header.KextCount);
 	if (version != 0) {
-		SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: lilu-block-info invalid header! Bailing");
+		SYSLOG("patcher", "fetchBlockInfoFromOpenCore: lilu-block-info invalid header! Bailing");
 		map->unmap();
 		map->release();
 		memDesc->release();
 		return false;
 	}
 
-	for (uint32_t i = 0; i < exclusionInfo->Header.KextCount; i++) {
-		auto *entry = &exclusionInfo->Entries[i];
+	for (uint32_t i = 0; i < blockInfo->Header.KextCount; i++) {
+		auto *entry = &blockInfo->Entries[i];
 		if (entry->KCKind > 3) {
-			SYSLOG("patcher", "fetchExclusionInfoFromOpenCore: Ignoring entry with invalid KCKind of %u", entry->KCKind);
+			SYSLOG("patcher", "fetchBlockInfoFromOpenCore: Ignoring entry with invalid KCKind of %u", entry->KCKind);
 			continue;
 		}
 
 		auto *entryData = OSData::withBytes(entry, sizeof(LILU_BLOCK_INFO_ENTRY));
-		kcExclusionInfos[entry->KCKind]->setObject(entryData);
+		kcBlockInfos[entry->KCKind]->setObject(entryData);
 		entryData->release();
 	}
 
@@ -589,7 +560,26 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	auto *nvram = new NVStorage {};
 	nvram->init();
 
-	if (!fetchPrelinkedSymbolsFromOpenCore(nvram)) {
+	// Fetch lilu-info
+	auto *liluInfoData =
+		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-info", NVStorage::Options::OptRaw);
+	if (!liluInfoData) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-info");
+		nvram->deinit();
+		delete nvram;
+		return false;
+	}
+
+	auto liluInfo = reinterpret_cast<const LILU_INFO *>(liluInfoData->getBytesNoCopy());
+	if (liluInfo->Magic != LILU_INFO_MAGIC) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: LILU_INFO magic expected 0x%u got 0x%u", LILU_INFO_MAGIC, liluInfo->Magic);
+		liluInfoData->free();
+		nvram->deinit();
+		delete nvram;
+		return false;
+	}
+
+	if (!fetchPrelinkedSymbolsFromOpenCore(liluInfo->PrelinkedSymbolsAddr)) {
 		kcSymbols = OSDictionary::withCapacity(0);
 	}
 
@@ -597,14 +587,15 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 	for (uint32_t i = 0; i < 4; i++) {
 		kcInjectInfos[i] = OSArray::withCapacity(0);
 	}
-	fetchInjectionInfoFromOpenCore(nvram);
+	fetchInjectionInfoFromOpenCore(nvram, liluInfo->KextCount);
 
-	// Initialize kcExclusionInfos
+	// Initialize kcBlockInfos
 	for (uint32_t i = 0; i < 4; i++) {
-		kcExclusionInfos[i] = OSArray::withCapacity(0);
+		kcBlockInfos[i] = OSArray::withCapacity(0);
 	}
-	fetchExclusionInfoFromOpenCore(nvram);
+	fetchBlockInfoFromOpenCore(liluInfo->BlockInfoAddr);
 
+	liluInfoData->free();
 	nvram->deinit();
 	delete nvram;
 	return true;
@@ -664,13 +655,13 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			return ret;
 		}
 
-		auto *exclusionInfos = that->kcExclusionInfos[that->curLoadingKCKind];
-		if (!exclusionInfos) {
-			SYSLOG("patcher", "onUbcGetobjectFromFilename: exclusionInfos is null");
+		auto *blockInfos = that->kcBlockInfos[that->curLoadingKCKind];
+		if (!blockInfos) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: blockInfos is null");
 			return ret;
 		}
 
-		bool mappingRequired = exclusionInfos->getCount() != 0;
+		bool mappingRequired = blockInfos->getCount() != 0;
 		// Injection into AuxKC requires parsing SysKC
 		for (uint i = that->curLoadingKCKind; i < kc_kind::KCNumKinds; i++) {
 			mappingRequired |= that->kcInjectInfos[i] != nullptr && that->kcInjectInfos[i]->getCount() != 0;
@@ -725,7 +716,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
-		auto *iterator = OSCollectionIterator::withCollection(exclusionInfos);
+		auto *iterator = OSCollectionIterator::withCollection(blockInfos);
 		if (!iterator) {
 			SYSLOG("patcher", "onUbcGetobjectFromFilename: iterator is null");
 			kcInfo->deinit();
@@ -737,19 +728,19 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
-				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in exclusionInfos");
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in blockInfos");
 				iterator->release();
 				kcInfo->deinit();
 				MachInfo::deleter(kcInfo);
 				return ret;
 			}
 
-			auto *exclusionInfo = reinterpret_cast<const LILU_BLOCK_INFO_ENTRY *>(curObjData->getBytesNoCopy());
-			kcInfo->blockKextFromKC(exclusionInfo->Identifier, exclusionInfo->Exclude);
+			auto *blockInfo = reinterpret_cast<const LILU_BLOCK_INFO_ENTRY *>(curObjData->getBytesNoCopy());
+			kcInfo->blockKextFromKC(blockInfo->Identifier, blockInfo->Exclude);
 		}
 		iterator->release();
-		exclusionInfos->release();
-		that->kcExclusionInfos[that->curLoadingKCKind] = nullptr;
+		blockInfos->release();
+		that->kcBlockInfos[that->curLoadingKCKind] = nullptr;
 
 		// Inject kexts
 		iterator = OSCollectionIterator::withCollection(injectInfos);
