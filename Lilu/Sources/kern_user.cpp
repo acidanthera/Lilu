@@ -651,7 +651,7 @@ void UserPatcher::patchSharedCache(vm_map_t taskPort, uint32_t slide, cpu_type_t
 			}
 
 			if (modStart && modEnd && offNum && patch.cpu == cpu) {
-				DBGLOG("user", "patch for %s in %lX %lX", mod->path, modStart, modEnd);
+				DBGLOG("user", "patch for %s in %llX %llX", mod->path, (uint64_t)modStart, (uint64_t)modEnd);
 				auto tmp = Buffer::create<uint8_t>(patch.size);
 				if (tmp) {
 					for (size_t k = 0; k < offNum; k++) {
@@ -860,7 +860,7 @@ bool UserPatcher::loadFilesForPatching() {
 				MachInfo::findSectionBounds(buf, fileSize, vmsegment, vmsection, sectionptr, size,
 											fileSegments[patch.segment], fileSections[patch.segment], patch.cpu);
 
-				DBGLOG("user", "findSectionBounds returned vmsegment %lX vmsection %lX sectionptr %p size %lu", vmsegment, vmsection, sectionptr, size);
+				DBGLOG("user", "findSectionBounds returned vmsegment %llX vmsection %llX sectionptr %p size %lu", (uint64_t)vmsegment, (uint64_t)vmsection, sectionptr, size);
 
 				if (size) {
 					uint8_t *start = reinterpret_cast<uint8_t *>(sectionptr);
@@ -881,7 +881,7 @@ bool UserPatcher::loadFilesForPatching() {
 								off_t valueOff = reinterpret_cast<uintptr_t>(start - pageOff - reinterpret_cast<uintptr_t>(sectionptr));
 								off_t segOff = vmsection-vmsegment+sectOff;
 
-								DBGLOG("user", "using it off %llX pageOff %lX new %lX segOff %llX", sectOff, pageOff, vmpage, segOff);
+								DBGLOG("user", "using it off %llX pageOff %llX new %llX segOff %llX", sectOff, (uint64_t)pageOff, (uint64_t)vmpage, segOff);
 
 								// We need binary entry, i.e. the page our patch belong to
 								LookupStorage *entry = nullptr;
