@@ -688,8 +688,29 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		}
 		DBGLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
 
+		// Estimate the size of kexts to inject
+		vm_size_t patchedKCSize = oldKcSize + 20 * 1024 * 1024; // 16 MB for linkeditIncrease, 4 MB for new prelinked info
+		auto *iterator = OSCollectionIterator::withCollection(injectInfos);
+		if (!iterator) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");
+			return ret;
+		}
+
+		OSObject *curObj = nullptr;
+		while ((curObj = iterator->getNextObject())) {
+			auto *curObjData = OSDynamicCast(OSData, curObj);
+			if (!curObjData) {
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				iterator->release();
+				return ret;
+			}
+
+			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(curObjData->getBytesNoCopy());
+			patchedKCSize += alignValue(injectInfo->executableSize);
+		}
+		iterator->release();
+
 		// Setup patched buffer
-		vm_size_t patchedKCSize = oldKcSize + 64 * 1024 * 1024;
 		uint8_t *patchedKCBuf = Buffer::create<uint8_t>(patchedKCSize);
 
 		uint32_t copyInterval = 8 * 1024 * 1024;
@@ -716,15 +737,15 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		kcInfo->extractKextsSymbols();
 
 		// Block kexts
-		auto *iterator = OSCollectionIterator::withCollection(blockInfos);
+		iterator = OSCollectionIterator::withCollection(blockInfos);
 		if (!iterator) {
-			SYSLOG("patcher", "onUbcGetobjectFromFilename: iterator is null");
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: blockInfos iterator is null");
 			kcInfo->deinit();
 			MachInfo::deleter(kcInfo);
 			return ret;
 		}
 
-		OSObject *curObj = nullptr;
+		curObj = nullptr;
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
 			if (!curObjData) {
@@ -745,7 +766,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		// Inject kexts
 		iterator = OSCollectionIterator::withCollection(injectInfos);
 		if (!iterator) {
-			SYSLOG("patcher", "onUbcGetobjectFromFilename: iterator is null");
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");
 			kcInfo->deinit();
 			MachInfo::deleter(kcInfo);
 			return ret;
@@ -834,7 +855,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 
 	auto *iterator = OSCollectionIterator::withCollection(that->kcPatchInfos[kcKind]);
 	if (!iterator) {
-		SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: iterator is null");
+		SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: kcPatchInfos iterator is null");
 		return;
 	}
 
