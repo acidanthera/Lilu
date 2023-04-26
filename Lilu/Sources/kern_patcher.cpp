@@ -408,7 +408,7 @@ bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(uint64_t prelinkedSymbolsA
 }
 
 bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram, uint32_t liluKextCount) {
-	DBGLOG("patcher", "lilu-kext-count = 0x%u", liluKextCount);
+	DBGLOG("patcher", "lilu-kext-count = %u", liluKextCount);
 
 	for (uint32_t i = 0; i < liluKextCount; i++) {
 		// Fetch lilu-injection-info-addr-%u
@@ -572,7 +572,7 @@ bool KernelPatcher::fetchInfoFromOpenCore() {
 
 	auto liluInfo = reinterpret_cast<const LILU_INFO *>(liluInfoData->getBytesNoCopy());
 	if (liluInfo->Magic != LILU_INFO_MAGIC) {
-		SYSLOG("patcher", "fetchInfoFromOpenCore: LILU_INFO magic expected 0x%u got 0x%u", LILU_INFO_MAGIC, liluInfo->Magic);
+		SYSLOG("patcher", "fetchInfoFromOpenCore: LILU_INFO magic expected 0x%X got 0x%X", LILU_INFO_MAGIC, liluInfo->Magic);
 		liluInfoData->free();
 		nvram->deinit();
 		delete nvram;
@@ -836,7 +836,7 @@ void KernelPatcher::onVmMapEnterMemObjectControlPreCall(
 	realOffset = offset;
 	if (!doOverride) return;
 
-	DBGLOG("patcher", "onVmMapEnterMemObjectControlPreCall: Mapping KC kind %u range %llX ~ %llX", kcKind, realOffset, realOffset + initial_size);
+	DBGLOG("patcher", "onVmMapEnterMemObjectControlPreCall: Mapping KC kind %u range 0x%llX ~ 0x%llX", kcKind, realOffset, realOffset + initial_size);
 	if (offset >= that->kcDiskSizes[kcKind]) {
 		offset = 0;
 	} else if (offset + initial_size - 1 >= that->kcDiskSizes[kcKind]) {
@@ -872,12 +872,12 @@ void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
 		auto *patch = reinterpret_cast<const KCPatchInfo *>(curObjData->getBytesNoCopy());
 		if (patch->patchEnd < rangeStart || patch->patchStart > rangeEnd) continue;
 		uint64_t patchFrom = max(rangeStart, patch->patchStart), patchTo = min(rangeEnd, patch->patchEnd);
-		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Found KC patch info with range %llX ~ %llX", patch->patchStart, patch->patchEnd);
-		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range %llX ~ %llX", kcKind, patchFrom, patchTo);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Found KC patch info with range 0x%llX ~ 0x%llX", patch->patchStart, patch->patchEnd);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range 0x%llX ~ 0x%llX", kcKind, patchFrom, patchTo);
 
 		uint64_t memoryOffset = patchFrom - rangeStart;
     	uint64_t patchOffset = patchFrom - patch->patchStart;
-		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: memoryOffset=%llX, patchOffset=%llX, copying %llX bytes", memoryOffset, patchOffset, patchTo - patchFrom + 1);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: memoryOffset=0x%llX, patchOffset=0x%llX, copying 0x%llX bytes", memoryOffset, patchOffset, patchTo - patchFrom + 1);
 		memcpy(reinterpret_cast<void*>(*address + memoryOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
 	}
 	iterator->release();
