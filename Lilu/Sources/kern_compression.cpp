@@ -417,7 +417,7 @@ static uint8_t *decompressInternal(uint32_t compression, uint32_t *dstlen, const
 
 		if (!buffer) Buffer::deleter(decompressedBuf);
 	} else {
-		SYSLOG("comp", "failed to allocate memory for decompression buffer of %u", dstlen);
+		SYSLOG("comp", "failed to allocate memory for decompression buffer of %u", *dstlen);
 	}
 
 	return 0;
