@@ -1059,27 +1059,27 @@ private:
 	/**
 	 *  The "memory control objects" of KCs
 	 */
-	void *kcControls[4] = {nullptr};
+	void *kcControls[kc_kind::KCNumKinds] = {nullptr};
 
 	/**
 	 *  Injection infos of KCs
 	 */
-	OSArray *kcInjectInfos[4] = {nullptr};
+	OSArray *kcInjectInfos[kc_kind::KCNumKinds] = {nullptr};
 
 	/**
 	 *  Block infos of KCs
 	 */
-	OSArray *kcBlockInfos[4] = {nullptr};
+	OSArray *kcBlockInfos[kc_kind::KCNumKinds] = {nullptr};
 
 	/**
 	 *  Size of KCs on the disk
 	 */
-	vm_size_t kcDiskSizes[4] = {0};
+	vm_size_t kcDiskSizes[kc_kind::KCNumKinds] = {0};
 
 	/**
 	 *  Patch infos of KCs
 	 */
-	OSArray *kcPatchInfos[4] = {nullptr};
+	OSArray *kcPatchInfos[kc_kind::KCNumKinds] = {nullptr};
 
 	/**
 	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()
