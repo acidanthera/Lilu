@@ -267,6 +267,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 		MachInfo::deleter(kextInfo);
 	} else {
 		DBGLOG("mach", "blockKextFromKC: Excluding %s", identifier);
+		uint64_t fileoff = imagePtr - file_buf;
 		// Remove the related LC_FILESET_ENTRY command
 		auto header = (mach_header*)(file_buf);
 		auto orgCmd = (load_command*)(file_buf);
@@ -303,6 +304,13 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 					header->sizeofcmds -= cmdsize;
 					goto skipCommand;
 				}
+			} else if (orgCmd->cmd == LC_SEGMENT_64) {
+				auto scmd = reinterpret_cast<segment_command_64 *>(orgCmd);
+				if (scmd->fileoff == fileoff && scmd->filesize == imageSize) {
+					// DBGLOG("mach", "blockKextFromKC: Skipping related LC_SEGMENT_64");
+					header->sizeofcmds -= cmdsize;
+					goto skipCommand;
+				}
 			}
 
 			if (orgCmd != dstCmd) {
@@ -328,7 +336,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 
 		// Overwrite the kext image with zero
 		memset(imagePtr, 0, imageSize);
-		addKCPatchInfo(imagePtr - file_buf, imageSize);
+		addKCPatchInfo(fileoff, imageSize);
 	}
 
 	DBGLOG("mach", "blockKextFromKC: %s is now blocked", identifier);
