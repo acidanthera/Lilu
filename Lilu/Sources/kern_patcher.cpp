@@ -689,7 +689,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		DBGLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
 
 		// Estimate the size of kexts to inject
-		vm_size_t patchedKCSize = oldKcSize + 20 * 1024 * 1024; // 16 MB for linkeditIncrease, 4 MB for new prelinked info
+		vm_size_t patchedKCSize = oldKcSize + 68 * 1024 * 1024; // 64 MB for linkeditIncrease, 4 MB for new prelinked info
 		auto *iterator = OSCollectionIterator::withCollection(injectInfos);
 		if (!iterator) {
 			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");

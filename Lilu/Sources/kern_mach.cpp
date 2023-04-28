@@ -280,6 +280,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 
 		uint8_t *endaddr = file_buf + file_buf_free_start;
 		auto dstCmd = orgCmd;
+		uint32_t cmdsRemoved = 0;
 		for (uint32_t no = 0; no < header->ncmds; no++) {
 			if (!isAligned(orgCmd)) {
 				SYSLOG("mach", "blockKextFromKC: Invalid command %u position for section lookup", no);
@@ -302,6 +303,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 				if (!strncmp(identifier, curEntryName, curEntryCapacity)) {
 					// DBGLOG("mach", "blockKextFromKC: Skipping related LC_FILESET_ENTRY");
 					header->sizeofcmds -= cmdsize;
+					cmdsRemoved++;
 					goto skipCommand;
 				}
 			} else if (orgCmd->cmd == LC_SEGMENT_64) {
@@ -309,6 +311,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 				if (scmd->fileoff == fileoff && scmd->filesize == imageSize) {
 					// DBGLOG("mach", "blockKextFromKC: Skipping related LC_SEGMENT_64");
 					header->sizeofcmds -= cmdsize;
+					cmdsRemoved++;
 					goto skipCommand;
 				}
 			}
@@ -327,7 +330,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 			SYSLOG("mach", "blockKextFromKC: Unable to locate related LC_FILESET_ENTRY");
 			return KERN_FAILURE;
 		}
-		header->ncmds--;
+		header->ncmds -= cmdsRemoved;
 
 		// Remove the kext from the prelink info
 		imageArr = imageArr ?: OSDynamicCast(OSArray, prelink_dict->getObject("_PrelinkInfoDictionary"));
