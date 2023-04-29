@@ -646,7 +646,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		that->kcControls[that->curLoadingKCKind] = ret;
 
 		if (that->curLoadingKCKind == kc_kind::KCKindPageable) {
-			PANIC_COND(!that->fetchInfoFromOpenCore(), "patcher", "onUbcGetobjectFromFilename: fetchInfoFromOpenCore failed");
+			that->fetchInfoFromOpenCore();
 		}
 
 		auto *injectInfos = that->kcInjectInfos[that->curLoadingKCKind];
