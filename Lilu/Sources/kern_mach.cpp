@@ -106,7 +106,6 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 		uint8_t *addr = (uint8_t*)(mh + 1);
 
 		// Reserve more space in __LINKEDIT and find some useful values
-		uint32_t linkeditIncrease = min(64 * 1024 * 1024, alignValue(static_cast<uint32_t>(0.5 * origBufSize)));
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			load_command *loadCmd = (load_command*)addr;
 			if (loadCmd->cmd == LC_SEGMENT_64) {
@@ -114,9 +113,9 @@ kern_return_t MachInfo::initFromBuffer(uint8_t * buf, uint32_t bufSize, uint32_t
 				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 					linkedit_offset = static_cast<uint32_t>(segCmd->fileoff);
 					linkedit_free_start = static_cast<uint32_t>(segCmd->filesize);
-					segCmd->vmsize += linkeditIncrease;
-					segCmd->filesize += linkeditIncrease;
-					file_buf_free_start += linkeditIncrease;
+					segCmd->vmsize += linkedit_increase;
+					segCmd->filesize += linkedit_increase;
+					file_buf_free_start += linkedit_increase;
 				} else if (!strncmp(segCmd->segname, "__BRANCH_STUBS", sizeof(segCmd->segname))) {
 					branch_stubs_offset = static_cast<uint32_t>(segCmd->fileoff);
 				} else if (!strncmp(segCmd->segname, "__BRANCH_GOTS", sizeof(segCmd->segname))) {
@@ -360,6 +359,38 @@ SInt32 orderFunction(const OSMetaClassBase * obj1, const OSMetaClassBase * obj2,
 	return obj2Num->unsigned32BitValue() - obj1Num->unsigned32BitValue();
 }
 
+bool MachInfo::extractFatBinary(const uint8_t *&executable, uint32_t &executableSize) {
+	auto *fatHeader = reinterpret_cast<const fat_header *>(executable);
+	if (fatHeader->magic == FAT_CIGAM || fatHeader->magic == FAT_MAGIC) {
+		bool swapBytes = fatHeader->magic == FAT_CIGAM;
+
+		uint32_t nfat_arch = fatHeader->nfat_arch;
+		if (swapBytes) nfat_arch = OSSwapInt32(nfat_arch);
+
+		auto *curFat = reinterpret_cast<const fat_arch *>(fatHeader + 1);
+		for (uint32_t i = 0; i < nfat_arch; i++) {
+			uint32_t cputype = curFat->cputype;
+			if (swapBytes) cputype = OSSwapInt32(cputype);
+
+			if (cputype == MachCpuTypeNative) {
+				uint32_t fatOffset = curFat->offset;
+				if (swapBytes) fatOffset = OSSwapInt32(fatOffset);
+				executable = executable + fatOffset;
+
+				uint32_t fatSize = curFat->size;
+				if (swapBytes) fatSize = OSSwapInt32(fatSize);
+				executableSize = fatSize;
+				return true;
+			}
+			curFat++;
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
 kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 	MachInfo *kextInfo = MachInfo::create();
 	if (!kextInfo) {
@@ -379,39 +410,11 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 
 	auto *executableOrg = injectInfo->executable;
 	if (executableOrg != nullptr) {
-		auto *fatHeader = reinterpret_cast<const fat_header *>(executableOrg);
-		if (fatHeader->magic == FAT_CIGAM || fatHeader->magic == FAT_MAGIC) {
-			bool swapBytes = fatHeader->magic == FAT_CIGAM;
-
-			uint32_t nfat_arch = fatHeader->nfat_arch;
-			if (swapBytes) nfat_arch = OSSwapInt32(nfat_arch);
-
-			bool found = false;
-			auto *curFat = reinterpret_cast<const fat_arch *>(fatHeader + 1);
-			for (uint32_t i = 0; i < nfat_arch; i++) {
-				uint32_t cputype = curFat->cputype;
-				if (swapBytes) cputype = OSSwapInt32(cputype);
-
-				if (cputype == MachCpuTypeNative) {
-					uint32_t fatOffset = curFat->offset;
-					if (swapBytes) fatOffset = OSSwapInt32(fatOffset);
-					executableOrg = executableOrg + fatOffset;
-
-					uint32_t fatSize = curFat->size;
-					if (swapBytes) fatSize = OSSwapInt32(fatSize);
-					executableSize = fatSize;
-					found = true;
-					break;
-				}
-				curFat++;
-			}
-
-			if (!found) {
-				SYSLOG("mach", "injectKextIntoKC: Failed to extract x86_64 binary from a FAT binary");
-				kextInfo->deinit();
-				MachInfo::deleter(kextInfo);
-				return KERN_FAILURE;
-			}
+		if (!extractFatBinary(executableOrg, executableSize)) {
+			SYSLOG("mach", "injectKextIntoKC: Failed to extract x86_64 binary from a FAT binary");
+			kextInfo->deinit();
+			MachInfo::deleter(kextInfo);
+			return KERN_FAILURE;
 		}
 
 		// Setup kextInfo
@@ -430,8 +433,8 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 
 		// Apply fixup to the commands
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
-		mach_header_64 *mh = (mach_header_64*)kextInfo->getFileBuf();
-		uint8_t *addr = (uint8_t*)(mh + 1);
+		auto *mh = reinterpret_cast<mach_header_64*>(kextInfo->getFileBuf());
+		auto *addr = reinterpret_cast<uint8_t*>(mh + 1);
 		uint64_t linkeditDelta = 0, dataVmaddr = 0;
 		uint32_t dataFileoff = 0, dataFilesize = 0;
 		uint32_t symoff = 0, nsyms = 0, stroff = 0;
@@ -453,6 +456,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 						linkedit_free_start += segCmd->filesize;
 						break;
 					}
+
 					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
 						dataVmaddr = segCmd->vmaddr;
 						dataFileoff = static_cast<uint32_t>(segCmd->fileoff);

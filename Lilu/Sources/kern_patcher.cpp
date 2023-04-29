@@ -689,13 +689,14 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		DBGLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
 
 		// Estimate the size of kexts to inject
-		vm_size_t patchedKCSize = oldKcSize + 68 * 1024 * 1024; // 64 MB for linkeditIncrease, 4 MB for new prelinked info
+		vm_size_t patchedKCSize = oldKcSize + 4 * 1024 * 1024; // 4 MB for new prelinked info
 		auto *iterator = OSCollectionIterator::withCollection(injectInfos);
 		if (!iterator) {
 			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");
 			return ret;
 		}
 
+		uint32_t linkeditIncrease = 0;
 		OSObject *curObj = nullptr;
 		while ((curObj = iterator->getNextObject())) {
 			auto *curObjData = OSDynamicCast(OSData, curObj);
@@ -706,9 +707,40 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			}
 
 			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(curObjData->getBytesNoCopy());
-			patchedKCSize += alignValue(injectInfo->executableSize);
+			auto executable = injectInfo->executable;
+			auto executableSize = injectInfo->executableSize;
+			if (executableSize == 0) continue;
+
+			if (!MachInfo::extractFatBinary(executable, executableSize)) continue;
+			patchedKCSize += alignValue(executableSize);
+
+			auto *mh = reinterpret_cast<const mach_header_64*>(executable);
+			auto *addr = reinterpret_cast<const uint8_t*>(mh + 1);
+			uint32_t dataFilesize = 0;
+			for (uint32_t i = 0; i < mh->ncmds; i++) {
+				auto *loadCmd = reinterpret_cast<const load_command *>(addr);
+				if (loadCmd->cmd == LC_SEGMENT_64) {
+					auto *segCmd = reinterpret_cast<const segment_command_64 *>(loadCmd);
+					if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+						linkeditIncrease += segCmd->filesize;
+					}
+
+					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
+						dataFilesize = static_cast<uint32_t>(segCmd->filesize);
+					}
+				}
+
+				addr += loadCmd->cmdsize;
+			}
+
+			auto dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
+			linkeditIncrease += sizeof(dyld_chained_fixups_header) + sizeof(dyld_chained_starts_in_image) +
+			                    sizeof(dyld_chained_starts_in_segment) + 2 * (dataPageCount - 1);
 		}
 		iterator->release();
+		linkeditIncrease = alignValue(linkeditIncrease);
+		patchedKCSize += linkeditIncrease;
+		DBGLOG("patcher", "onUbcGetobjectFromFilename: linkeditIncrease = 0x%X", linkeditIncrease);
 
 		// Setup patched buffer
 		uint8_t *patchedKCBuf = Buffer::create<uint8_t>(patchedKCSize);
@@ -729,6 +761,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 		// Initialize kcInfo
 		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
+		kcInfo->setLinkeditIncrease(linkeditIncrease);
 		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
 		kcInfo->setKcSymbols(that->kcSymbols);
 		kcInfo->setKcKindAndIndex(that->curLoadingKCKind, that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);

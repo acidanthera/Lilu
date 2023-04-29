@@ -141,6 +141,7 @@ class MachInfo {
 	uint32_t file_buf_size {0};              		// read file data size
 	uint32_t file_orig_size {0};                    // original size of the file without the free space
 	uint32_t file_buf_free_start {0};        		// start of the free space inside the file (for injecting new prelink info / kexts)
+	uint32_t linkedit_increase {0};                 // amount of space to reserve after the original __LINKEDIT
 	uint32_t linkedit_offset {0};            		// file offset to __LINKEDIT
 	uint32_t linkedit_free_start {0};        		// start of the free space inside the __LINKEDIT segment (for injecting new kexts)
 	uint32_t branch_stubs_offset {0};        		// file offset to __BRANCH_STUBS
@@ -438,6 +439,16 @@ public:
 	EXPORT static void findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vmsegment, vm_address_t &vmsection, void *&sectionptr, size_t &sectionSize, void *&segmentCmdPtr, void *&sectionCmdPtr, const char *segmentName="__TEXT", const char *sectionName="__text", cpu_type_t cpu=CPU_TYPE_X86_64);
 
 	/**
+	 *  Extract x86_64 binary from a FAT binary
+	 *
+	 *  @param executable     pointer to the original executable. Returns pointer to the extracted executable
+	 *  @param executableSize size of the original executable. Returns size of the extracted executable
+	 *
+	 *  @return true if the executable is not FAT or if the extraction succeeded
+	 */
+	EXPORT static bool extractFatBinary(const uint8_t *&executable, uint32_t &executableSize);
+
+	/**
 	 *  Request to free file buffer resources (not including linkedit symtable)
 	 */
 	void freeFileBufferResources();
@@ -538,6 +549,13 @@ public:
 	 */
 	void setKcPatchInfo(OSArray *kcPatchInfo) {
 		kc_patch_info = kcPatchInfo;
+	}
+
+	/**
+	 *  Set amount of space to reserve after the original __LINKEDIT
+	 */
+	void setLinkeditIncrease(uint32_t linkeditIncrease) {
+		linkedit_increase = linkeditIncrease;
 	}
 };
 
