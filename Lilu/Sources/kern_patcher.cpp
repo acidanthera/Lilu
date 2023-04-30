@@ -608,30 +608,6 @@ OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t ty
 		PANIC_COND(that->curLoadingKCKind != kc_kind::KCKindNone, "patcher", "OSKext::loadKCFileSet entered twice");
 		that->curLoadingKCKind = type;
 		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(filepath, type);
-
-		auto *iterator = OSCollectionIterator::withCollection(that->kcPatchInfos[type]);
-		if (!iterator) {
-			DBGLOG("patcher", "onOSKextLoadKCFileSet: kcPatchInfos[%u] is null. Not freeing it", type);
-			that->curLoadingKCKind = kc_kind::KCKindNone;
-			return status;
-		}
-
-		OSObject *curObj = nullptr;
-		while ((curObj = iterator->getNextObject())) {
-			auto *curObjData = OSDynamicCast(OSData, curObj);
-			if (!curObjData) {
-				SYSLOG("patcher", "onOSKextLoadKCFileSet: Failed to cast object in kcPatchInfos");
-				iterator->release();
-				return status;
-			}
-
-			auto *patch = reinterpret_cast<const KCPatchInfo *>(curObjData->getBytesNoCopy());
-			Buffer::deleter(patch->patchWith);
-		}
-		iterator->release();
-		that->kcPatchInfos[type]->release();
-		that->kcPatchInfos[type] = nullptr;
-
 		that->curLoadingKCKind = kc_kind::KCKindNone;
 	}
 
