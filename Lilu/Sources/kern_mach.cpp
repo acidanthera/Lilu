@@ -235,7 +235,7 @@ kern_return_t MachInfo::blockKextFromKC(const char * identifier, bool exclude) {
 		}
 
 		kextInfo->initFromBuffer(imagePtr, imageSize, imageSize);
-		kextInfo->processMachHeader(kextInfo->getFileBuf());
+		kextInfo->processMachHeader(imagePtr);
 		kextInfo->setSymBuf(file_buf + kextInfo->getSymFileOff());
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
@@ -422,7 +422,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		memcpy(executable, executableOrg, executableSize);
 
 		kextInfo->initFromBuffer(executable, executableSize, executableSize);
-		kextInfo->processMachHeader(kextInfo->getFileBuf());
+		kextInfo->processMachHeader(executable);
 		kern_return_t error = kextInfo->readSymbols(NULLVP, nullptr);
 		if (error != KERN_SUCCESS) {
 			kextInfo->deinit();
@@ -433,7 +433,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 
 		// Apply fixup to the commands
 		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
-		auto *mh = reinterpret_cast<mach_header_64*>(kextInfo->getFileBuf());
+		auto *mh = reinterpret_cast<mach_header_64*>(executable);
 		auto *addr = reinterpret_cast<uint8_t*>(mh + 1);
 		uint64_t linkeditDelta = 0, dataVmaddr = 0;
 		uint32_t dataFileoff = 0, dataFilesize = 0;
@@ -449,7 +449,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 					if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 						kextLinkeditOffset = linkedit_offset + linkedit_free_start;
 						linkeditDelta = kextLinkeditOffset - segCmd->fileoff;
-						memcpy(file_buf + kextLinkeditOffset, kextInfo->getFileBuf() + segCmd->fileoff, static_cast<size_t>(segCmd->filesize));
+						memcpy(file_buf + kextLinkeditOffset, executable + segCmd->fileoff, static_cast<size_t>(segCmd->filesize));
 						segCmd->vmaddr = segCmd->fileoff = kextLinkeditOffset;
 						segCmd->vmsize = segCmd->filesize;
 						DBGLOG("mach", "injectKextIntoKC: Modified __LINKEDIT vmaddr=0x%llX vmsize=0x%llX", segCmd->vmaddr, segCmd->vmsize);
@@ -823,6 +823,33 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		header->ncmds++;
 		header->sizeofcmds += scmd->cmdsize;
 		dataPages->release();
+
+		// Copy the image
+		mh = reinterpret_cast<mach_header_64*>(executable);
+		addr = reinterpret_cast<uint8_t*>(mh + 1);
+		for (uint32_t i = 0; i < mh->ncmds; i++) {
+			auto *loadCmd = reinterpret_cast<load_command *>(addr);
+			if (loadCmd->cmd == LC_SEGMENT_64) {
+				auto *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+					// No need to copy __LINKEDIT
+					addr += loadCmd->cmdsize;
+					continue;
+				}
+
+				if (file_buf_free_start + segCmd->vmsize > file_buf_size) {
+					SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
+					kextInfo->deinit();
+					MachInfo::deleter(kextInfo);
+					return KERN_RESOURCE_SHORTAGE;
+				}
+
+				memcpy(file_buf + file_buf_free_start, executable + segCmd->fileoff - imageOffset, static_cast<size_t>(segCmd->filesize));
+				file_buf_free_start += static_cast<uint32_t>(segCmd->vmsize);
+			}
+
+			addr += loadCmd->cmdsize;
+		}
 	}
 
 	// Exclude existing kext with the same identifier, if any
@@ -852,20 +879,6 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		DBGLOG("mach", "injectKextIntoKC: identifier is %s", identifier);
 	}
 	blockKextFromKC(identifier, true);
-
-	// Append the image
-	if (executable) {
-		if (file_buf_free_start + executableSize > file_buf_size) {
-			SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
-			kextInfo->deinit();
-			MachInfo::deleter(kextInfo);
-			plist->release();
-			return KERN_RESOURCE_SHORTAGE;
-		}
-
-		memcpy(file_buf + file_buf_free_start, executable, executableSize);
-		file_buf_free_start += alignValue(executableSize);
-	}
 
 	// Add keys related to prelinking
 	auto *osBundlePath = OSString::withCString(injectInfo->bundlePath);

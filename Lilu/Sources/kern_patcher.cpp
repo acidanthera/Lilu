@@ -712,7 +712,6 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 			if (executableSize == 0) continue;
 
 			if (!MachInfo::extractFatBinary(executable, executableSize)) continue;
-			patchedKCSize += alignValue(executableSize);
 
 			auto *mh = reinterpret_cast<const mach_header_64*>(executable);
 			auto *addr = reinterpret_cast<const uint8_t*>(mh + 1);
@@ -723,11 +722,17 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 					auto *segCmd = reinterpret_cast<const segment_command_64 *>(loadCmd);
 					if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
 						linkeditIncrease += segCmd->filesize;
+
+						// No need to account for __LINKEDIT in patchedKCSize
+						addr += loadCmd->cmdsize;
+						continue;
 					}
 
 					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
 						dataFilesize = static_cast<uint32_t>(segCmd->filesize);
 					}
+
+					patchedKCSize += static_cast<vm_size_t>(segCmd->vmsize);
 				}
 
 				addr += loadCmd->cmdsize;
@@ -740,10 +745,14 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		iterator->release();
 		linkeditIncrease = alignValue(linkeditIncrease);
 		patchedKCSize += linkeditIncrease;
-		DBGLOG("patcher", "onUbcGetobjectFromFilename: linkeditIncrease = 0x%X", linkeditIncrease);
+		DBGLOG("patcher", "onUbcGetobjectFromFilename: linkeditIncrease = 0x%X, patchedKCSize = 0x%X", linkeditIncrease, patchedKCSize);
 
 		// Setup patched buffer
 		uint8_t *patchedKCBuf = Buffer::create<uint8_t>(patchedKCSize);
+		if (patchedKCBuf == nullptr) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to allocate patchedKCBuf");
+			return ret;
+		}
 
 		uint32_t copyInterval = 8 * 1024 * 1024;
 		uint32_t copyOffset = 0;
