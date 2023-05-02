@@ -881,16 +881,30 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 	blockKextFromKC(identifier, true);
 
 	// Add keys related to prelinking
-	auto *osBundlePath = OSString::withCString(injectInfo->bundlePath);
+	char *bundlePath = Buffer::create<char>(512);
+	snprintf(bundlePath, 512,
+	         cur_kc_kind == kc_kind::KCKindPageable ? "/System/Library/Extensions/%s" : "/Library/Extensions/%s",
+			 injectInfo->bundlePath);
+	// Fix path format
+	for (uint32_t i = 0; i < strlen(bundlePath); i++) {
+		if (bundlePath[i] == '\\') {
+			bundlePath[i] = '/';
+		}
+	}
+
+	auto *osBundlePath = OSString::withCString(bundlePath);
 	if (!osBundlePath) {
 		SYSLOG("mach", "injectKextIntoKC: Failed to create OSString for bundle path");
 		kextInfo->deinit();
 		MachInfo::deleter(kextInfo);
 		plist->release();
+		Buffer::deleter(bundlePath);
 		return KERN_RESOURCE_SHORTAGE;
 	}
 	plist->setObject("_PrelinkBundlePath", osBundlePath);
 	osBundlePath->release();
+	Buffer::deleter(bundlePath);
+
 	if (executable != nullptr) {
 		auto *osExecutablePath = OSString::withCString(injectInfo->executablePath);
 		if (!osExecutablePath) {
@@ -902,6 +916,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		}
 		plist->setObject("_PrelinkExecutableRelativePath", osExecutablePath);
 		osExecutablePath->release();
+
 		auto *osImageOffset = OSNumber::withNumber(imageOffset, 32);
 		if (!osImageOffset) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for image offset");
@@ -913,6 +928,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		plist->setObject("_PrelinkExecutableSourceAddr", osImageOffset);
 		plist->setObject("_PrelinkExecutableLoadAddr", osImageOffset);
 		osImageOffset->release();
+
 		auto *osExecutableSize = OSNumber::withNumber(executableSize, 32);
 		if (!osExecutableSize) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for executable size");
@@ -923,6 +939,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		}
 		plist->setObject("_PrelinkExecutableSize", osExecutableSize);
 		osExecutableSize->release();
+
 		auto *osKmodInfo = OSNumber::withNumber(imageOffset + kmodOffset, 32);
 		if (!osKmodInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for kmod info");
