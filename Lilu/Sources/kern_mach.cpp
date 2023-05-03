@@ -391,6 +391,39 @@ bool MachInfo::extractFatBinary(const uint8_t *&executable, uint32_t &executable
 	return true;
 }
 
+void MachInfo::freeFixupSegmentInfos(FixupSegmentInfo *infos, uint32_t segmentCount) {
+	for (uint32_t i = 0; i < segmentCount; i++) {
+		if (infos[i].pages != nullptr) {
+			infos[i].pages->release();
+		}
+	}
+
+	Buffer::deleter(infos);
+}
+
+bool MachInfo::addAddressToFixup(FixupSegmentInfo *infos, uint32_t segmentCount, uint32_t r_address) {
+	for (uint32_t i = 0; i < segmentCount; i++) {
+		auto *curInfo = &infos[i];
+		if (r_address < curInfo->vmaddr || curInfo->vmaddr + curInfo->filesize <= r_address) {
+			continue;
+		}
+
+		auto pageId = static_cast<uint32_t>((r_address - curInfo->vmaddr) / PAGE_SIZE);
+		auto *set = OSDynamicCast(OSOrderedSet, curInfo->pages->getObject(pageId));
+		if (!set) {
+			DBGLOG("mach", "addAddressToFixup: Failed to get the page set for page %u", pageId);
+			return false;
+		}
+
+		auto *rAddressNumber = OSNumber::withNumber(r_address, 32);
+		set->setObject(rAddressNumber);
+		rAddressNumber->release();
+		return true;
+	}
+
+	return false;
+}
+
 kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 	MachInfo *kextInfo = MachInfo::create();
 	if (!kextInfo) {
@@ -431,15 +464,32 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		}
 		kextInfo->setRunningAddresses(); // To keep solveSymbol happy
 
-		// Apply fixup to the commands
-		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
+		// Count the amount of segments to fix up
 		auto *mh = reinterpret_cast<mach_header_64*>(executable);
 		auto *addr = reinterpret_cast<uint8_t*>(mh + 1);
-		uint64_t linkeditDelta = 0, dataVmaddr = 0;
-		uint32_t dataFileoff = 0, dataFilesize = 0;
+		uint32_t segmentCount = 0;
+		for (uint32_t i = 0; i < mh->ncmds; i++) {
+			auto *loadCmd = reinterpret_cast<load_command *>(addr);
+			if (loadCmd->cmd == LC_SEGMENT_64) {
+				auto *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
+				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+					break;
+				}
+				segmentCount++;
+			}
+
+			addr += loadCmd->cmdsize;
+		}
+		auto *fixupSegmentInfos = Buffer::create<FixupSegmentInfo>(segmentCount);
+
+		// Apply fixup to the commands and collect various info
+		// See also: KcKextIndexFixups and KcKextApplyFileDelta in OpenCore
+		mh = reinterpret_cast<mach_header_64*>(executable);
+		addr = reinterpret_cast<uint8_t*>(mh + 1);
+		uint64_t kextLinkeditOffset = 0, linkeditDelta = 0;
 		uint32_t symoff = 0, nsyms = 0, stroff = 0;
 		uint32_t locreloff = 0, nlocrel = 0, extreloff = 0, nextrel = 0;
-		uint64_t kextLinkeditOffset = 0;
+		uint32_t segmentId = 0;
 
 		for (uint32_t i = 0; i < mh->ncmds; i++) {
 			auto *loadCmd = reinterpret_cast<load_command *>(addr);
@@ -457,11 +507,31 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 						break;
 					}
 
-					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
-						dataVmaddr = segCmd->vmaddr;
-						dataFileoff = static_cast<uint32_t>(segCmd->fileoff);
-						dataFilesize = static_cast<uint32_t>(segCmd->filesize);
+					auto *curInfo = &fixupSegmentInfos[segmentId];
+					curInfo->fileoff = static_cast<uint32_t>(segCmd->fileoff);
+					curInfo->vmaddr = static_cast<uint32_t>(segCmd->vmaddr);
+					curInfo->filesize = static_cast<uint32_t>(segCmd->filesize);
+					curInfo->pageCount = alignValue(curInfo->filesize) / PAGE_SIZE;
+					curInfo->pages = OSArray::withCapacity(curInfo->pageCount);
+					if (!curInfo->pages) {
+						kextInfo->deinit();
+						MachInfo::deleter(kextInfo);
+						freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
+						return KERN_RESOURCE_SHORTAGE;
 					}
+
+					for (uint32_t i = 0; i < curInfo->pageCount; i++) {
+						auto *set = OSOrderedSet::withCapacity(0, orderFunction);
+						if (!set) {
+							kextInfo->deinit();
+							MachInfo::deleter(kextInfo);
+							freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
+							return KERN_RESOURCE_SHORTAGE;
+						}
+						curInfo->pages->setObject(set);
+						set->release();
+					}
+					segmentId++;
 
 					segCmd->vmaddr += imageOffset;
 					segCmd->fileoff += imageOffset;
@@ -504,6 +574,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to resolve _kmod_info");
 			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
+			freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 			return KERN_FAILURE;
 		}
 
@@ -512,56 +583,22 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		kmod->size = kextInfo->getTextSize();
 
 		// Resolve and convert local+external relocations to the dyld chained fixups format
-		// Assumes that every local relocations are within the __DATA segment
-		auto dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
-		auto *dataPages = OSArray::withCapacity(dataPageCount);
-		DBGLOG("mach", "injectKextIntoKC: dataPageCount=%u", dataPageCount);
-		if (!dataPages) {
-			kextInfo->deinit();
-			MachInfo::deleter(kextInfo);
-			return KERN_RESOURCE_SHORTAGE;
-		}
-		for (uint32_t i = 0; i < dataPageCount; i++) {
-			auto *set = OSOrderedSet::withCapacity(0, orderFunction);
-			if (!set) {
-				kextInfo->deinit();
-				MachInfo::deleter(kextInfo);
-				dataPages->release();
-				return KERN_RESOURCE_SHORTAGE;
-			}
-			dataPages->setObject(set);
-		}
-
 		// Fetch the local relocations
 		auto *locRelocInfo = reinterpret_cast<relocation_info *>(executable + locreloff);
 		for (uint32_t i = 0; i < nlocrel; i++) {
 			uint32_t r_address = locRelocInfo->r_address;
-			if (r_address < dataVmaddr || dataVmaddr + dataFilesize <= r_address) {
-				SYSLOG("mach", "injectKextIntoKC: r_address (0x%X) it not within the __DATA segment (0x%X ~ 0x%X)! Bailing...",
-				       r_address, dataVmaddr, dataVmaddr + dataFilesize);
+			if (!addAddressToFixup(fixupSegmentInfos, segmentCount, r_address)) {
+				SYSLOG("mach", "injectKextIntoKC: Failed to add r_address (0x%X)! Bailing...", r_address);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
-				dataPages->release();
+				freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 				return KERN_FAILURE;
 			}
+
 			auto *curReloc = reinterpret_cast<ChainedFixupPointerOnDisk *>(executable + r_address);
 			curReloc->fixup64.target += imageOffset - disk_text_addr;
 			curReloc->fixup64.cacheLevel = kc_index;
 			// DBGLOG("mach", "injectKextIntoKC: r_address=%X target=%llX raw64=%llX", r_address, curReloc->fixup64.target, curReloc->raw64);
-
-			auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
-			auto *set = OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId));
-			if (!set) {
-				DBGLOG("mach", "injectKextIntoKC: Failed to get the page set for page %u", pageId);
-				kextInfo->deinit();
-				MachInfo::deleter(kextInfo);
-				dataPages->release();
-				return KERN_FAILURE;
-			}
-			auto *rAddressNumber = OSNumber::withNumber(r_address, 32);
-			set->setObject(rAddressNumber);
-			rAddressNumber->release();
-
 			locRelocInfo++;
 		}
 
@@ -572,7 +609,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to allocate symbolTable");
 			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
-			dataPages->release();
+			freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 			return KERN_RESOURCE_SHORTAGE;
 		}
 		auto *privateSymbols = OSDictionary::withCapacity(0);
@@ -580,7 +617,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			SYSLOG("mach", "injectKextIntoKC: Failed to allocate privateSymbols");
 			kextInfo->deinit();
 			MachInfo::deleter(kextInfo);
-			dataPages->release();
+			freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 			symbolTable->release();
 			return KERN_RESOURCE_SHORTAGE;
 		}
@@ -591,7 +628,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				SYSLOG("mach", "injectKextIntoKC: Failed to allocate OSString for symbol %s", symbolName);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
-				dataPages->release();
+				freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 				symbolTable->release();
 				privateSymbols->release();
 				return KERN_RESOURCE_SHORTAGE;
@@ -607,7 +644,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 					SYSLOG("mach", "injectKextIntoKC: Failed to allocate OSNumber for symbol %s", symbolName);
 					kextInfo->deinit();
 					MachInfo::deleter(kextInfo);
-					dataPages->release();
+					freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 					symbolTable->release();
 					privateSymbols->release();
 					return KERN_RESOURCE_SHORTAGE;
@@ -628,7 +665,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 				SYSLOG("mach", "injectKextIntoKC: Failed to get the symbol name for symbol %u", extRelocInfo->r_symbolnum);
 				kextInfo->deinit();
 				MachInfo::deleter(kextInfo);
-				dataPages->release();
+				freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 				symbolTable->release();
 				privateSymbols->release();
 				serializer->release();
@@ -664,7 +701,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 						SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for %s", wantedSymbol);
 						kextInfo->deinit();
 						MachInfo::deleter(kextInfo);
-						dataPages->release();
+						freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 						symbolTable->release();
 						privateSymbols->release();
 						serializer->release();
@@ -702,7 +739,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 							SYSLOG("mach", "injectKextIntoKC: Failed to create OSNumber for %s", wantedSymbol);
 							kextInfo->deinit();
 							MachInfo::deleter(kextInfo);
-							dataPages->release();
+							freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 							symbolTable->release();
 							privateSymbols->release();
 							serializer->release();
@@ -719,26 +756,22 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 
 				*(uint32_t*)(executable + r_address) = jumpTarget - jumpBase;
 			} else {
-				if (r_address < dataVmaddr || (dataVmaddr + dataFilesize) <= r_address) {
-					DBGLOG("mach", "injectKextIntoKC: r_address (0x%X) it not within the __DATA segment (0x%X ~ 0x%X)! Bailing...",
-					       r_address, dataVmaddr, dataVmaddr + dataFilesize);
+				if (!addAddressToFixup(fixupSegmentInfos, segmentCount, r_address)) {
+					SYSLOG("mach", "injectKextIntoKC: Failed to add r_address (0x%X)! Bailing...", r_address);
 					kextInfo->deinit();
 					MachInfo::deleter(kextInfo);
-					dataPages->release();
+					freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 					symbolTable->release();
 					privateSymbols->release();
 					serializer->release();
 					return KERN_FAILURE;
 				}
-				ChainedFixupPointerOnDisk *curReloc = (ChainedFixupPointerOnDisk*)(executable + r_address);
+
+				auto *curReloc = reinterpret_cast<ChainedFixupPointerOnDisk*>(executable + r_address);
 				curReloc->fixup64.cacheLevel = resolvedSymbolKCIndex;
 				curReloc->fixup64.target = resolvedSymbolOffset;
 				if (resolvedSymbolKCIndex == kc_index) curReloc->fixup64.target -= disk_text_addr;
-
-				auto pageId = static_cast<uint32_t>((r_address - dataVmaddr) / PAGE_SIZE);
-				auto *rAddressNumber = OSNumber::withNumber(r_address, 32);
-				OSDynamicCast(OSOrderedSet, dataPages->getObject(pageId))->setObject(rAddressNumber);
-				rAddressNumber->release();
+				// DBGLOG("mach", "injectKextIntoKC: r_address=%X target=%llX raw64=%llX", r_address, curReloc->fixup64.target, curReloc->raw64);
 			}
 
 			extRelocInfo++;
@@ -757,59 +790,70 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		fixupsHeader->symbols_format = 0;
 
 		auto *fixupStarts = reinterpret_cast<dyld_chained_starts_in_image *>(fixupsHeader + 1);
-		fixupStarts->seg_count = 1;
-		fixupStarts->seg_info_offset[0] = sizeof(*fixupStarts);
+		fixupStarts->seg_count = segmentCount;
 
-		auto *segInfo = reinterpret_cast<dyld_chained_starts_in_segment *>(fixupStarts + 1);
-		segInfo->size = sizeof(*segInfo) + 2 * (dataPageCount - 1);
-		segInfo->page_size = PAGE_SIZE;
-		segInfo->pointer_format = 11; // DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
-		segInfo->segment_offset = dataFileoff;
-		segInfo->max_valid_pointer = 0; // Only used on 32-bit
-		segInfo->page_count = dataPageCount;
+		uint32_t curSegInfoOffset = sizeof(*fixupStarts) + 4 * (segmentCount - 1);
+		linkedit_free_start += sizeof(*fixupsHeader) + curSegInfoOffset;
+		for (uint32_t i = 0; i < segmentCount; i++) {
+			uint32_t pageCount = fixupSegmentInfos[i].pageCount;
 
-		linkedit_free_start += sizeof(*fixupsHeader) + sizeof(*fixupStarts) + segInfo->size;
+			fixupStarts->seg_info_offset[i] = curSegInfoOffset;
 
-		// Set up the chain itself
-		for (uint32_t i = 0; i < dataPageCount; i++) {
-			uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
-			OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, dataPages->getObject(i));
-			if (!pageToReloc) {
-				SYSLOG("mach", "injectKextIntoKC: pageToReloc at %u is null", i);
-				kextInfo->deinit();
-				MachInfo::deleter(kextInfo);
-				dataPages->release();
-				return KERN_FAILURE;
+			auto *segInfo = reinterpret_cast<dyld_chained_starts_in_segment *>(
+				reinterpret_cast<uint8_t*>(fixupStarts) + curSegInfoOffset);
+			segInfo->size = sizeof(*segInfo) + 2 * (pageCount - 1);
+			segInfo->page_size = PAGE_SIZE;
+			segInfo->pointer_format = 11; // DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
+			segInfo->segment_offset = fixupSegmentInfos[i].fileoff;
+			segInfo->max_valid_pointer = 0; // Only used on 32-bit
+			segInfo->page_count = pageCount;
+
+			curSegInfoOffset += segInfo->size;
+			linkedit_free_start += segInfo->size;
+
+			// Set up the chain itself
+			for (uint32_t k = 0; k < pageCount; k++) {
+				uint16_t pageStart = 0xFFFF; // DYLD_CHAINED_PTR_START_NONE
+				OSOrderedSet *pageToReloc = OSDynamicCast(OSOrderedSet, fixupSegmentInfos[i].pages->getObject(k));
+				if (!pageToReloc) {
+					SYSLOG("mach", "injectKextIntoKC: pageToReloc at %u is null", k);
+					kextInfo->deinit();
+					MachInfo::deleter(kextInfo);
+					freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
+					return KERN_FAILURE;
+				}
+				uint32_t relocCount = pageToReloc->getCount();
+				if (relocCount) {
+					pageStart = OSDynamicCast(OSNumber, pageToReloc->getFirstObject())->unsigned32BitValue();
+					pageStart -= fixupSegmentInfos[i].vmaddr + (PAGE_SIZE * k);
+				}
+
+				segInfo->page_start[k] = pageStart;
+				if (!relocCount) { continue; }
+
+				OSCollectionIterator *iterator = OSCollectionIterator::withCollection(pageToReloc);
+				if (!iterator) {
+					SYSLOG("mach", "injectKextIntoKC: iterator is null");
+					kextInfo->deinit();
+					MachInfo::deleter(kextInfo);
+					freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
+					return KERN_FAILURE;
+				}
+				ChainedFixupPointerOnDisk *prevReloc = nullptr, *curReloc = nullptr;
+				OSObject *curObj = nullptr;
+				while ((curObj = iterator->getNextObject())) {
+					curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
+					curReloc->fixup64.diversity = curReloc->fixup64.addrDiv = curReloc->fixup64.key = 0;
+					curReloc->fixup64.next = 0;
+					curReloc->fixup64.isAuth = 0;
+
+					if (prevReloc) {
+						prevReloc->fixup64.next = reinterpret_cast<uint64_t>(curReloc) - reinterpret_cast<uint64_t>(prevReloc);
+					}
+					prevReloc = curReloc;
+				}
+				iterator->release();
 			}
-			uint32_t relocCount = pageToReloc->getCount();
-			if (relocCount) {
-				pageStart = OSDynamicCast(OSNumber, pageToReloc->getFirstObject())->unsigned32BitValue();
-				pageStart -= dataVmaddr + (PAGE_SIZE * i);
-			}
-
-			segInfo->page_start[i] = pageStart;
-			if (!relocCount) { continue; }
-
-			OSCollectionIterator *iterator = OSCollectionIterator::withCollection(pageToReloc);
-			if (!iterator) {
-				SYSLOG("mach", "injectKextIntoKC: iterator is null");
-				kextInfo->deinit();
-				MachInfo::deleter(kextInfo);
-				dataPages->release();
-				return KERN_FAILURE;
-			}
-			ChainedFixupPointerOnDisk *prevReloc = nullptr, *curReloc = nullptr;
-			OSObject *curObj = nullptr;
-			while ((curObj = iterator->getNextObject())) {
-				curReloc = (ChainedFixupPointerOnDisk*)(executable + OSDynamicCast(OSNumber, curObj)->unsigned32BitValue());
-				curReloc->fixup64.diversity = curReloc->fixup64.addrDiv = curReloc->fixup64.key = 0;
-				curReloc->fixup64.next = 0;
-				curReloc->fixup64.isAuth = 0;
-
-				if (prevReloc) { prevReloc->fixup64.next = reinterpret_cast<uint64_t>(curReloc) - reinterpret_cast<uint64_t>(prevReloc); }
-				prevReloc = curReloc;
-			}
-			iterator->release();
 		}
 
 		// Add LC_DYLD_CHAINED_FIXUPS mach command
@@ -822,7 +866,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 
 		header->ncmds++;
 		header->sizeofcmds += scmd->cmdsize;
-		dataPages->release();
+		freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 
 		// Copy the image
 		mh = reinterpret_cast<mach_header_64*>(executable);

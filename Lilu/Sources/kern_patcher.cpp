@@ -689,9 +689,9 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 
 			if (!MachInfo::extractFatBinary(executable, executableSize)) continue;
 
+			linkeditIncrease += sizeof(dyld_chained_fixups_header) + sizeof(dyld_chained_starts_in_image) - 4;
 			auto *mh = reinterpret_cast<const mach_header_64*>(executable);
 			auto *addr = reinterpret_cast<const uint8_t*>(mh + 1);
-			uint32_t dataFilesize = 0;
 			for (uint32_t i = 0; i < mh->ncmds; i++) {
 				auto *loadCmd = reinterpret_cast<const load_command *>(addr);
 				if (loadCmd->cmd == LC_SEGMENT_64) {
@@ -704,19 +704,13 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 						continue;
 					}
 
-					if (!strncmp(segCmd->segname, "__DATA", sizeof(segCmd->segname))) {
-						dataFilesize = static_cast<uint32_t>(segCmd->filesize);
-					}
-
+					auto pageCount = alignValue(segCmd->filesize) / PAGE_SIZE;
+					linkeditIncrease += 4 + sizeof(dyld_chained_starts_in_segment) + 2 * (pageCount - 1);
 					patchedKCSize += static_cast<vm_size_t>(segCmd->vmsize);
 				}
 
 				addr += loadCmd->cmdsize;
 			}
-
-			auto dataPageCount = alignValue(dataFilesize) / PAGE_SIZE;
-			linkeditIncrease += sizeof(dyld_chained_fixups_header) + sizeof(dyld_chained_starts_in_image) +
-			                    sizeof(dyld_chained_starts_in_segment) + 2 * (dataPageCount - 1);
 		}
 		iterator->release();
 		linkeditIncrease = alignValue(linkeditIncrease);

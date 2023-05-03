@@ -108,6 +108,14 @@ struct KCPatchInfo {
 	uint8_t *patchWith;
 };
 
+struct FixupSegmentInfo {
+	uint32_t fileoff;
+	uint32_t vmaddr;
+	uint32_t filesize;
+	uint32_t pageCount;
+	OSArray *pages;
+};
+
 class MachInfo {
 #if defined(__i386__)
 	using mach_header_native = mach_header;
@@ -473,6 +481,18 @@ public:
 	 *  @return KERN_SUCCESS if the kext was found and blocked/excluded
 	 */
 	kern_return_t blockKextFromKC(const char *identifier, bool exclude);
+
+	/**
+	 *  Free an array of FixupSegmentInfo
+	 */
+	void freeFixupSegmentInfos(FixupSegmentInfo *infos, uint32_t segmentCount);
+
+	/**
+	 *  Add an r_address to a FixupSegmentInfo
+	 *
+	 *  @return true if the address was added
+	 */
+	bool addAddressToFixup(FixupSegmentInfo *infos, uint32_t segmentCount, uint32_t r_address);
 
 	/**
 	 *  Inject a kext from the KC
