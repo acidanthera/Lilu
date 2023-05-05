@@ -508,8 +508,9 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 					}
 
 					auto *curInfo = &fixupSegmentInfos[segmentId];
-					curInfo->fileoff = static_cast<uint32_t>(segCmd->fileoff);
 					curInfo->vmaddr = static_cast<uint32_t>(segCmd->vmaddr);
+					curInfo->vmsize = static_cast<uint32_t>(segCmd->vmsize);
+					curInfo->fileoff = static_cast<uint32_t>(segCmd->fileoff);
 					curInfo->filesize = static_cast<uint32_t>(segCmd->filesize);
 					curInfo->pageCount = alignValue(curInfo->filesize) / PAGE_SIZE;
 					curInfo->pages = OSArray::withCapacity(curInfo->pageCount);
@@ -534,12 +535,12 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 					segmentId++;
 
 					segCmd->vmaddr += imageOffset;
-					segCmd->fileoff += imageOffset;
+					segCmd->fileoff = segCmd->vmaddr;
 
 					auto *sect = reinterpret_cast<section_64 *>(segCmd + 1);
 					for (uint32_t sno = 0; sno < segCmd->nsects; sno++) {
 						sect->addr += imageOffset;
-						if (sect->offset) { sect->offset += imageOffset; }
+						if (sect->offset) { sect->offset = static_cast<uint32_t>(sect->addr); }
 						sect++;
 					}
 				} break;
@@ -866,34 +867,21 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 
 		header->ncmds++;
 		header->sizeofcmds += scmd->cmdsize;
-		freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 
 		// Copy the image
-		mh = reinterpret_cast<mach_header_64*>(executable);
-		addr = reinterpret_cast<uint8_t*>(mh + 1);
-		for (uint32_t i = 0; i < mh->ncmds; i++) {
-			auto *loadCmd = reinterpret_cast<load_command *>(addr);
-			if (loadCmd->cmd == LC_SEGMENT_64) {
-				auto *segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
-				if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
-					// No need to copy __LINKEDIT
-					addr += loadCmd->cmdsize;
-					continue;
-				}
-
-				if (file_buf_free_start + segCmd->vmsize > file_buf_size) {
-					SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
-					kextInfo->deinit();
-					MachInfo::deleter(kextInfo);
-					return KERN_RESOURCE_SHORTAGE;
-				}
-
-				memcpy(file_buf + file_buf_free_start, executable + segCmd->fileoff - imageOffset, static_cast<size_t>(segCmd->filesize));
-				file_buf_free_start += static_cast<uint32_t>(segCmd->vmsize);
+		for (uint32_t i = 0; i < segmentCount; i++) {
+			auto *segmentInfo = &fixupSegmentInfos[i];
+			if (file_buf_free_start + segmentInfo->vmsize > file_buf_size) {
+				SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
+				kextInfo->deinit();
+				MachInfo::deleter(kextInfo);
+				return KERN_RESOURCE_SHORTAGE;
 			}
 
-			addr += loadCmd->cmdsize;
+			memcpy(file_buf + file_buf_free_start, executable + segmentInfo->fileoff, static_cast<size_t>(segmentInfo->filesize));
+			file_buf_free_start += static_cast<uint32_t>(segmentInfo->vmsize);
 		}
+		freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 	}
 
 	// Exclude existing kext with the same identifier, if any

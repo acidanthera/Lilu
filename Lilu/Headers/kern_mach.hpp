@@ -109,8 +109,9 @@ struct KCPatchInfo {
 };
 
 struct FixupSegmentInfo {
-	uint32_t fileoff;
 	uint32_t vmaddr;
+	uint32_t vmsize;
+	uint32_t fileoff;
 	uint32_t filesize;
 	uint32_t pageCount;
 	OSArray *pages;
