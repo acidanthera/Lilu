@@ -583,9 +583,29 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		kmod->address = imageOffset;
 		kmod->size = kextInfo->getTextSize();
 
+		// Store pointers to the relocation infos, as __LINKEDIT won't be in the new executable
+		auto *locRelocInfo = reinterpret_cast<relocation_info *>(executable + locreloff);
+		auto *extRelocInfo = reinterpret_cast<relocation_info *>(executable + extreloff);
+
+		// Copy the image
+		executableSize = 0;
+		for (uint32_t i = 0; i < segmentCount; i++) {
+			auto *segmentInfo = &fixupSegmentInfos[i];
+			if (file_buf_free_start + segmentInfo->vmsize > file_buf_size) {
+				SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
+				kextInfo->deinit();
+				MachInfo::deleter(kextInfo);
+				return KERN_RESOURCE_SHORTAGE;
+			}
+
+			memcpy(file_buf + file_buf_free_start, executable + segmentInfo->fileoff, static_cast<size_t>(segmentInfo->filesize));
+			file_buf_free_start += segmentInfo->vmsize;
+			executableSize += segmentInfo->vmsize;
+		}
+		executable = file_buf + imageOffset;
+
 		// Resolve and convert local+external relocations to the dyld chained fixups format
 		// Fetch the local relocations
-		auto *locRelocInfo = reinterpret_cast<relocation_info *>(executable + locreloff);
 		for (uint32_t i = 0; i < nlocrel; i++) {
 			uint32_t r_address = locRelocInfo->r_address;
 			if (!addAddressToFixup(fixupSegmentInfos, segmentCount, r_address)) {
@@ -658,7 +678,6 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		}
 
 		// Fetch and resolve the external relocations
-		auto *extRelocInfo = reinterpret_cast<relocation_info *>(executable + extreloff);
 		OSSerialize *serializer = OSSerialize::withCapacity(16);
 		for (uint32_t i = 0; i < nextrel; i++) {
 			OSString *wantedSymbolOSStr = OSDynamicCast(OSString, symbolTable->getObject(extRelocInfo->r_symbolnum));
@@ -805,7 +824,7 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 			segInfo->size = sizeof(*segInfo) + 2 * (pageCount - 1);
 			segInfo->page_size = PAGE_SIZE;
 			segInfo->pointer_format = 11; // DYLD_CHAINED_PTR_X86_64_KERNEL_CACHE
-			segInfo->segment_offset = fixupSegmentInfos[i].fileoff;
+			segInfo->segment_offset = fixupSegmentInfos[i].vmaddr;
 			segInfo->max_valid_pointer = 0; // Only used on 32-bit
 			segInfo->page_count = pageCount;
 
@@ -868,19 +887,6 @@ kern_return_t MachInfo::injectKextIntoKC(const KextInjectionInfo *injectInfo) {
 		header->ncmds++;
 		header->sizeofcmds += scmd->cmdsize;
 
-		// Copy the image
-		for (uint32_t i = 0; i < segmentCount; i++) {
-			auto *segmentInfo = &fixupSegmentInfos[i];
-			if (file_buf_free_start + segmentInfo->vmsize > file_buf_size) {
-				SYSLOG("mach", "injectKextIntoKC: Not enough free space for injecting kext image");
-				kextInfo->deinit();
-				MachInfo::deleter(kextInfo);
-				return KERN_RESOURCE_SHORTAGE;
-			}
-
-			memcpy(file_buf + file_buf_free_start, executable + segmentInfo->fileoff, static_cast<size_t>(segmentInfo->filesize));
-			file_buf_free_start += static_cast<uint32_t>(segmentInfo->vmsize);
-		}
 		freeFixupSegmentInfos(fixupSegmentInfos, segmentCount);
 	}
 
