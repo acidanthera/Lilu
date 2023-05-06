@@ -654,7 +654,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		}
 
 		// Map original KC
-		vm_size_t oldKcSize = (vm_size_t)*file_size;
+		uint32_t oldKcSize = static_cast<uint32_t>(*file_size);
 		that->kcDiskSizes[that->curLoadingKCKind] = oldKcSize;
 		uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
 		if (kcBuf == nullptr ||
@@ -665,7 +665,7 @@ void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vn
 		DBGLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
 
 		// Estimate the size of kexts to inject
-		vm_size_t patchedKCSize = oldKcSize + 4 * 1024 * 1024; // 4 MB for new prelinked info
+		uint32_t patchedKCSize = oldKcSize + 4 * 1024 * 1024; // 4 MB for new prelinked info
 		auto *iterator = OSCollectionIterator::withCollection(injectInfos);
 		if (!iterator) {
 			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");
