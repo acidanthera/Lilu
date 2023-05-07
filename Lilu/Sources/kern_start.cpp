@@ -20,6 +20,8 @@
 
 #include <IOKit/IOLib.h>
 #include <IOKit/IORegistryEntry.h>
+#include <IOKit/IODeviceTreeSupport.h>
+
 #include <mach/mach_types.h>
 
 OSDefineMetaClassAndStructors(PRODUCT_NAME, IOService)
@@ -274,11 +276,19 @@ bool Configuration::getBootArguments() {
 
 	allowDecompress = !checkKernelArgument(bootargLowMem);
 
-	installOrRecovery |= checkKernelArgument("rp0");
-	installOrRecovery |= checkKernelArgument("rp");
-	installOrRecovery |= checkKernelArgument("container-dmg");
-	installOrRecovery |= checkKernelArgument("root-dmg");
-	installOrRecovery |= checkKernelArgument("auth-root-dmg");
+	auto entry = IORegistryEntry::fromPath("/chosen", gIODTPlane);
+	if (entry) {
+		installOrRecovery = entry->getProperty("boot-ramdmg-extents") != nullptr;
+		entry->release();
+	}
+	
+	if (!installOrRecovery && getKernelVersion() < KernelVersion::Ventura) {
+		installOrRecovery |= checkKernelArgument("rp0");
+		installOrRecovery |= checkKernelArgument("rp");
+		installOrRecovery |= checkKernelArgument("container-dmg");
+		installOrRecovery |= checkKernelArgument("root-dmg");
+		installOrRecovery |= checkKernelArgument("auth-root-dmg");
+	}
 
 	safeMode = checkKernelArgument("-x");
 
