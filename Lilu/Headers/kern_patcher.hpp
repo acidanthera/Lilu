@@ -84,11 +84,6 @@ typedef struct {
 	char SymbolName[];
 } PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
 
-typedef struct {
-	LILU_PRELINKED_SYMBOLS_HEADER Header;
-	LILU_PRELINKED_SYMBOLS_ENTRY Entries[];
-} PACKED LILU_PRELINKED_SYMBOLS;
-
 
 typedef struct {
 	uint8_t Version;

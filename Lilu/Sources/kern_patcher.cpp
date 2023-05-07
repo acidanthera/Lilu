@@ -387,10 +387,10 @@ bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(uint64_t prelinkedSymbolsA
 	kcSymbols = OSDictionary::withCapacity(count);
 	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr), size, kIODirectionIn);
 	map = memDesc->map();
-	auto *prelinkedSymbols = reinterpret_cast<LILU_PRELINKED_SYMBOLS *>(map->getVirtualAddress());
+	symbolsHeader = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
 
 	// Fetch the symbols
-	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(prelinkedSymbols->Entries);
+	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(symbolsHeader + 1);
 	for (uint32_t i = 0; i < count; i++) {
 		auto *curSymbol = reinterpret_cast<LILU_PRELINKED_SYMBOLS_ENTRY *>(curSymbolAddr);
 		DBGLOG_COND((i % 1000) == 0, "patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols[%u]: SymbolValue 0x%llX SymbolName %s", i,
