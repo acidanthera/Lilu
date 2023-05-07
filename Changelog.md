@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.6.5
+- Fixed macOS 13+ recovery and installer detection
+
 #### v1.6.4
 - Added AMD IGPU detection
 
