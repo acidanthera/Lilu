@@ -1,6 +1,6 @@
 Lilu Changelog
 ==============
-### v1.6.6
+#### v1.6.6
 - Fixed macOS 13+ installer detection regression in 1.6.5
 
 #### v1.6.5
