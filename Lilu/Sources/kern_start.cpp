@@ -282,7 +282,7 @@ bool Configuration::getBootArguments() {
 		entry->release();
 	}
 	
-	if (!installOrRecovery && getKernelVersion() < KernelVersion::Ventura) {
+	if (!installOrRecovery) {
 		installOrRecovery |= checkKernelArgument("rp0");
 		installOrRecovery |= checkKernelArgument("rp");
 		installOrRecovery |= checkKernelArgument("container-dmg");
