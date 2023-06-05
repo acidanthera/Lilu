@@ -457,6 +457,18 @@ inline T &getMember(void *that, size_t off) {
 }
 
 /**
+ *  Modify struct member by its offset
+ *
+ *	@param that  pointer to struct
+ *	@param off   offset in bytes to the member
+ *	@param value the new value of the member at the given offset
+ */
+template <typename T>
+inline void setMember(void *that, size_t off, T value) {
+	*reinterpret_cast<T *>(static_cast<uint8_t *>(that) + off) = value;
+}
+
+/**
  *  Align value by align (page size by default)
  *
  *  @param size  value
