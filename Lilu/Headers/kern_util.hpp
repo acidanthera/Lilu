@@ -395,7 +395,6 @@ enum KernelVersion {
 	Monterey      = 21,
 	Ventura       = 22,
         Sonoma        = 23,
-
 };
 
 /**
