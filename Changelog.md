@@ -2,6 +2,7 @@ Lilu Changelog
 ==============
 #### v1.6.6
 - Fixed macOS 13+ installer detection regression in 1.6.5
+- Allow loading on macOS 14 without `-lilubetaall`
 
 #### v1.6.5
 - Fixed macOS 13+ recovery and installer detection
