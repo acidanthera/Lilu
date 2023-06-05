@@ -459,9 +459,9 @@ inline T &getMember(void *that, size_t off) {
 /**
  *  Modify struct member by its offset
  *
- *	@param that  pointer to struct
- *	@param off   offset in bytes to the member
- *	@param value the new value of the member at the given offset
+ *  @param that  pointer to struct
+ *  @param off   offset in bytes to the member
+ *  @param value the new value of the member at the given offset
  */
 template <typename T>
 inline void setMember(void *that, size_t off, T value) {
