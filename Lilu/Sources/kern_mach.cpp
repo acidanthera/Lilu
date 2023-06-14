@@ -362,7 +362,7 @@ mach_vm_address_t MachInfo::solveSymbol(const char *symbol) {
 				// find if symbol matches
 				if (reinterpret_cast<uint8_t *>(symbolStr + symlen) <= endaddr && (nlist->n_type & N_STAB) == 0 && !strncmp(symbol, symbolStr, symlen)) {
 					DBGLOG("mach", "found symbol %s at 0x%llx (non-aslr 0x%llx), type %x, sect %x, desc %x", symbol, nlist->n_value + kaslr_slide,
-						   nlist->n_value, nlist->n_type, nlist->n_sect, nlist->n_desc);
+						   (uint64_t)nlist->n_value, nlist->n_type, nlist->n_sect, nlist->n_desc);
 					// the symbol values are without kernel ASLR so we need to add it
 					return nlist->n_value + kaslr_slide;
 				}
@@ -482,7 +482,7 @@ kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 	// on 32-bit MH_OBJECT, symbols are not contained within a segment
 	sym_buf = Buffer::create<uint8_t>(sym_size);
 	if (!sym_buf) {
-		SYSLOG("mach", "Could not allocate enough memory (%lld) for symbols", sym_size);
+		SYSLOG("mach", "Could not allocate enough memory (%zu) for symbols", sym_size);
 		return KERN_FAILURE;
 	}
 
@@ -492,7 +492,7 @@ kern_return_t MachInfo::readSymbols(vnode_t vnode, vfs_context_t ctxt) {
 			lilu_os_memcpy(sym_buf, file_buf + sym_fileoff, sym_size);
 			return KERN_SUCCESS;
 		}
-		SYSLOG("mach", "requested linkedit (%llu %llu) exceeds file buf size (%u)", sym_fileoff, sym_size, file_buf_size);
+		SYSLOG("mach", "requested linkedit (%llu %zu) exceeds file buf size (%u)", sym_fileoff, sym_size, file_buf_size);
 	} else
 #endif /* LILU_COMPRESSION_SUPPORT */
 	{
@@ -593,14 +593,14 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
 						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
 						if (sptr + sect->size > endaddr) {
-							SYSLOG("mach", "found section %s size %u in segment %lu is invalid", sectionName, sno, vmsegment);
+							SYSLOG("mach", "found section %s size %u in segment %llu is invalid", sectionName, sno, (uint64_t)vmsegment);
 							return;
 						}
 						vmsegment = scmd->vmaddr;
 						vmsection = sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
-						DBGLOG("mach", "found section %s size %u in segment %lu", sectionName, sno, vmsegment);
+						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
 						return;
 					}
 
@@ -622,14 +622,14 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
 						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
 						if (sptr + sect->size > endaddr) {
-							SYSLOG("mach", "found section %s size %u in segment %lu is invalid", sectionName, sno, vmsegment);
+							SYSLOG("mach", "found section %s size %u in segment %llu is invalid", sectionName, sno, (uint64_t)vmsegment);
 							return;
 						}
 						vmsegment = (vm_address_t)scmd->vmaddr;
 						vmsection = (vm_address_t)sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
-						DBGLOG("mach", "found section %s size %u in segment %lu", sectionName, sno, vmsegment);
+						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
 						return;
 					}
 
