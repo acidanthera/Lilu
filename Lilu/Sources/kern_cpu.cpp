@@ -97,6 +97,7 @@ void CPUInfo::init() {
 				bdi.cpuGeneration = CpuGeneration::Haswell;
 				break;
 			case CPU_MODEL_BROADWELL:
+			case CPU_MODEL_BROADWELL_EP:
 			case CPU_MODEL_BRYSTALWELL:
 				bdi.cpuGeneration = CpuGeneration::Broadwell;
 				break;
