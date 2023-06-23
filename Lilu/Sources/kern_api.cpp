@@ -322,6 +322,13 @@ void LiluAPI::processPatcherLoadCallbacks(KernelPatcher &patcher) {
 	}
 #endif
 
+#ifdef LILU_KCINJECT_SUPPORT
+	// Warning: The code is currently only tested on Big Sur
+	if (getKernelVersion() >= KernelVersion::BigSur) {
+		patcher.setupKCListening();
+	}
+#endif
+
 	// We no longer need to load kexts, forget about prelinked
 	patcher.freeFileBufferResources();
 }

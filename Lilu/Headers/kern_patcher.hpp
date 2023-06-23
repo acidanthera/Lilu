@@ -13,6 +13,7 @@
 #include <Headers/kern_util.hpp>
 #include <Headers/kern_mach.hpp>
 #include <Headers/kern_disasm.hpp>
+#include <Headers/kern_nvram.hpp>
 
 #include <mach/mach_types.h>
 
@@ -20,6 +21,113 @@ namespace Patch { union All; void deleter(All * NONNULL); }
 #ifdef LILU_KEXTPATCH_SUPPORT
 union OSKextLoadedKextSummaryHeaderAny;
 #endif /* LILU_KEXTPATCH_SUPPORT */
+
+#ifdef LILU_KCINJECT_SUPPORT
+#include <IOKit/IOMemoryDescriptor.h>
+
+/**
+ *  Taken from pexpert/pexpert/pexpert.h
+ */
+typedef enum kc_kind {
+	KCKindNone      = -1,
+	KCKindUnknown   = 0,
+	KCKindPrimary   = 1,
+	KCKindPageable  = 2,
+	KCKindAuxiliary = 3,
+	KCNumKinds      = 4,
+} kc_kind_t;
+
+/**
+ *  Taken from osfmk/mach/vm_statistics.h
+ */
+typedef struct {
+	unsigned int
+	    vmkf_atomic_entry:1,
+	    vmkf_permanent:1,
+	    vmkf_guard_after:1,
+	    vmkf_guard_before:1,
+	    vmkf_submap:1,
+	    vmkf_already:1,
+	    vmkf_beyond_max:1,
+	    vmkf_no_pmap_check:1,
+	    vmkf_map_jit:1,
+	    vmkf_iokit_acct:1,
+	    vmkf_keep_map_locked:1,
+	    vmkf_fourk:1,
+	    vmkf_overwrite_immutable:1,
+	    vmkf_remap_prot_copy:1,
+	    vmkf_cs_enforcement_override:1,
+	    vmkf_cs_enforcement:1,
+	    vmkf_nested_pmap:1,
+	    vmkf_no_copy_on_read:1,
+	    vmkf_32bit_map_va:1,
+	    vmkf_copy_single_object:1,
+	    vmkf_copy_pageable:1,
+	    vmkf_copy_same_map:1,
+	    vmkf_translated_allow_execute:1,
+	    __vmkf_unused:9;
+} vm_map_kernel_flags_t;
+
+typedef uint16_t vm_tag_t;
+
+
+typedef struct {
+	uint8_t HeaderVersion;
+	uint32_t HeaderSize;
+	uint32_t SymbolCount;
+} PACKED LILU_PRELINKED_SYMBOLS_HEADER;
+
+typedef struct {
+	uint64_t SymbolValue;
+	uint32_t EntryLength;
+	uint32_t SymbolNameLength;
+	char SymbolName[];
+} PACKED LILU_PRELINKED_SYMBOLS_ENTRY;
+
+
+typedef struct {
+	uint8_t Version;
+	uint32_t EntryLength;
+	uint8_t KCKind;
+	char BundlePath[128];
+	uint32_t InfoPlistOffset;
+	uint32_t InfoPlistSize;
+	char ExecutablePath[512];
+	uint32_t ExecutableOffset;
+	uint32_t ExecutableSize;
+} PACKED LILU_INJECTION_INFO;
+
+
+typedef struct {
+	uint8_t Version;
+	uint32_t Size;
+	uint32_t KextCount;
+} PACKED LILU_BLOCK_INFO_HEADER;
+
+typedef struct {
+	char Identifier[128];
+	bool Exclude;
+	uint8_t KCKind;
+} PACKED LILU_BLOCK_INFO_ENTRY;
+
+typedef struct {
+	LILU_BLOCK_INFO_HEADER Header;
+	LILU_BLOCK_INFO_ENTRY Entries[];
+} PACKED LILU_BLOCK_INFO;
+
+// The maximize size of LILU_BLOCK_INFO allowed on version 0
+#define LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0 16384
+
+typedef struct {
+	uint32_t Magic;
+	uint32_t KextCount;
+	uint64_t PrelinkedSymbolsAddr;
+	uint64_t BlockInfoAddr;
+} PACKED LILU_INFO;
+
+// The magic header of LILU_INFO
+#define LILU_INFO_MAGIC  0xC4EF7155
+#endif /* LILU_KCINJECT_SUPPORT */
 
 class KernelPatcher {
 public:
@@ -222,7 +330,7 @@ public:
 
 		return (T)nullptr;
 	}
-    
+
     /**
      *  Solve request to resolve multiple symbols in one shot and simplify error handling
      *
@@ -233,12 +341,12 @@ public:
          *  The symbol to solve
          */
         const char *symbol {nullptr};
-        
+
         /**
          *  The symbol address on success, otherwise NULL.
          */
         mach_vm_address_t *address {nullptr};
-        
+
         /**
          *  Construct a solve request conveniently
          */
@@ -246,7 +354,7 @@ public:
         SolveRequest(const char *s, T &addr) :
 			symbol(s), address(reinterpret_cast<mach_vm_address_t*>(&addr)) { }
     };
-	
+
 	/**
 	 *  Solve multiple functions with basic error handling
 	 *
@@ -272,7 +380,7 @@ public:
 		}
 		return true;
 	}
-	
+
 	/**
 	 *  Solve multiple functions with basic error handling
 	 *
@@ -372,6 +480,107 @@ public:
 	 */
 	EXPORT void applyLookupPatch(const LookupPatch *patch, uint8_t *startingAddress, size_t maxSize);
 #endif /* LILU_KEXTPATCH_SUPPORT */
+
+#ifdef LILU_KCINJECT_SUPPORT
+	/**
+	 *  Hook KC FileSet loading and access functions to allow injecting into SysKC/AuxKC
+	 */
+	EXPORT void setupKCListening();
+
+	/**
+	 *  A pointer to OSKext::loadKCFileSet()
+	 */
+	mach_vm_address_t orgOSKextLoadKCFileSet {};
+
+	/**
+	 *  Called at KC FileSet loading if KC listening is enabled
+	 */
+	static OSReturn onOSKextLoadKCFileSet(const char *filepath, kc_kind_t type);
+
+	/**
+	 *  A pointer to ubc_getobject_from_filename()
+	 */
+	mach_vm_address_t orgUbcGetobjectFromFilename {};
+
+	/**
+	 *  Called during KC FileSet loading if KC listening is enabled
+	 */
+	static void * onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size);
+
+	/**
+	 *  A pointer to vm_map_enter_mem_object_control()
+	 */
+	mach_vm_address_t orgVmMapEnterMemObjectControl {};
+
+	/**
+	 *  Called during KC FileSet content access if KC listening is enabled
+	 */
+	static kern_return_t onVmMapEnterMemObjectControlLegacy(
+		vm_map_t                target_map,
+		vm_map_offset_t         *address,
+		vm_map_size_t           initial_size,
+		vm_map_offset_t         mask,
+		int                     flags,
+		vm_map_kernel_flags_t   vmk_flags,
+		vm_tag_t                tag,
+		memory_object_control_t control,
+		vm_object_offset_t      offset,
+		boolean_t               copy,
+		vm_prot_t               cur_protection,
+		vm_prot_t               max_protection,
+		vm_inherit_t            inheritance);
+
+	static kern_return_t onVmMapEnterMemObjectControlVer22Point4(
+		vm_map_t                target_map,
+		vm_map_offset_t         *address,
+		vm_map_size_t           initial_size,
+		vm_map_offset_t         mask,
+		vm_map_kernel_flags_t   vmk_flags,
+		memory_object_control_t control,
+		vm_object_offset_t      offset,
+		boolean_t               copy,
+		vm_prot_t               cur_protection,
+		vm_prot_t               max_protection,
+		vm_inherit_t            inheritance);
+
+	static void onVmMapEnterMemObjectControlPreCall(
+		vm_map_t                target_map,
+		memory_object_control_t control,
+		vm_map_size_t           initial_size,
+		kc_kind                 &kcKind,
+		vm_object_offset_t      &offset,
+		vm_object_offset_t      &realOffset,
+		bool                    &doOverride,
+		bool                    &rangeOverlaps);
+
+	static void onVmMapEnterMemObjectControlPostCall(
+		vm_map_offset_t         *address,
+		vm_map_size_t           initial_size,
+		kc_kind                 kcKind,
+		vm_object_offset_t      realOffset,
+		bool                    doOverride
+	);
+
+	/**
+	 *  Initialize kcSymbols, kcInjectInfos, and kcBlockInfos with info from OpenCore
+	 */
+	bool fetchInfoFromOpenCore();
+
+	/**
+	 *  Initialize kcSymbols with info from OpenCore
+	 */
+	bool fetchPrelinkedSymbolsFromOpenCore(uint64_t prelinkedSymbolsAddr);
+
+	/**
+	 *  Initialize kcInjectInfos with info from OpenCore
+	 */
+	bool fetchInjectionInfoFromOpenCore(NVStorage *nvram, uint32_t liluKextCount);
+
+	/**
+	 *  Initialize kcBlockInfos with info from OpenCore
+	 */
+	bool fetchBlockInfoFromOpenCore(uint64_t liluBlockInfoAddr);
+#endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
 	 *  Route function to function
@@ -474,7 +683,7 @@ public:
 		template <typename T>
 		RouteRequest(const char *s, T t, mach_vm_address_t &o) :
 			symbol(s), to(reinterpret_cast<mach_vm_address_t>(t)), org(&o) { }
-		
+
 		/**
 		 *  Construct RouteRequest for wrapping a function
 		 *  @param s  symbol to lookup
@@ -743,7 +952,7 @@ private:
 	 *  Process loaded kext
 	 */
 	void processKext(kmod_info_t *kmod, bool loaded);
-	
+
 	/**
 	 *  Process already loaded kexts once at the start
 	 *
@@ -774,13 +983,13 @@ private:
 	 *  A pointer to OSKext::saveLoadedKextPanicList()
 	 */
 	mach_vm_address_t orgOSKextSaveLoadedKextPanicList {};
-	
+
 #if defined(__i386__)
 	/**
 	 *  Called at kext loading if kext listening is enabled on macOS 10.4 and 10.5
 	 */
 	static kern_return_t onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id);
-	
+
 	/**
 	 *  A pointer to kmod_create_internal()
 	 */
@@ -804,7 +1013,7 @@ private:
 	 */
 	evector<Patch::All *, Patch::deleter> kpatches;
 
-#ifdef LILU_KEXTPATCH_SUPPORT	
+#ifdef LILU_KEXTPATCH_SUPPORT
 	/**
 	 *  Awaiting kext notificators
 	 */
@@ -821,6 +1030,62 @@ private:
 	bool isKextUnloading {false};
 
 #endif /* LILU_KEXTPATCH_SUPPORT */
+
+#ifdef LILU_KCINJECT_SUPPORT
+	/**
+	 *  Kernel function prototypes
+	 */
+	using t_vmMapKcfilesetSegment = kern_return_t (*)(vm_map_offset_t*, vm_map_offset_t, void*, vm_object_offset_t, vm_prot_t);
+	using t_getAddressFromKextMap = vm_offset_t (*)(vm_size_t);
+	using t_machVmDeallocate = kern_return_t (*)(vm_map_t, vm_map_offset_t, mach_vm_size_t);
+
+	/**
+	 *  Original kernel function trampolines
+	 */
+	t_vmMapKcfilesetSegment orgVmMapKcfilesetSegment {nullptr};
+	t_getAddressFromKextMap orgGetAddressFromKextMap {nullptr};
+	t_machVmDeallocate orgMachVmDeallocate {nullptr};
+
+	/**
+	 *  The kind of KC OSKext::loadKCFileSet is currently loading, if any
+	 */
+	kc_kind_t curLoadingKCKind = kc_kind::KCKindNone;
+
+	/**
+	 *  The "memory control objects" of KCs
+	 */
+	void *kcControls[kc_kind::KCNumKinds] = {nullptr};
+
+	/**
+	 *  Injection infos of KCs
+	 */
+	OSArray *kcInjectInfos[kc_kind::KCNumKinds] = {nullptr};
+
+	/**
+	 *  Block infos of KCs
+	 */
+	OSArray *kcBlockInfos[kc_kind::KCNumKinds] = {nullptr};
+
+	/**
+	 *  Size of KCs on the disk
+	 */
+	vm_size_t kcDiskSizes[kc_kind::KCNumKinds] = {0};
+
+	/**
+	 *  Patch infos of KCs
+	 */
+	OSArray *kcPatchInfos[kc_kind::KCNumKinds] = {nullptr};
+
+	/**
+	 *  A pointer to g_kext_map, used for calling and wrapping vm_map_remove()
+	 */
+	vm_map_t *gKextMap = nullptr;
+
+	/**
+	 *  Stores exported symbols from various KCs
+	 */
+	OSDictionary *kcSymbols;
+#endif /* LILU_KCINJECT_SUPPORT */
 
 	/**
 	 *  Current error code

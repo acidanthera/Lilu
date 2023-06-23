@@ -14,6 +14,12 @@
 #define LILU_KEXTPATCH_SUPPORT 1
 
 /**
+ *  Enable SysKC/AuxKC injection support
+ *  Requires LILU_KEXTPATCH_SUPPORT to be enabled
+ */
+#define LILU_KCINJECT_SUPPORT 1
+
+/**
  *  Enable compression and decompression support
  */
 #define LILU_COMPRESSION_SUPPORT 1

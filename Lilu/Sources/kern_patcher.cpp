@@ -7,9 +7,11 @@
 
 #include <Headers/kern_config.hpp>
 #include <Headers/kern_compat.hpp>
+#include <Headers/kern_file.hpp>
 #include <PrivateHeaders/kern_patcher.hpp>
 #include <Headers/kern_patcher.hpp>
 #include <Headers/kern_iokit.hpp>
+#include <Headers/kern_nvram.hpp>
 
 #include <mach/mach_types.h>
 
@@ -104,7 +106,7 @@ size_t KernelPatcher::loadKinfo(const char *id, const char * const paths[], size
 		prelink = prelinkInfo;
 
 	kern_return_t error;
-	auto info = MachInfo::create(isKernel, id);
+	auto info = MachInfo::create(isKernel ? MachType::Kernel : MachType::Kext, id);
 	if (!info) {
 		SYSLOG("patcher", "failed to allocate MachInfo for %s", id);
 		code = Error::MemoryIssue;
@@ -359,6 +361,686 @@ void KernelPatcher::setupKextListening() {
 }
 #endif /* LILU_KEXTPATCH_SUPPORT */
 
+#ifdef LILU_KCINJECT_SUPPORT
+bool KernelPatcher::fetchPrelinkedSymbolsFromOpenCore(uint64_t prelinkedSymbolsAddr) {
+	if (kcSymbols != nullptr) {
+		SYSLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: kcSymbols is already initialized");
+		return true;
+	}
+	DBGLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols-addr = 0x%llX", prelinkedSymbolsAddr);
+
+	// Map lilu-prelinked-symbols
+	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr),
+		sizeof(LILU_PRELINKED_SYMBOLS_HEADER), kIODirectionIn);
+	auto *map = memDesc->map();
+	auto *symbolsHeader = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
+	uint32_t headerVersion = symbolsHeader->HeaderVersion, size = symbolsHeader->HeaderSize, count = symbolsHeader->SymbolCount;
+	DBGLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols HeaderVersion = %u, Size = %u, SymbolCount = %u", headerVersion, size, count);
+	map->unmap();
+	map->release();
+	memDesc->release();
+	if (headerVersion != 0) {
+		SYSLOG("patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols unsupported header version! Bailing");
+		return false;
+	}
+
+	kcSymbols = OSDictionary::withCapacity(count);
+	memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(prelinkedSymbolsAddr), size, kIODirectionIn);
+	map = memDesc->map();
+	symbolsHeader = reinterpret_cast<LILU_PRELINKED_SYMBOLS_HEADER *>(map->getVirtualAddress());
+
+	// Fetch the symbols
+	auto *curSymbolAddr = reinterpret_cast<uint8_t *>(symbolsHeader + 1);
+	for (uint32_t i = 0; i < count; i++) {
+		auto *curSymbol = reinterpret_cast<LILU_PRELINKED_SYMBOLS_ENTRY *>(curSymbolAddr);
+		DBGLOG_COND((i % 1000) == 0, "patcher", "fetchPrelinkedSymbolsFromOpenCore: lilu-prelinked-symbols[%u]: SymbolValue 0x%llX SymbolName %s", i,
+			curSymbol->SymbolValue, curSymbol->SymbolName);
+		auto *symbolValue = OSNumber::withNumber(curSymbol->SymbolValue & 0xFFFFFFFF, 64);
+		kcSymbols->setObject(curSymbol->SymbolName, symbolValue);
+		symbolValue->release();
+		curSymbolAddr += curSymbol->EntryLength;
+	}
+
+	map->unmap();
+	map->release();
+	memDesc->release();
+	return true;
+}
+
+bool KernelPatcher::fetchInjectionInfoFromOpenCore(NVStorage *nvram, uint32_t liluKextCount) {
+	DBGLOG("patcher", "lilu-kext-count = %u", liluKextCount);
+
+	for (uint32_t i = 0; i < liluKextCount; i++) {
+		// Fetch lilu-injection-info-addr-%u
+		char *varName = Buffer::create<char>(128);
+		snprintf(varName, 128, "E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-injection-info-addr-%u", i);
+
+		auto *liluInjectionInfoAddrData =
+			nvram->read(varName, NVStorage::Options::OptRaw);
+		Buffer::deleter(varName);
+		if (!liluInjectionInfoAddrData) {
+			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to fetch lilu-injection-info-addr-%u", i);
+			return false;
+		}
+
+		auto liluInjectionInfoAddr = *reinterpret_cast<const uint64_t *>(liluInjectionInfoAddrData->getBytesNoCopy());
+		DBGLOG("patcher", "fetchInjectionInfoFromOpenCore: lilu-injection-info-addr-%u = 0x%llX", i, liluInjectionInfoAddr);
+		liluInjectionInfoAddrData->free();
+
+		// Map lilu-injection-info-addr-%u
+		auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluInjectionInfoAddr),
+		sizeof(LILU_INJECTION_INFO), kIODirectionIn);
+		auto *map = memDesc->map();
+		auto *injectionHeader = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
+		uint32_t version = injectionHeader->Version, size = injectionHeader->EntryLength, kcKind = injectionHeader->KCKind;
+		DBGLOG("patcher", "fetchInjectionInfoFromOpenCore: lilu-injection-info-%u Version = %u EntryLength = %u, KCKind = %u", i, version, size, kcKind);
+		map->unmap();
+		map->release();
+		memDesc->release();
+		if (version != 0 || kcKind > 3) {
+			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: lilu-injection-info-%u invalid header! Bailing", i);
+			return false;
+		}
+
+		memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluInjectionInfoAddr), size, kIODirectionIn);
+		map = memDesc->map();
+		auto *liluInjectionInfo = reinterpret_cast<LILU_INJECTION_INFO *>(map->getVirtualAddress());
+		auto *injectionInfo = Buffer::create<KextInjectionInfo>(1);
+		if (!injectionInfo) {
+			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate injectionInfo");
+			map->unmap();
+			map->release();
+			memDesc->release();
+			return false;
+		}
+
+		auto *bundlePath = Buffer::create<char>(sizeof(liluInjectionInfo->BundlePath));
+		if (!bundlePath) {
+			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate bundlePath");
+			map->unmap();
+			map->release();
+			memDesc->release();
+			return false;
+		}
+		strncpy(bundlePath, liluInjectionInfo->BundlePath, sizeof(liluInjectionInfo->BundlePath));
+		injectionInfo->bundlePath = bundlePath;
+
+		auto *infoPlist = Buffer::create<char>(liluInjectionInfo->InfoPlistSize);
+		if (!infoPlist) {
+			SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate infoPlist");
+			map->unmap();
+			map->release();
+			memDesc->release();
+			return false;
+		}
+		memcpy(infoPlist,
+			   reinterpret_cast<uint8_t *>(liluInjectionInfo) + liluInjectionInfo->InfoPlistOffset, liluInjectionInfo->InfoPlistSize);
+		injectionInfo->infoPlist = infoPlist;
+		injectionInfo->infoPlistSize = liluInjectionInfo->InfoPlistSize;
+
+		if (liluInjectionInfo->ExecutableOffset) {
+			auto *executablePath = Buffer::create<char>(sizeof(liluInjectionInfo->ExecutablePath));
+			if (!executablePath) {
+				SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate executablePath");
+				map->unmap();
+				map->release();
+				memDesc->release();
+				return false;
+			}
+			strncpy(executablePath, liluInjectionInfo->ExecutablePath, sizeof(liluInjectionInfo->ExecutablePath));
+			injectionInfo->executablePath = executablePath;
+
+			auto *executable = Buffer::create<uint8_t>(liluInjectionInfo->ExecutableSize);
+			if (!executable) {
+				SYSLOG("patcher", "fetchInjectionInfoFromOpenCore: Failed to allocate executable");
+				map->unmap();
+				map->release();
+				memDesc->release();
+				return false;
+			}
+			memcpy(executable,
+				   reinterpret_cast<uint8_t *>(liluInjectionInfo) + liluInjectionInfo->ExecutableOffset, liluInjectionInfo->ExecutableSize);
+			injectionInfo->executable = executable;
+			injectionInfo->executableSize = liluInjectionInfo->ExecutableSize;
+		} else {
+			injectionInfo->executablePath = nullptr;
+			injectionInfo->executable = nullptr;
+			injectionInfo->executableSize = 0;
+		}
+
+		auto *injectionInfoData = OSData::withBytes(injectionInfo, sizeof(*injectionInfo));
+		kcInjectInfos[kcKind]->setObject(injectionInfoData);
+		injectionInfoData->release();
+		Buffer::deleter(injectionInfo);
+
+		map->unmap();
+		map->release();
+		memDesc->release();
+	}
+	return true;
+}
+
+bool KernelPatcher::fetchBlockInfoFromOpenCore(uint64_t liluBlockInfoAddr) {
+	DBGLOG("patcher", "fetchBlockInfoFromOpenCore: lilu-block-info-addr = 0x%llX", liluBlockInfoAddr);
+
+	// Map lilu-block-info-addr
+	auto *memDesc = IOGeneralMemoryDescriptor::withPhysicalAddress(static_cast<IOPhysicalAddress>(liluBlockInfoAddr), LILU_BLOCK_INFO_SIZE_LIMIT_VERSION_0, kIODirectionIn);
+	auto *map = memDesc->map();
+	auto *blockInfo = reinterpret_cast<LILU_BLOCK_INFO *>(map->getVirtualAddress());
+	uint32_t version = blockInfo->Header.Version;
+	DBGLOG("patcher", "fetchBlockInfoFromOpenCore: lilu-block-info Version = %u Size = %u, KextCount = %u",
+	       version, blockInfo->Header.Size, blockInfo->Header.KextCount);
+	if (version != 0) {
+		SYSLOG("patcher", "fetchBlockInfoFromOpenCore: lilu-block-info invalid header! Bailing");
+		map->unmap();
+		map->release();
+		memDesc->release();
+		return false;
+	}
+
+	for (uint32_t i = 0; i < blockInfo->Header.KextCount; i++) {
+		auto *entry = &blockInfo->Entries[i];
+		if (entry->KCKind > 3) {
+			SYSLOG("patcher", "fetchBlockInfoFromOpenCore: Ignoring entry with invalid KCKind of %u", entry->KCKind);
+			continue;
+		}
+
+		auto *entryData = OSData::withBytes(entry, sizeof(LILU_BLOCK_INFO_ENTRY));
+		kcBlockInfos[entry->KCKind]->setObject(entryData);
+		entryData->release();
+	}
+
+	map->unmap();
+	map->release();
+	memDesc->release();
+	return true;
+}
+
+bool KernelPatcher::fetchInfoFromOpenCore() {
+	auto *nvram = new NVStorage {};
+	nvram->init();
+
+	// Fetch lilu-info
+	auto *liluInfoData =
+		nvram->read("E09B9297-7928-4440-9AAB-D1F8536FBF0A:lilu-info", NVStorage::Options::OptRaw);
+	if (!liluInfoData) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: Failed to fetch lilu-info");
+		nvram->deinit();
+		delete nvram;
+		return false;
+	}
+
+	auto liluInfo = reinterpret_cast<const LILU_INFO *>(liluInfoData->getBytesNoCopy());
+	if (liluInfo->Magic != LILU_INFO_MAGIC) {
+		SYSLOG("patcher", "fetchInfoFromOpenCore: LILU_INFO magic expected 0x%X got 0x%X", LILU_INFO_MAGIC, liluInfo->Magic);
+		liluInfoData->free();
+		nvram->deinit();
+		delete nvram;
+		return false;
+	}
+
+	if (!fetchPrelinkedSymbolsFromOpenCore(liluInfo->PrelinkedSymbolsAddr)) {
+		kcSymbols = OSDictionary::withCapacity(0);
+	}
+
+	// Initialize kcInjectInfos
+	for (uint32_t i = 0; i < 4; i++) {
+		kcInjectInfos[i] = OSArray::withCapacity(0);
+	}
+	fetchInjectionInfoFromOpenCore(nvram, liluInfo->KextCount);
+
+	// Initialize kcBlockInfos
+	for (uint32_t i = 0; i < 4; i++) {
+		kcBlockInfos[i] = OSArray::withCapacity(0);
+	}
+	fetchBlockInfoFromOpenCore(liluInfo->BlockInfoAddr);
+
+	liluInfoData->free();
+	nvram->deinit();
+	delete nvram;
+	return true;
+}
+
+OSReturn KernelPatcher::onOSKextLoadKCFileSet(const char *filepath, kc_kind_t type) {
+	OSReturn status = kOSReturnError;
+
+	if (that) {
+		PANIC_COND(that->curLoadingKCKind != kc_kind::KCKindNone, "patcher", "OSKext::loadKCFileSet entered twice");
+		that->curLoadingKCKind = type;
+		status = FunctionCast(onOSKextLoadKCFileSet, that->orgOSKextLoadKCFileSet)(filepath, type);
+		that->curLoadingKCKind = kc_kind::KCKindNone;
+	}
+
+	return status;
+}
+
+void * KernelPatcher::onUbcGetobjectFromFilename(const char *filename, struct vnode **vpp, off_t *file_size) {
+	void * ret = nullptr;
+
+	if (that) {
+		ret = FunctionCast(onUbcGetobjectFromFilename, that->orgUbcGetobjectFromFilename)(filename, vpp, file_size);
+		that->kcControls[that->curLoadingKCKind] = ret;
+
+		if (that->curLoadingKCKind == kc_kind::KCKindPageable) {
+			that->fetchInfoFromOpenCore();
+		}
+
+		auto *injectInfos = that->kcInjectInfos[that->curLoadingKCKind];
+		if (!injectInfos) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos is null");
+			return ret;
+		}
+
+		auto *blockInfos = that->kcBlockInfos[that->curLoadingKCKind];
+		if (!blockInfos) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: blockInfos is null");
+			return ret;
+		}
+
+		bool mappingRequired = blockInfos->getCount() != 0;
+		// Injection into AuxKC requires parsing SysKC
+		for (uint i = that->curLoadingKCKind; i < kc_kind::KCNumKinds; i++) {
+			mappingRequired |= that->kcInjectInfos[i] != nullptr && that->kcInjectInfos[i]->getCount() != 0;
+		}
+
+		if (!mappingRequired) {
+			DBGLOG("patcher", "onUbcGetobjectFromFilename: Nothing to do with KC kind %u", that->curLoadingKCKind);
+			if (that->kcSymbols != nullptr) {
+				// The symbols are no longer needed. Free them
+				that->kcSymbols->release();
+				that->kcSymbols = nullptr;
+			}
+			return ret;
+		}
+
+		// Map original KC
+		uint32_t oldKcSize = static_cast<uint32_t>(*file_size);
+		that->kcDiskSizes[that->curLoadingKCKind] = oldKcSize;
+		uint8_t *kcBuf = (uint8_t*)that->orgGetAddressFromKextMap(oldKcSize);
+		if (kcBuf == nullptr ||
+			that->orgVmMapKcfilesetSegment((vm_map_offset_t*)&kcBuf, (vm_map_offset_t)oldKcSize, ret, 0, (VM_PROT_READ | VM_PROT_WRITE)) != 0) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to map kcBuf");
+			return ret;
+		}
+		DBGLOG("patcher", "onUbcGetobjectFromFilename: Mapped kcBuf at %p", kcBuf);
+
+		// Estimate the size of kexts to inject
+		uint32_t patchedKCSize = oldKcSize + 4 * 1024 * 1024; // 4 MB for new prelinked info
+		auto *iterator = OSCollectionIterator::withCollection(injectInfos);
+		if (!iterator) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");
+			return ret;
+		}
+
+		uint32_t linkeditIncrease = 0;
+		OSObject *curObj = nullptr;
+		while ((curObj = iterator->getNextObject())) {
+			auto *curObjData = OSDynamicCast(OSData, curObj);
+			if (!curObjData) {
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				iterator->release();
+				return ret;
+			}
+
+			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(curObjData->getBytesNoCopy());
+			auto executable = injectInfo->executable;
+			auto executableSize = injectInfo->executableSize;
+			if (executableSize == 0) continue;
+
+			if (!MachInfo::extractFatBinary(executable, executableSize)) continue;
+
+			linkeditIncrease += sizeof(dyld_chained_fixups_header) + sizeof(dyld_chained_starts_in_image) - 4;
+			auto *mh = reinterpret_cast<const mach_header_64*>(executable);
+			auto *addr = reinterpret_cast<const uint8_t*>(mh + 1);
+			for (uint32_t i = 0; i < mh->ncmds; i++) {
+				auto *loadCmd = reinterpret_cast<const load_command *>(addr);
+				if (loadCmd->cmd == LC_SEGMENT_64) {
+					auto *segCmd = reinterpret_cast<const segment_command_64 *>(loadCmd);
+					if (!strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
+						linkeditIncrease += segCmd->filesize;
+
+						// No need to account for __LINKEDIT in patchedKCSize
+						addr += loadCmd->cmdsize;
+						continue;
+					}
+
+					auto pageCount = alignValue(segCmd->filesize) / PAGE_SIZE;
+					linkeditIncrease += 4 + sizeof(dyld_chained_starts_in_segment) + 2 * (pageCount - 1);
+					patchedKCSize += static_cast<vm_size_t>(segCmd->vmsize);
+				}
+
+				addr += loadCmd->cmdsize;
+			}
+		}
+		iterator->release();
+		linkeditIncrease = alignValue(linkeditIncrease);
+		patchedKCSize += linkeditIncrease;
+		DBGLOG("patcher", "onUbcGetobjectFromFilename: linkeditIncrease = 0x%X, patchedKCSize = 0x%X", linkeditIncrease, patchedKCSize);
+
+		// Setup patched buffer
+		uint8_t *patchedKCBuf = Buffer::create<uint8_t>(patchedKCSize);
+		if (patchedKCBuf == nullptr) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to allocate patchedKCBuf");
+			return ret;
+		}
+
+		uint32_t copyInterval = 8 * 1024 * 1024;
+		uint32_t copyOffset = 0;
+		uint32_t sizeLeft = static_cast<uint32_t>(oldKcSize);
+		while (sizeLeft != 0) {
+			uint32_t copyAmount = min(copyInterval, sizeLeft);
+			DBGLOG("patcher", "onUbcGetobjectFromFilename: Copying 0x%X ~ 0x%X out of 0x%X bytes",
+			       copyOffset, copyOffset + copyAmount, oldKcSize);
+			memcpy(patchedKCBuf + copyOffset, kcBuf + copyOffset, copyAmount);
+			copyOffset += copyAmount;
+			sizeLeft -= copyAmount;
+		}
+		
+		that->orgMachVmDeallocate(*that->gKextMap, (vm_map_offset_t)kcBuf, *file_size);
+
+		// Initialize kcInfo
+		MachInfo* kcInfo = MachInfo::create(MachType::KextCollection);
+		kcInfo->setLinkeditIncrease(linkeditIncrease);
+		kcInfo->initFromBuffer(patchedKCBuf, static_cast<uint32_t>(patchedKCSize), static_cast<uint32_t>(oldKcSize));
+		kcInfo->setKcSymbols(that->kcSymbols);
+		kcInfo->setKcKindAndIndex(that->curLoadingKCKind, that->curLoadingKCKind == kc_kind::KCKindPageable ? 1 : 3);
+		that->kcPatchInfos[that->curLoadingKCKind] = OSArray::withCapacity(0);
+		kcInfo->setKcPatchInfo(that->kcPatchInfos[that->curLoadingKCKind]);
+		kcInfo->extractKextsSymbols();
+
+		// Block kexts
+		iterator = OSCollectionIterator::withCollection(blockInfos);
+		if (!iterator) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: blockInfos iterator is null");
+			kcInfo->deinit();
+			MachInfo::deleter(kcInfo);
+			return ret;
+		}
+
+		curObj = nullptr;
+		while ((curObj = iterator->getNextObject())) {
+			auto *curObjData = OSDynamicCast(OSData, curObj);
+			if (!curObjData) {
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in blockInfos");
+				iterator->release();
+				kcInfo->deinit();
+				MachInfo::deleter(kcInfo);
+				return ret;
+			}
+
+			auto *blockInfo = reinterpret_cast<const LILU_BLOCK_INFO_ENTRY *>(curObjData->getBytesNoCopy());
+			kcInfo->blockKextFromKC(blockInfo->Identifier, blockInfo->Exclude);
+		}
+		iterator->release();
+		blockInfos->release();
+		that->kcBlockInfos[that->curLoadingKCKind] = nullptr;
+
+		// Inject kexts
+		iterator = OSCollectionIterator::withCollection(injectInfos);
+		if (!iterator) {
+			SYSLOG("patcher", "onUbcGetobjectFromFilename: injectInfos iterator is null");
+			kcInfo->deinit();
+			MachInfo::deleter(kcInfo);
+			return ret;
+		}
+
+		curObj = nullptr;
+		while ((curObj = iterator->getNextObject())) {
+			auto *curObjData = OSDynamicCast(OSData, curObj);
+			if (!curObjData) {
+				SYSLOG("patcher", "onUbcGetobjectFromFilename: Failed to cast object in injectInfos");
+				iterator->release();
+				kcInfo->deinit();
+				MachInfo::deleter(kcInfo);
+				return ret;
+			}
+
+			auto *injectInfo = reinterpret_cast<const KextInjectionInfo *>(curObjData->getBytesNoCopy());
+			kcInfo->injectKextIntoKC(injectInfo);
+			Buffer::deleter((void*)injectInfo->bundlePath);
+			Buffer::deleter((void*)injectInfo->infoPlist);
+			Buffer::deleter((void*)injectInfo->executablePath);
+			Buffer::deleter((void*)injectInfo->executable);
+		}
+		iterator->release();
+		injectInfos->release();
+		that->kcInjectInfos[that->curLoadingKCKind] = nullptr;
+
+		// Wrap things up
+		kcInfo->finalizeKCInject();
+		*file_size = patchedKCSize;
+
+		kcInfo->deinit();
+		MachInfo::deleter(kcInfo);
+
+		// We are done with the injections. Free the symbols
+		if (that->curLoadingKCKind == kc_kind::KCKindAuxiliary && that->kcSymbols != nullptr) {
+			that->kcSymbols->release();
+			that->kcSymbols = nullptr;
+		}
+	}
+
+	return ret;
+}
+
+void KernelPatcher::onVmMapEnterMemObjectControlPreCall(
+	vm_map_t                target_map,
+	memory_object_control_t control,
+	vm_map_size_t           initial_size,
+	kc_kind                 &kcKind,
+	vm_object_offset_t      &offset,
+	vm_object_offset_t      &realOffset,
+	bool                    &doOverride,
+	bool                    &rangeOverlaps
+) {
+	kcKind = kc_kind::KCKindNone;
+	if (target_map == *that->gKextMap) {
+		kcKind = kc_kind::KCKindUnknown;
+		if (control == that->kcControls[kc_kind::KCKindPageable]) {
+			kcKind = kc_kind::KCKindPageable;
+		} else if (control == that->kcControls[kc_kind::KCKindAuxiliary]) {
+			kcKind = kc_kind::KCKindAuxiliary;
+		}
+	}
+
+	doOverride = kcKind != kc_kind::KCKindNone && that->kcPatchInfos[kcKind] != nullptr;
+	rangeOverlaps = false;
+	realOffset = offset;
+	if (!doOverride) return;
+
+	DBGLOG("patcher", "onVmMapEnterMemObjectControlPreCall: Mapping KC kind %u range 0x%llX ~ 0x%llX", kcKind, realOffset, realOffset + initial_size);
+	if (offset >= that->kcDiskSizes[kcKind]) {
+		offset = 0;
+	} else if (offset + initial_size - 1 >= that->kcDiskSizes[kcKind]) {
+		rangeOverlaps = true;
+	}
+}
+
+void KernelPatcher::onVmMapEnterMemObjectControlPostCall(
+	vm_map_offset_t         *address,
+	vm_map_size_t           initial_size,
+	kc_kind                 kcKind,
+	vm_object_offset_t      rangeStart,
+	bool                    doOverride
+) {
+	if (!doOverride) return;
+
+	auto *iterator = OSCollectionIterator::withCollection(that->kcPatchInfos[kcKind]);
+	if (!iterator) {
+		SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: kcPatchInfos iterator is null");
+		return;
+	}
+
+	OSObject *curObj = nullptr;
+	uint64_t rangeEnd = rangeStart + initial_size - 1; // Inclusive
+	while ((curObj = iterator->getNextObject())) {
+		auto *curObjData = OSDynamicCast(OSData, curObj);
+		if (!curObjData) {
+			SYSLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Failed to cast object in kcPatchInfos");
+			iterator->release();
+			return;
+		}
+
+		auto *patch = reinterpret_cast<const KCPatchInfo *>(curObjData->getBytesNoCopy());
+		if (patch->patchEnd < rangeStart || patch->patchStart > rangeEnd) continue;
+		uint64_t patchFrom = max(rangeStart, patch->patchStart), patchTo = min(rangeEnd, patch->patchEnd);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Found KC patch info with range 0x%llX ~ 0x%llX", patch->patchStart, patch->patchEnd);
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: Patching KC kind %u range 0x%llX ~ 0x%llX", kcKind, patchFrom, patchTo);
+
+		uint64_t memoryOffset = patchFrom - rangeStart;
+    	uint64_t patchOffset = patchFrom - patch->patchStart;
+		DBGLOG("patcher", "onVmMapEnterMemObjectControlPostCall: memoryOffset=0x%llX, patchOffset=0x%llX, copying 0x%llX bytes", memoryOffset, patchOffset, patchTo - patchFrom + 1);
+		memcpy(reinterpret_cast<void*>(*address + memoryOffset), patch->patchWith + patchOffset, static_cast<size_t>(patchTo - patchFrom + 1));
+	}
+	iterator->release();
+}
+
+kern_return_t KernelPatcher::onVmMapEnterMemObjectControlLegacy(
+	vm_map_t                target_map,
+	vm_map_offset_t         *address,
+	vm_map_size_t           initial_size,
+	vm_map_offset_t         mask,
+	int                     flags,
+	vm_map_kernel_flags_t   vmk_flags,
+	vm_tag_t                tag,
+	memory_object_control_t control,
+	vm_object_offset_t      offset,
+	boolean_t               copy,
+	vm_prot_t               cur_protection,
+	vm_prot_t               max_protection,
+	vm_inherit_t            inheritance
+) {
+	if (!that) {
+		PANIC("patcher", "onVmMapEnterMemObjectControlLegacy: Called before calling setupKextListening");
+	}
+
+	kern_return_t ret = -1;
+	kc_kind kcKind;
+	vm_object_offset_t realOffset;
+	bool doOverride, rangeOverlaps;
+	onVmMapEnterMemObjectControlPreCall(target_map, control, initial_size, kcKind, offset, realOffset, doOverride, rangeOverlaps);
+
+	if (rangeOverlaps) {
+		vm_map_offset_t tempAddress = *address;
+		vm_object_offset_t sizeOnDisk = that->kcDiskSizes[kcKind] - offset;
+		onVmMapEnterMemObjectControlLegacy(target_map, &tempAddress, sizeOnDisk, mask, flags, vmk_flags, tag,
+				                           control, offset, copy, cur_protection, max_protection, inheritance);
+
+		tempAddress = *address + that->kcDiskSizes[kcKind] - offset;
+		return onVmMapEnterMemObjectControlLegacy(target_map, &tempAddress, initial_size - sizeOnDisk, mask, flags, vmk_flags, tag,
+				                                  control, offset + sizeOnDisk, copy, cur_protection, max_protection, inheritance);
+	}
+
+	ret = FunctionCast(onVmMapEnterMemObjectControlLegacy, that->orgVmMapEnterMemObjectControl)
+			(target_map, address, initial_size, mask, flags, vmk_flags, tag,
+			control, offset, copy, cur_protection, max_protection, inheritance);
+	onVmMapEnterMemObjectControlPostCall(address, initial_size, kcKind, realOffset, doOverride);
+	return ret;
+}
+
+kern_return_t KernelPatcher::onVmMapEnterMemObjectControlVer22Point4(
+	vm_map_t                target_map,
+	vm_map_offset_t         *address,
+	vm_map_size_t           initial_size,
+	vm_map_offset_t         mask,
+	vm_map_kernel_flags_t   vmk_flags,
+	memory_object_control_t control,
+	vm_object_offset_t      offset,
+	boolean_t               copy,
+	vm_prot_t               cur_protection,
+	vm_prot_t               max_protection,
+	vm_inherit_t            inheritance
+) {
+	if (!that) {
+		PANIC("patcher", "onVmMapEnterMemObjectControlVer22Point4: Called before calling setupKextListening");
+	}
+
+	kern_return_t ret = -1;
+	kc_kind kcKind;
+	vm_object_offset_t realOffset;
+	bool doOverride, rangeOverlaps;
+	onVmMapEnterMemObjectControlPreCall(target_map, control, initial_size, kcKind, offset, realOffset, doOverride, rangeOverlaps);
+
+	if (rangeOverlaps) {
+		vm_map_offset_t tempAddress = *address;
+		vm_object_offset_t sizeOnDisk = that->kcDiskSizes[kcKind] - offset;
+		onVmMapEnterMemObjectControlVer22Point4(target_map, &tempAddress, sizeOnDisk, mask, vmk_flags, control,
+											    offset, copy, cur_protection, max_protection, inheritance);
+
+		tempAddress = *address + that->kcDiskSizes[kcKind] - offset;
+		return onVmMapEnterMemObjectControlVer22Point4(target_map, &tempAddress, initial_size - sizeOnDisk, mask, vmk_flags, control,
+				                                       offset + sizeOnDisk, copy, cur_protection, max_protection, inheritance);
+	}
+
+	ret = FunctionCast(onVmMapEnterMemObjectControlVer22Point4, that->orgVmMapEnterMemObjectControl)
+			(target_map, address, initial_size, mask, vmk_flags, control,
+			offset, copy, cur_protection, max_protection, inheritance);
+	onVmMapEnterMemObjectControlPostCall(address, initial_size, kcKind, realOffset, doOverride);
+	return ret;
+}
+
+void KernelPatcher::setupKCListening() {
+	gKextMap = reinterpret_cast<vm_map_t*>(solveSymbol(KernelPatcher::KernelID, "_g_kext_map"));
+	if (getError() != Error::NoError) {
+		SYSLOG("patcher", "failed to resolve _g_kext_map symbol");
+		clearError();
+		return;
+	}
+
+	orgVmMapKcfilesetSegment = reinterpret_cast<t_vmMapKcfilesetSegment>(solveSymbol(KernelPatcher::KernelID, "_vm_map_kcfileset_segment"));
+	if (getError() != Error::NoError) {
+		DBGLOG("patcher", "failed to resolve _vm_map_kcfileset_segment");
+		clearError();
+		return;
+	}
+
+	orgGetAddressFromKextMap = reinterpret_cast<t_getAddressFromKextMap>(solveSymbol(KernelPatcher::KernelID, "_get_address_from_kext_map"));
+	if (getError() != Error::NoError) {
+		DBGLOG("patcher", "failed to resolve _get_address_from_kext_map");
+		clearError();
+		return;
+	}
+
+	orgMachVmDeallocate = reinterpret_cast<t_machVmDeallocate>(solveSymbol(KernelPatcher::KernelID, "_mach_vm_deallocate"));
+	if (getError() != Error::NoError) {
+		DBGLOG("patcher", "failed to resolve _mach_vm_deallocate");
+		clearError();
+		return;
+	}
+
+	KernelPatcher::RouteRequest requests[] = {
+		{ "__ZN6OSKext13loadKCFileSetEPKc7kc_kind", onOSKextLoadKCFileSet, orgOSKextLoadKCFileSet },
+		{ "_ubc_getobject_from_filename", onUbcGetobjectFromFilename, orgUbcGetobjectFromFilename },
+	};
+
+	if (!routeMultiple(KernelID, requests, arrsize(requests))) {
+		SYSLOG("patcher", "failed to route KC listener functions");
+		return;
+	}
+
+	if ((getKernelVersion() > KernelVersion::Ventura) ||
+	    (getKernelVersion() == KernelVersion::Ventura && getKernelMinorVersion() >= 4)) {
+		KernelPatcher::RouteRequest requestsVer22Point4[] = {
+			{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControlVer22Point4, orgVmMapEnterMemObjectControl },
+		};
+
+		if (!routeMultiple(KernelID, requestsVer22Point4, arrsize(requestsVer22Point4))) {
+			SYSLOG("patcher", "failed to route >= Ventura 13.3 KC listener functions");
+			return;
+		}
+	} else {
+		KernelPatcher::RouteRequest requestsLegacy[] = {
+			{ "_vm_map_enter_mem_object_control", onVmMapEnterMemObjectControlLegacy, orgVmMapEnterMemObjectControl },
+		};
+
+		if (!routeMultiple(KernelID, requestsLegacy, arrsize(requestsLegacy))) {
+			SYSLOG("patcher", "failed to route legacy KC listener functions");
+			return;
+		}
+	}
+}
+#endif /* LILU_KCINJECT_SUPPORT */
+
 void KernelPatcher::freeFileBufferResources() {
 	if (kinfos.size() > KernelID)
 		kinfos[KernelID]->freeFileBufferResources();
@@ -399,7 +1081,7 @@ mach_vm_address_t KernelPatcher::routeFunctionInternal(mach_vm_address_t from, m
 		DBGLOG("patcher", "will use absolute jumping to " PRIKADDR, CASTKADDR(to));
 		absolute = true;
 	}
-	
+
 	if (jumpType == JumpType::Long) {
 		absolute = true;
 	} else if (jumpType == JumpType::Short && absolute) {
@@ -650,7 +1332,7 @@ bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, si
 
 bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
 	if (dataSize < findSize) return false;
-	
+
 	uint8_t *d = (uint8_t *) data;
 	const uint8_t *repl = (const uint8_t *) replace;
 	const uint8_t *replMsk = (const uint8_t *) replaceMask;
@@ -849,14 +1531,14 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 	if (!that || !atomic_load_explicit(&that->activated, memory_order_relaxed)) {
 		return;
 	}
-	
+
 	FunctionCast(onOSKextSaveLoadedKextPanicList, that->orgOSKextSaveLoadedKextPanicList)();
-	
+
 	// Flag set during OSKext::unload() to prevent triggering during an unload.
 	if (that->isKextUnloading) {
 		return;
 	}
-	
+
 	DBGLOG("patcher", "invoked at kext loading");
 
 	if (that->waitingForAlreadyLoadedKexts) {
@@ -879,11 +1561,11 @@ void KernelPatcher::onOSKextSaveLoadedKextPanicList() {
 kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id) {
 	if (!that)
 		return KERN_INVALID_ARGUMENT;
-	
+
 	kern_return_t result = FunctionCast(onKmodCreateInternal, that->orgKmodCreateInternal)(kmod, id);
 	if (result == KERN_SUCCESS) {
 		DBGLOG("patcher", "invoked at kext loading");
-		
+
 		if (that->waitingForAlreadyLoadedKexts) {
 			that->processAlreadyLoadedKexts();
 			that->waitingForAlreadyLoadedKexts = false;
@@ -893,7 +1575,7 @@ kern_return_t KernelPatcher::onKmodCreateInternal(kmod_info_t *kmod, kmod_t *id)
 			that->processKext(kmod, false);
 		}
 	}
-	
+
 	return result;
 }
 
