@@ -394,6 +394,7 @@ enum KernelVersion {
 	BigSur        = 20,
 	Monterey      = 21,
 	Ventura       = 22,
+	Sonoma        = 23,
 };
 
 /**
