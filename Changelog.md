@@ -1,5 +1,9 @@
 Lilu Changelog
 ==============
+#### v1.6.7
+- Added Broadwell-EP CPU model
+- Added Raptor Lake C0 stepping model
+
 #### v1.6.6
 - Fixed macOS 13+ installer detection regression in 1.6.5
 - Allow loading on macOS 14 without `-lilubetaall`
