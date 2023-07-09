@@ -649,10 +649,8 @@ bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, si
 }
 
 bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
-	if (dataSize < findSize) {
-		SYSLOG("patcher", "data size must not exceed find size!");
-		return false;
-	}
+	if (dataSize < findSize) return false;
+	
 	if (findSize < replaceSize) {
 		SYSLOG("patcher", "find size must be larger or equivalent to repl size!");
 		return false;
