@@ -3,6 +3,7 @@ Lilu Changelog
 #### v1.6.7
 - Added Broadwell-EP CPU model
 - Added Raptor Lake C0 stepping model
+- Allow `KernelPatcher::findAndReplaceWithMask` to have different find/replace size
 
 #### v1.6.6
 - Fixed macOS 13+ installer detection regression in 1.6.5
