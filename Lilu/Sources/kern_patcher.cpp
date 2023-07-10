@@ -649,15 +649,8 @@ bool KernelPatcher::findPattern(const void *pattern, const void *patternMask, si
 }
 
 bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip) {
-	if (dataSize < findSize) {
-		SYSLOG("patcher", "data size must not exceed find size!");
-		return false;
-	}
-	if (findSize < replaceSize) {
-		SYSLOG("patcher", "find size must be larger or equivalent to repl size!");
-		return false;
-	}
-
+	if (dataSize < findSize) return false;
+	
 	uint8_t *d = (uint8_t *) data;
 	const uint8_t *repl = (const uint8_t *) replace;
 	const uint8_t *replMsk = (const uint8_t *) replaceMask;
@@ -689,8 +682,7 @@ bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const vo
 		if (replaceMask == nullptr) {
 			lilu_os_memcpy(&d[dataOffset], replace, replaceSize);
 		} else {
-			// as replace can be shorter than find, we only replace up to the possibly shorter bytes.
-			for (size_t i = 0; i < replaceSize; i++)
+			for (size_t i = 0; i < findSize; i++)
 				d[dataOffset + i] = (d[dataOffset + i] & ~replMsk[i]) | (repl[i] & replMsk[i]);
 		}
 
@@ -699,7 +691,7 @@ bool KernelPatcher::findAndReplaceWithMask(void *data, size_t dataSize, const vo
 		}
 
 		replCount++;
-		dataOffset += findSize;
+		dataOffset += replaceSize;
 
 		// check replace count if requested
 		if (count > 0) {
