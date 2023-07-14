@@ -77,6 +77,7 @@ namespace CPUInfo {
 		CPU_MODEL_SKYLAKE        =  0x4E,
 		CPU_MODEL_SKYLAKE_ULT    =  0x4E,
 		CPU_MODEL_SKYLAKE_ULX    =  0x4E,
+		CPU_MODEL_BROADWELL_EP   =  0x4F,
 		CPU_MODEL_SKYLAKE_DT     =  0x5E,
 		CPU_MODEL_SKYLAKE_W      =  0x55,
 		CPU_MODEL_KABYLAKE       =  0x8E,
@@ -93,7 +94,8 @@ namespace CPUInfo {
 		CPU_MODEL_ROCKETLAKE_S   =  0xA7, /* desktop RocketLake */
 		CPU_MODEL_TIGERLAKE_U    =  0x8C,
 		CPU_MODEL_ALDERLAKE_S    =  0x97,
-		CPU_MODEL_RAPTORLAKE_S   =  0xB7,
+		CPU_MODEL_RAPTORLAKE_S   =  0xB7, /* Raptor Lake B0 stepping */
+		CPU_MODEL_RAPTORLAKE_HX  =  0xBF, /* Raptor Lake C0 stepping */
 	};
 
 	/**

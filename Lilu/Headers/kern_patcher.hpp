@@ -718,26 +718,6 @@ private:
 	 */
 	bool routeMultipleInternal(size_t id, RouteRequest *requests, size_t num, mach_vm_address_t start=0, size_t size=0, bool kernelRoute=true, bool force=false, JumpType jumpType=JumpType::Auto);
 
-	/**
-	 *  Simple find and replace with masking in kernel memory
-	 *
-	 *  @param data           kernel memory
-	 *  @param dataSize           size of kernel memory
-	 *  @param find           find pattern
-	 *  @param findSize           size of find pattern
-	 *  @param findMask           find masking pattern
-	 *  @param findMaskSize           size of find masking pattern
-	 *  @param replace           replace pattern
-	 *  @param replaceSize           size of replace pattern
-	 *  @param replaceMask           replace masking pattern
-	 *  @param replaceMaskSize           repalce masking pattern
-	 *  @param count           maximum times of patching
-	 *  @param skip           number of skipping times before performing replacement
-	 *
-	 *  @return true if the finding and replacing performance is successful
-	 */
-	static bool findAndReplaceWithMaskInternal(void *data, size_t dataSize, const void *find, size_t findSize, const void *findMask, size_t findMaskSize, const void *replace, size_t replaceSize, const void *replaceMask, size_t replaceMaskSize, size_t count, size_t skip);
-
 #ifdef LILU_KEXTPATCH_SUPPORT
 	/**
 	 *  Process loaded kext
