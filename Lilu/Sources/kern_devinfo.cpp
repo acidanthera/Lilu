@@ -209,9 +209,14 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 					DBGLOG("dev", "found IGPU device %s", safeString(name));
 					videoBuiltin = obj;
 					requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
-				  } else if (vendor == WIOKit::VendorID::ATIAMD && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
-					DBGLOG("dev", "found AMD iGPU device %s", safeString(name));
+			} else if (vendor == WIOKit::VendorID::ATIAMD && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
+				uint32_t dev = 0;
+				WIOKit::getOSDataValue(obj, "device-id", dev);
+				dev = (dev & 0xFF00);
+				if ((dev == 0x1600 || dev == 1500) || (dev == 0x9800 || dev == 0x1300) || (dev == 0x9900 || dev == 0x9800) || dev == 0x9600) {
+					DBGLOG("dev", "found IGPU device %s", safeString(name));
 					videoBuiltin = obj;
+				}
 			} else if (code == WIOKit::ClassCode::HDADevice || code == WIOKit::ClassCode::HDAMmDevice) {
 				if (vendor == WIOKit::VendorID::Intel && name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
 					DBGLOG("dev", "found HDAU device %s", safeString(name));
