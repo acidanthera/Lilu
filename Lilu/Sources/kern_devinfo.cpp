@@ -213,7 +213,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				uint32_t dev = 0;
 				WIOKit::getOSDataValue(obj, "device-id", dev);
 				dev = (dev & 0xFF00);
-				if ((dev == 0x1600 || dev == 1500) || (dev == 0x9800 || dev == 0x1300) || (dev == 0x9900 || dev == 0x9800) || dev == 0x9600) {
+				if ((dev == 0x1600 || dev == 1500) || (dev == 0x9800 || dev == 0x1300) || (dev == 0x9900 || dev == 0x9600)) {
 					DBGLOG("dev", "found IGPU device %s", safeString(name));
 					videoBuiltin = obj;
 				}
