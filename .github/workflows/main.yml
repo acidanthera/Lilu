@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     name: Build
-    runs-on: macos-12
+    runs-on: macos-14
     env:
       JOB_TYPE: BUILD
     steps:
@@ -25,7 +25,7 @@ jobs:
           path: MacKernelSDK
       - name: CI Bootstrap
         run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/xcode14/ci-bootstrap.sh) && eval "$src" || exit 1
 
       - run: xcodebuild -jobs 1 -arch x86_64 -arch ACID32 -configuration Debug
       - run: xcodebuild -jobs 1 -arch x86_64 -arch ACID32 -configuration Release
