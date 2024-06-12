@@ -56,9 +56,9 @@ private:
 	static constexpr KernelVersion minKernel {KernelVersion::Tiger};
 
 	/**
-	 * Maxmimum supported kernel version
+	 * Maximum supported kernel version
 	 */
-	static constexpr KernelVersion maxKernel {KernelVersion::Sonoma};
+	static constexpr KernelVersion maxKernel {KernelVersion::Sequoia};
 
 	/**
 	 *  Set once the arguments are parsed
