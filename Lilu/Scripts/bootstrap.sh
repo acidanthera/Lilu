@@ -19,7 +19,7 @@
 #  src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts/bootstrap.sh) && eval "$src" || exit 1
 #
 
-REPO_PATH="acidanthera/Lilu"
+REPO_PATH="AlfCraft07/LiluSequoia"
 SDK_PATH="Lilu.kext"
 SDK_CHECK_PATH="${SDK_PATH}/Contents/Resources/Headers/kern_api.hpp"
 
