@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.6.8
+- Allow loading on macOS 15 without `-lilubetaall`
+
 #### v1.6.7
 - Added Broadwell-EP CPU model
 - Added Raptor Lake C0 stepping model
