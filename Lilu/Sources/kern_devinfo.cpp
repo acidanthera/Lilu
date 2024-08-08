@@ -206,9 +206,9 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 				continue;
 
 			if (vendor == WIOKit::VendorID::Intel && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
-					DBGLOG("dev", "found IGPU device %s", safeString(name));
-					videoBuiltin = obj;
-					requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
+				DBGLOG("dev", "found IGPU device %s", safeString(name));
+				videoBuiltin = obj;
+				requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
 			} else if (vendor == WIOKit::VendorID::ATIAMD && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
 				uint32_t dev = 0;
 				WIOKit::getOSDataValue(obj, "device-id", dev);
