@@ -266,8 +266,8 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 								pcicode == WIOKit::ClassCode::XGAController) {
 								if (pcivendor == WIOKit::VendorID::ATIAMD) {
 									// The iGPU can live in places other than the root bridge.
-									// This can be seen on some of the newer devices.
-									// This may be why the older iGPUs had issues.
+									// This can be seen in Ryzen Mobile.
+									// This may be why the older iGPUs had issues, as the device seemingly lives under the root bridge on those platforms.
 									uint32_t dev = 0;
 									WIOKit::getOSDataValue(pciobj, "device-id", dev);
 									dev &= 0xFF00;
