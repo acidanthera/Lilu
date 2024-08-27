@@ -269,7 +269,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 									// This can be seen on some of the newer devices.
 									// This may be why the older iGPUs had issues.
 									uint32_t dev = 0;
-									WIOKit::getOSDataValue(obj, "device-id", dev);
+									WIOKit::getOSDataValue(pciobj, "device-id", dev);
 									dev &= 0xFF00;
 									switch (dev) {
 										case GenericAMDKvGr:
@@ -280,7 +280,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 										case GenericAMDKbMlCzStnWr:
 										case GenericAMDTrinity:
 											DBGLOG("dev", "found IGPU device %s", safeString(name));
-					    					videoBuiltin = obj;
+					    					videoBuiltin = pciobj;
 											requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
 											continue;
 										default:
