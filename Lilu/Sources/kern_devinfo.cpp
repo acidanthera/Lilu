@@ -212,10 +212,21 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 			} else if (vendor == WIOKit::VendorID::ATIAMD && (code == WIOKit::ClassCode::DisplayController || code == WIOKit::ClassCode::VGAController)) {
 				uint32_t dev = 0;
 				WIOKit::getOSDataValue(obj, "device-id", dev);
-				dev = (dev & 0xFF00);
-				if ((dev == GenericAMDRnCznLcVghRmbRph || dev == GenericAMDRvPcBcPhn) || (dev == GenericAMDKbMlCzStnWr || dev == GenericAMDKvGr) || (dev == GenericAMDTrinity || dev == GenericAMDSumo) || dev == GenericAMDPhoenix2) {
-					DBGLOG("dev", "found IGPU device %s", safeString(name));
-					videoBuiltin = obj;
+				dev &= 0xFF00;
+				switch (dev) {
+					case GenericAMDKvGr:
+					case GenericAMDRvPcBcPhn:
+					case GenericAMDRnCznLcVghRmbRph:
+					case GenericAMDPhoenix2:
+					case GenericAMDSumo:
+					case GenericAMDKbMlCzStnWr:
+					case GenericAMDTrinity:
+					    DBGLOG("dev", "found IGPU device %s", safeString(name));
+					    videoBuiltin = obj;
+						requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
+						break;
+					default:
+						break;
 				}
 			} else if (code == WIOKit::ClassCode::HDADevice || code == WIOKit::ClassCode::HDAMmDevice) {
 				if (vendor == WIOKit::VendorID::Intel && name && (!strcmp(name, "HDAU") || !strcmp(name, "B0D3"))) {
@@ -253,6 +264,29 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 								pcicode == WIOKit::ClassCode::VGAController ||
 								pcicode == WIOKit::ClassCode::Ex3DController ||
 								pcicode == WIOKit::ClassCode::XGAController) {
+								if (pcivendor == WIOKit::VendorID::ATIAMD) {
+									// The iGPU can live in places other than the root bridge.
+									// This can be seen on some of the newer devices.
+									// This may be why the older iGPUs had issues.
+									uint32_t dev = 0;
+									WIOKit::getOSDataValue(obj, "device-id", dev);
+									dev &= 0xFF00;
+									switch (dev) {
+										case GenericAMDKvGr:
+										case GenericAMDRvPcBcPhn:
+										case GenericAMDRnCznLcVghRmbRph:
+										case GenericAMDPhoenix2:
+										case GenericAMDSumo:
+										case GenericAMDKbMlCzStnWr:
+										case GenericAMDTrinity:
+											DBGLOG("dev", "found IGPU device %s", safeString(name));
+					    					videoBuiltin = obj;
+											requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
+											continue;
+										default:
+											break;
+									}
+								}
 								DBGLOG("dev", "found GFX0 device %s at %s by %04X",
 									   safeString(pciobj->getName()), safeString(name),  pcivendor);
 								v.video = pciobj;
