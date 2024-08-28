@@ -42,6 +42,13 @@ class DeviceInfo {
 	 *  @param obj  wait for (PCI) object publishing
 	 */
 	void awaitPublishing(IORegistryEntry *obj);
+	
+	/**
+	 *  Checks if an ATIAMD object is an AMD iGPU
+	 *
+	 *  @param obj  Object to run the check on.
+	 */
+	bool checkForAndSetAMDiGPU(IORegistryEntry *obj);
 
 public:
 	/**
