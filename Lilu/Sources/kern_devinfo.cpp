@@ -268,10 +268,11 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 									// The iGPU can live in places other than the root bridge.
 									// This can be seen in Ryzen Mobile.
 									// This may be why the older iGPUs had issues, as the device seemingly lives under the root bridge on those platforms.
-									uint32_t dev = 0;
-									WIOKit::getOSDataValue(pciobj, "device-id", dev);
-									dev &= 0xFF00;
-									switch (dev) {
+									uint32_t pcidev = 0;
+									// change to read from PCI config space?
+									WIOKit::getOSDataValue(pciobj, "device-id", pcidev);
+									pcidev &= 0xFF00;
+									switch (pcidev) {
 										case GenericAMDKvGr:
 										case GenericAMDRvPcBcPhn:
 										case GenericAMDRnCznLcVghRmbRph:
@@ -279,7 +280,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 										case GenericAMDSumo:
 										case GenericAMDKbMlCzStnWr:
 										case GenericAMDTrinity:
-											DBGLOG("dev", "found IGPU device %s", safeString(name));
+											DBGLOG("dev", "found IGPU device %s at %s (0x%x, by 0x%x)", safeString(pciobj->getName()), safeString(name), pcivendor, pcidev);
 					    					videoBuiltin = pciobj;
 											requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
 											continue;
@@ -304,6 +305,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 					// AZAL audio devices cannot be descrete GPU devices.
 					// On several AMD platforms there is an IGPU, which makes AZAL be recognised as a descrete GPU/HDA pair.
 					// REF: https://github.com/acidanthera/Lilu/pull/65
+					// change v.video to videoBuiltin?
 					if (((v.audio && strcmp(v.audio->getName(), "AZAL") != 0) || !v.audio) && v.video) {
 						DBGLOG_COND(v.audio, "dev", "marking audio device as HDAU at %s", safeString(v.audio->getName()));
 						if (!videoExternal.push_back(v))
