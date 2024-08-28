@@ -281,7 +281,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 										case GenericAMDKbMlCzStnWr:
 										case GenericAMDTrinity:
 											DBGLOG("dev", "found IGPU device %s at %s", safeString(pciobj->getName()), safeString(name));
-					    					videoBuiltin = pciobj;
+											videoBuiltin = pciobj;
 											requestedExternalSwitchOff |= videoBuiltin->getProperty(RequestedExternalSwitchOffName) != nullptr;
 											continue;
 										default:
