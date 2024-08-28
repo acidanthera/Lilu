@@ -305,8 +305,7 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 					// AZAL audio devices cannot be descrete GPU devices.
 					// On several AMD platforms there is an IGPU, which makes AZAL be recognised as a descrete GPU/HDA pair.
 					// REF: https://github.com/acidanthera/Lilu/pull/65
-					// change v.video to videoBuiltin?
-					if (((v.audio && strcmp(v.audio->getName(), "AZAL") != 0) || !v.audio) && v.video) {
+					if (((v.audio && strcmp(v.audio->getName(), "AZAL") != 0) || !v.audio) && ) {
 						DBGLOG_COND(v.audio, "dev", "marking audio device as HDAU at %s", safeString(v.audio->getName()));
 						if (!videoExternal.push_back(v))
 							SYSLOG("dev", "failed to push video gpu");
