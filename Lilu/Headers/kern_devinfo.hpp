@@ -42,6 +42,13 @@ class DeviceInfo {
 	 *  @param obj  wait for (PCI) object publishing
 	 */
 	void awaitPublishing(IORegistryEntry *obj);
+	
+	/**
+	 *  Checks if an ATIAMD object is an AMD iGPU
+	 *
+	 *  @param obj  Object to run the check on.
+	 */
+	bool checkForAndSetAMDiGPU(IORegistryEntry *obj);
 
 public:
 	/**
@@ -245,6 +252,41 @@ private:
 	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId4 {0x9BC80003};
 	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId5 {0x9BC50003};
 	static constexpr uint32_t ConnectorLessCoffeeLakePlatformId6 {0x9BC40003};
+
+	/**
+	 * Kaveri, and also catches the new Granite Ridge rDNA 2 iGPU.
+	 */
+	static constexpr uint32_t GenericAMDKvGr = 0x1300;
+
+	/**
+	 * Kabini, Mullins, Carrizo, Stoney Ridge, Wrestler.
+	 */
+	static constexpr uint32_t GenericAMDKbMlCzStnWr = 0x9800;
+
+	/**
+	 * Raven/Raven2, Picasso, Barcelo, Phoenix & Phoenix 2 (?)
+	 */
+	static constexpr uint32_t GenericAMDRvPcBcPhn = 0x1500;
+
+	/**
+	 * Renoir, Cezanne, Lucienne, Van Gogh, Rembrandt, Raphael.
+	 */
+	static constexpr uint32_t GenericAMDRnCznLcVghRmbRph = 0x1600;
+
+	/**
+	 * Trinity
+	 */
+	static constexpr uint32_t GenericAMDTrinity = 0x9900;
+
+	/**
+	 * Sumo & Sumo2?
+	 */
+	static constexpr uint32_t GenericAMDSumo = 0x9600;
+
+	/**
+	 * Phoenix.
+	 */
+	static constexpr uint32_t GenericAMDPhoenix2 = 0x1900;
 
 public:
 	/**
