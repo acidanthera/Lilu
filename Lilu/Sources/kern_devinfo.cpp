@@ -190,6 +190,7 @@ bool DeviceInfo::checkForAndSetAMDiGPU(IORegistryEntry *obj) {
 	dev &= 0xFF00;
 	switch (dev) {
 		case GenericAMDKvGr:
+		case GenericAMDVanGogh2:
 		case GenericAMDRvPcBcPhn:
 		case GenericAMDRnCznLcVghRmbRph:
 		case GenericAMDPhoenix2:
@@ -270,8 +271,8 @@ void DeviceInfo::grabDevicesFromPciRoot(IORegistryEntry *pciRoot) {
 								pcicode == WIOKit::ClassCode::XGAController) {
 								if (pcivendor == WIOKit::VendorID::ATIAMD) {
 									// The iGPU can live in places other than the root bridge.
-									// This can be seen in Ryzen Mobile.
-									// This may be why the older iGPUs had issues, as the device seemingly lives under the root bridge on those platforms.
+									// This can be seen in Ryzen Mobile and newer.
+									// This is why the older iGPUs had issues, as the device lives under the root bridge on those platforms.
 									if (checkForAndSetAMDiGPU(pciobj)) {
 										continue;
 									}
