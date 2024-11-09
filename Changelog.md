@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.7.0
+- Added Arrow Lake CPU definitions
+
 #### v1.6.9
 - Fixed loading on macOS 10.10 and older due to a MacKernelSDK regression
 - Added AMD IGPU detection via device-id, thanks @Zormeister
