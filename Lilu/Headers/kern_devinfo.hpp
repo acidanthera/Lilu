@@ -264,7 +264,12 @@ private:
 	static constexpr uint32_t GenericAMDKbMlCzStnWr = 0x9800;
 
 	/**
-	 * Raven/Raven2, Picasso, Barcelo, Phoenix & Phoenix 2 (?)
+	 * Van Gogh's other Device ID, specifically: 0x1435 rev 0xAE.
+	 */
+	static constexpr uint32_t GenericAMDVanGogh2 = 0x1400;
+
+	/**
+	 * Raven/Raven2, Picasso, Barcelo, Phoenix, Phoenix 2 (possibly Hawk Point)  & Strix (0x150E)
 	 */
 	static constexpr uint32_t GenericAMDRvPcBcPhn = 0x1500;
 
