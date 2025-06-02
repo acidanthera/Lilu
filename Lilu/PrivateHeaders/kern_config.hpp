@@ -58,7 +58,7 @@ private:
 	/**
 	 * Maxmimum supported kernel version
 	 */
-	static constexpr KernelVersion maxKernel {KernelVersion::Sixteen};
+	static constexpr KernelVersion maxKernel {KernelVersion::Tahoe};
 
 	/**
 	 *  Set once the arguments are parsed
