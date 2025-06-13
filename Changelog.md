@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.7.1
+- Allow loading on macOS 26 without `-lilubetaall`, thanks @AlfCraft07
+
 #### v1.7.0
 - Added Arrow Lake CPU definitions
 - Improved AMD IGPU detection via device-id, thanks @Zormeister
