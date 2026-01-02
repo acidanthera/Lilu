@@ -892,11 +892,13 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	running_mh = inner;
 	memory_size = (size_t)(last_addr - reinterpret_cast<mach_vm_address_t>(inner));
 	if (slide != 0 || isKernel) {
+		vm_address_t tmpSeg, tmpSect;
+		void *tmpSectPtr;
+		size_t tmpSectSize;
+		
+		findSectionBounds((void *) running_mh, memory_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__TEXT", "__text");
 		address_slots = reinterpret_cast<mach_vm_address_t>(inner + 1) + inner->sizeofcmds;
-		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
-		while (*reinterpret_cast<uint32_t *>(address_slots_end) == 0) {
-			address_slots_end += PAGE_SIZE;
-		}
+		address_slots_end = (mach_vm_address_t) tmpSectPtr;
 
 		DBGLOG("mach", "activating slots for %s in " PRIKADDR " - " PRIKADDR, objectId, CASTKADDR(address_slots), CASTKADDR(address_slots_end));
 	}
