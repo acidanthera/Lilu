@@ -593,14 +593,14 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
 						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
 						if (sptr + sect->size > endaddr) {
-							SYSLOG("mach", "found section %s size %u in segment %llu is invalid", sectionName, sno, (uint64_t)vmsegment);
+							SYSLOG("mach", "found section %s size %u in segment %u is invalid", sectionName, sect->size, sno);
 							return;
 						}
 						vmsegment = scmd->vmaddr;
 						vmsection = sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
-						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
+						DBGLOG("mach", "found section %s size %u in segment %u", sectionName, sect->size, sno);
 						return;
 					}
 
@@ -622,14 +622,14 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
 						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
 						if (sptr + sect->size > endaddr) {
-							SYSLOG("mach", "found section %s size %u in segment %llu is invalid", sectionName, sno, (uint64_t)vmsegment);
+							SYSLOG("mach", "found section %s size %llu in segment %u is invalid (" PRIKADDR " + %llx > " PRIKADDR, sectionName, sect->size, sno, CASTKADDR(sptr), sect->size, CASTKADDR(endaddr));
 							return;
 						}
 						vmsegment = (vm_address_t)scmd->vmaddr;
 						vmsection = (vm_address_t)sect->addr;
 						sectionptr = sptr;
 						sectionSize = static_cast<size_t>(sect->size);
-						DBGLOG("mach", "found section %s size %u in segment %llu", sectionName, sno, (uint64_t)vmsegment);
+						DBGLOG("mach", "found section %s size %llu in segment %u", sectionName, sect->size, sno);
 						return;
 					}
 
