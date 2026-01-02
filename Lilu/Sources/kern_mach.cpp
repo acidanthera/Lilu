@@ -620,9 +620,11 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 
 				for (uint32_t sno = 0; sno < scmd->nsects; sno++) {
 					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
-						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
+						auto sptr = reinterpret_cast<uint8_t *>(sect->addr);
+						SYSLOG("mach", "ptr: " PRIKADDR " vmaddr: " PRIKADDR, CASTKADDR(ptr), CASTKADDR(sect->addr));
 						if (sptr + sect->size > endaddr) {
-							SYSLOG("mach", "found section %s size %llu in segment %u is invalid (" PRIKADDR " + %llx > " PRIKADDR, sectionName, sect->size, sno, CASTKADDR(sptr), sect->size, CASTKADDR(endaddr));
+							SYSLOG("mach", "found section %s size %llu in segment %u is invalid (" PRIKADDR " + 0x%llx > " PRIKADDR, sectionName, sect->size, sno, CASTKADDR(sptr), sect->size, CASTKADDR(endaddr));
+							SYSLOG("mach", "ptr: " PRIKADDR " vmaddr: " PRIKADDR, CASTKADDR(ptr), CASTKADDR(sect->addr));
 							return;
 						}
 						vmsegment = (vm_address_t)scmd->vmaddr;
