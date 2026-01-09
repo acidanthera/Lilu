@@ -620,7 +620,7 @@ void MachInfo::findSectionBounds(void *ptr, size_t sourceSize, vm_address_t &vms
 
 				for (uint32_t sno = 0; sno < scmd->nsects; sno++) {
 					if (!strncmp(sect->sectname, sectionName, sizeof(sect->sectname))) {
-						auto sptr = reinterpret_cast<uint8_t *>(sect->addr);
+						auto sptr = static_cast<uint8_t *>(ptr) + sect->offset;
 						if (sptr + sect->size > endaddr) {
 							SYSLOG("mach", "found section %s size %llu in segment %u is invalid", sectionName, sect->size, sno);
 							return;
