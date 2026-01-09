@@ -802,6 +802,47 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 	return nullptr;
 }
 
+kern_return_t MachInfo::kcGetAddressSlots(mach_header_64 *hdr, segment_command_64 *segment) {
+	auto section = reinterpret_cast<section_64 *>(segment + 1);
+	mach_vm_address_t last_slot_start = 0;
+	mach_vm_address_t last_slot_end = 0;
+	size_t idx = 0;
+	
+	if (segment->nsects == 0) {
+		return KERN_FAILURE;
+	}
+	
+	// First space is between the mach load commands and first section (usually __text)
+	if (section->addr < reinterpret_cast<mach_vm_address_t>(hdr) + sizeof(*hdr)) {
+		SYSLOG("mach", "Invalid section address for address slots");
+		return KERN_FAILURE;
+	}
+	
+	address_slots = reinterpret_cast<mach_vm_address_t>(hdr) + sizeof(*hdr);
+	address_slots_end = section->addr;
+
+	// Find last section
+	for (idx = 0; idx < segment->nsects - 1; section++, idx++) {}
+	
+	// Second potential space is between the last section and the end of the segment
+	last_slot_start = section->addr + section->size;
+	last_slot_end = segment->vmaddr + segment->vmsize;
+	
+	DBGLOG("mach", "Potential slots: " PRIKADDR " - " PRIKADDR " : " PRIKADDR " - " PRIKADDR,
+		   CASTKADDR(address_slots), CASTKADDR(address_slots_end),
+		   CASTKADDR(last_slot_start), CASTKADDR(last_slot_end));
+	
+	if (last_slot_start > segment->vmaddr &&
+		(last_slot_end - last_slot_start) > (address_slots_end - address_slots)) {
+		address_slots = last_slot_start;
+		address_slots_end = last_slot_end;
+	}
+	
+	DBGLOG("mach", "activating slots for %s in " PRIKADDR " - " PRIKADDR, objectId, CASTKADDR(address_slots), CASTKADDR(address_slots_end));
+	
+	return KERN_SUCCESS;
+}
+
 kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 #if defined (__i386__)
 	// KC is not supported on 32-bit.
@@ -847,8 +888,6 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	DBGLOG("mach", "got nouveau mach-o for %s at " PRIKADDR, objectId, CASTKADDR(inner));
 
 	mach_vm_address_t last_addr = 0;
-	mach_vm_address_t text_addr = 0;
-	size_t text_size = 0;
 
 	auto addr = reinterpret_cast<uint8_t *>(inner) + sizeof(mach_header_64);
 	for (uint32_t i = 0; i < inner->ncmds; i++) {
@@ -858,17 +897,10 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 			auto segCmd = reinterpret_cast<segment_command_64 *>(loadCmd);
 			DBGLOG("mach", "%s has segment is %s from " PRIKADDR " to " PRIKADDR, objectId, segCmd->segname,
 				   CASTKADDR(segCmd->vmaddr), CASTKADDR(segCmd->vmaddr + segCmd->vmsize));
-			
-			// Save off __TEXT segment addresses so we can try and find blank space for address slots
-			if (!text_addr && !strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
-				text_addr = segCmd->vmaddr;
-				text_size = segCmd->vmsize;
-				
-				// TODO: Move address slot stuff in here, maybe iterate over sections?
-				// Iterating here would mean I could remove modifications to findSectionBounds
-				// I would guess that the biggest gaps will be between the last section and next segment (__DATA)
-				// OR between mach header -> first section (__text) in the __TEXT segment
-				// So maybe iteration isn't necessary and we just check the two sections listed above?
+
+			// Try to find space for address slots in __TEXT segment
+			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname)) && (slide || isKernel)) {
+				(void) kcGetAddressSlots(inner, segCmd);
 			}
 			
 			if (!sym_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
@@ -906,37 +938,6 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 	prelink_slid = true;
 	running_mh = inner;
 	memory_size = (size_t)(last_addr - reinterpret_cast<mach_vm_address_t>(inner));
-	if (slide != 0 || isKernel) {
-		vm_address_t tmpSeg, tmpSect;
-		void *tmpSectPtr;
-		size_t tmpSectSize;
-		
-		findSectionBounds(reinterpret_cast<void *>(running_mh), memory_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__TEXT", "__text");
-		address_slots = reinterpret_cast<mach_vm_address_t>(inner) + sizeof(*inner) + inner->sizeofcmds;
-		address_slots_end = reinterpret_cast<mach_vm_address_t>(tmpSectPtr) - 1;
-		
-		if (!isKernel) {
-			findSectionBounds(reinterpret_cast<void *>(running_mh), memory_size, tmpSeg, tmpSect, tmpSectPtr, tmpSectSize, "__TEXT", "__const");
-			
-			// __const __TEXT -> end of __TEXT region
-			// TODO: This is not safe - should really be checking all the sections and do something smarter
-			// Good enough for testing AMDSupport though....
-			mach_vm_address_t new_start_addr = reinterpret_cast<mach_vm_address_t>(tmpSectPtr) + tmpSectSize;
-			mach_vm_address_t new_end_addr = text_addr + text_size;
-			
-			SYSLOG("mach", "Potential slots: " PRIKADDR " - " PRIKADDR " : " PRIKADDR " - " PRIKADDR,
-				   CASTKADDR(address_slots), CASTKADDR(address_slots_end),
-				   CASTKADDR(new_start_addr), CASTKADDR(new_end_addr));
-			
-			if (tmpSectPtr && (new_end_addr - new_start_addr) > (address_slots_end - address_slots)) {
-				address_slots = new_start_addr;
-				address_slots_end = new_end_addr;
-			}
-		}
-		
-
-		DBGLOG("mach", "activating slots for %s in " PRIKADDR " - " PRIKADDR, objectId, CASTKADDR(address_slots), CASTKADDR(address_slots_end));
-	}
 	return KERN_SUCCESS;
 
 #else

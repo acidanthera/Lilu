@@ -182,6 +182,13 @@ class MachInfo {
 	 */
 	kern_return_t initFromMemory();
 
+	/**
+	 * 	Resolve for empty space between segments for medium jumps
+	 *
+	 *  @return KERN_SUCCESS if found
+	 */
+	kern_return_t kcGetAddressSlots(mach_header_64 *hdr, segment_command_64 *segment);
+	
 public:
 
 	/**
