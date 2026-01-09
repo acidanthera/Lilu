@@ -813,12 +813,12 @@ kern_return_t MachInfo::kcGetAddressSlots(mach_header_64 *hdr, segment_command_6
 	}
 	
 	// First space is between the mach load commands and first section (usually __text)
-	if (section->addr < reinterpret_cast<mach_vm_address_t>(hdr) + sizeof(*hdr)) {
+	if (section->addr < reinterpret_cast<mach_vm_address_t>(hdr) + sizeof(*hdr) + hdr->sizeofcmds) {
 		SYSLOG("mach", "Invalid section address for address slots");
 		return KERN_FAILURE;
 	}
 	
-	address_slots = reinterpret_cast<mach_vm_address_t>(hdr) + sizeof(*hdr);
+	address_slots = reinterpret_cast<mach_vm_address_t>(hdr) + sizeof(*hdr) + hdr->sizeofcmds;
 	address_slots_end = section->addr;
 
 	// Find last section
