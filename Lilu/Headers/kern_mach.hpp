@@ -187,7 +187,7 @@ class MachInfo {
 	 *
 	 *  @return KERN_SUCCESS if found
 	 */
-	kern_return_t kcGetAddressSlots(mach_header_64 *hdr, segment_command_64 *segment);
+	kern_return_t getAddressSlots(mach_header_64 *hdr, segment_command_64 *segment);
 	
 public:
 

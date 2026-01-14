@@ -802,7 +802,7 @@ uint8_t *MachInfo::findImage(const char *identifier, uint32_t &imageSize, mach_v
 	return nullptr;
 }
 
-kern_return_t MachInfo::kcGetAddressSlots(mach_header_64 *hdr, segment_command_64 *segment) {
+kern_return_t MachInfo::getAddressSlots(mach_header_64 *hdr, segment_command_64 *segment) {
 	auto section = reinterpret_cast<section_64 *>(segment + 1);
 	mach_vm_address_t last_slot_start = 0;
 	mach_vm_address_t last_slot_end = 0;
@@ -900,7 +900,7 @@ kern_return_t MachInfo::kcGetRunningAddresses(mach_vm_address_t slide) {
 
 			// Try to find space for address slots in __TEXT segment
 			if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname)) && (slide || isKernel)) {
-				(void) kcGetAddressSlots(inner, segCmd);
+				(void) getAddressSlots(inner, segCmd);
 			}
 			
 			if (!sym_buf && !strncmp(segCmd->segname, "__LINKEDIT", sizeof(segCmd->segname))) {
@@ -998,6 +998,10 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 				if (!strncmp(segCmd->segname, "__TEXT", sizeof(segCmd->segname))) {
 					running_text_addr = segCmd->vmaddr;
 					running_mh = mh;
+
+#if defined(__x86_64__)
+					(void) getAddressSlots(mh, segCmd);
+#endif
 					break;
 				}
 #if defined(__i386__)
@@ -1038,14 +1042,6 @@ kern_return_t MachInfo::getRunningAddresses(mach_vm_address_t slide, size_t size
 		kaslr_slide_set = true;
 
 		DBGLOG("mach", "aslr/load slide is 0x%llx", kaslr_slide);
-				
-#if defined(__x86_64__)
-		address_slots = reinterpret_cast<mach_vm_address_t>(running_mh + 1) + running_mh->sizeofcmds;
-		address_slots_end = (address_slots + (PAGE_SIZE - 1)) & ~PAGE_SIZE;
-		while (*reinterpret_cast<uint32_t *>(address_slots_end) == 0) {
-			address_slots_end += PAGE_SIZE;
-		}
-#endif
 	} else {
 		SYSLOG("mach", "couldn't find the running addresses");
 		return KERN_FAILURE;
