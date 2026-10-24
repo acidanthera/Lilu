@@ -1,5 +1,8 @@
 Lilu Changelog
 ==============
+#### v1.7.3
+- Added Tiger Lake H CPU model, thanks @Elezorn
+
 #### v1.7.2
 - Fixed AMDSupport lockups & panics in macOS 26
 
