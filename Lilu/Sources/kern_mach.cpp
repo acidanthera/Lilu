@@ -437,6 +437,7 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 					} else if (FileIO::readFileData(compressedBuf, off+sizeof(Compression::Header), OSSwapInt32(header->compressed),
 													vnode, ctxt) != KERN_SUCCESS) {
 						SYSLOG("mach", "failed to read compressed binary");
+						Buffer::deleter(compressedBuf);
 					} else {
 						uint32_t comp = OSSwapInt32(header->compressed);
 						uint32_t dec  = OSSwapInt32(header->decompressed);
@@ -455,9 +456,8 @@ kern_return_t MachInfo::readMachHeader(uint8_t *buffer, vnode_t vnode, vfs_conte
 						} else {
 							SYSLOG("mach", "decompression disallowed due to low out size %u", header->decompressed);
 						}
+						Buffer::deleter(compressedBuf);
 					}
-
-					Buffer::deleter(compressedBuf);
 				} else {
 					SYSLOG("mach", "decompression disallowed due to lowmem flag");
 				}
