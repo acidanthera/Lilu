@@ -596,16 +596,14 @@ namespace Buffer {
 
 	template <typename T>
 	inline T *create(size_t size) {
-		size_t s = sizeof(T) * size;
-		if (s > BufferMax) return nullptr;
-		return static_cast<T *>(kern_os_malloc(s));
+		if (size > BufferMax / sizeof(T)) return nullptr;
+		return static_cast<T *>(kern_os_malloc(sizeof(T) * size));
 	}
 
 	template <typename T>
 	inline bool resize(T *&buf, size_t size) {
-		size_t s = sizeof(T) * size;
-		if (s > BufferMax) return false;
-		auto nbuf = static_cast<T *>(kern_os_realloc(buf, s));
+		if (size > BufferMax / sizeof(T)) return false;
+		auto nbuf = static_cast<T *>(kern_os_realloc(buf, sizeof(T) * size));
 		if (nbuf) {
 			buf = nbuf;
 			return true;
@@ -853,7 +851,10 @@ public:
 	 */
 	template <size_t MUL = 1>
 	T *reserve(size_t num) {
+		static_assert(MUL > 0, "Capacity multiplier must be positive");
 		if (rsvd < num) {
+			if (num > SIZE_MAX / sizeof(T) / MUL)
+				return nullptr;
 			T *nPtr = static_cast<T *>(kern_os_realloc(ptr, MUL * num * sizeof(T)));
 			if (nPtr) {
 				ptr = nPtr;
@@ -995,10 +996,15 @@ public:
 	 *  @warning The caller is responsbile for managing the lifecycle of the given storage buffer.
 	 */
 	bool init(T *buffer, IOItemCount capacity) {
+		if (!buffer || !capacity || lock)
+			return false;
+		lock = IORecursiveLockAlloc();
+		if (!lock)
+			return false;
 		storage = buffer;
 		size = capacity;
-		lock = IORecursiveLockAlloc();
-		return lock != nullptr;
+		indexr = indexw = count = 0;
+		return true;
 	}
 	
 	/**
@@ -1017,7 +1023,10 @@ public:
 	 *  Deinitialize the circular buffer
 	 */
 	void deinit() {
-		IORecursiveLockFree(lock);
+		if (lock) {
+			IORecursiveLockFree(lock);
+			lock = nullptr;
+		}
 	}
 	
 	/**

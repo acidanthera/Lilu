@@ -56,14 +56,17 @@ inline uint64_t getTimeSinceNs(uint64_t start, uint64_t current = 0) {
  *  @param timeout timeout for the event
  *  @param current timestamp to check against (pass 0 for current time)
  *
- *  @return delta or 0 (if the timeout is over)
+ *  @return nanoseconds remaining, capped at UINT64_MAX, or 0 if the timeout is over
  */
 inline uint64_t getTimeLeftNs(uint64_t start, uint64_t timeout, uint64_t current = 0) {
 	if (current == 0)
 		current = getCurrentTimeNs();
-	if (start + timeout > current)
-		return start + timeout - current;
-	return 0;
+	if (current < start) {
+		auto untilStart = start - current;
+		return timeout > UINT64_MAX - untilStart ? UINT64_MAX : untilStart + timeout;
+	}
+	auto elapsed = current - start;
+	return elapsed < timeout ? timeout - elapsed : 0;
 }
 
 /**

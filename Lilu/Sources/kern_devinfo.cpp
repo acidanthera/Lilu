@@ -541,6 +541,24 @@ void BaseDeviceInfo::updateFirmwareVendor() {
 	}
 }
 
+template <typename Char, size_t N>
+static void copyIdentifier(const OSData *data, char (&identifier)[N]) {
+	if (!data)
+		return;
+
+	auto bytes = static_cast<const uint8_t *>(data->getBytesNoCopy());
+	auto count = data->getLength() / sizeof(Char);
+	size_t i = 0;
+	for (; i < count && i < N - 1; ++i) {
+		Char ch;
+		lilu_os_memcpy(&ch, bytes + i * sizeof(Char), sizeof(ch));
+		if (!ch)
+			break;
+		identifier[i] = static_cast<char>(ch);
+	}
+	identifier[i] = '\0';
+}
+
 void BaseDeviceInfo::updateModelInfo() {
 	auto entry = IORegistryEntry::fromPath("/efi/platform", gIODTPlane);
 	if (entry) {
@@ -557,15 +575,7 @@ void BaseDeviceInfo::updateModelInfo() {
 		}
 
 		auto data = OSDynamicCast(OSData, entry->getProperty("Model"));
-		size_t dataSize = data ? data->getLength() : 0;
-		if (dataSize > 0) {
-			auto bytes = static_cast<const char16_t *>(data->getBytesNoCopy());
-			size_t i = 0;
-			while (bytes[i] != '\0' && i < sizeof(modelIdentifier) - 1 && i < dataSize) {
-				modelIdentifier[i] = static_cast<char>(bytes[i]);
-				i++;
-			}
-		}
+		copyIdentifier<char16_t>(data, modelIdentifier);
 
 		if (modelIdentifier[0] != '\0')
 			DBGLOG("dev", "got %s model from /efi/platform", modelIdentifier);
@@ -573,8 +583,7 @@ void BaseDeviceInfo::updateModelInfo() {
 			DBGLOG("dev", "failed to get valid model from /efi/platform");
 
 		data = OSDynamicCast(OSData, entry->getProperty("board-id"));
-		if (data && data->getLength() > 0)
-			lilu_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
+		copyIdentifier<char>(data, boardIdentifier);
 
 		if (boardIdentifier[0] != '\0')
 			DBGLOG("dev", "got %s board-id from /efi/platform", boardIdentifier);
@@ -594,8 +603,7 @@ void BaseDeviceInfo::updateModelInfo() {
 
 			if (boardIdentifier[0] == '\0') {
 				auto data = OSDynamicCast(OSData, entry->getProperty("board-id"));
-				if (data && data->getLength() > 0)
-					lilu_strlcpy(boardIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(boardIdentifier));
+				copyIdentifier<char>(data, boardIdentifier);
 
 				if (boardIdentifier[0] != '\0') {
 					DBGLOG("dev", "got %s board-id from /", boardIdentifier);
@@ -610,8 +618,7 @@ void BaseDeviceInfo::updateModelInfo() {
 
 			if (modelReady && modelIdentifier[0] == '\0') {
 				auto data = OSDynamicCast(OSData, entry->getProperty("model"));
-				if (data && data->getLength() > 0)
-					lilu_strlcpy(modelIdentifier, static_cast<const char *>(data->getBytesNoCopy()), sizeof(modelIdentifier));
+				copyIdentifier<char>(data, modelIdentifier);
 
 				if (modelIdentifier[0] != '\0')
 					DBGLOG("dev", "got %s model from /", modelIdentifier);

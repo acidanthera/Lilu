@@ -33,7 +33,7 @@ uint8_t *Crypto::genUniqueKey(uint32_t size) {
 }
 
 uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size) {
-	if (!src || size == 0) {
+	if (!src || size == 0 || size > Buffer::BufferMax - BlockSize - sizeof(Encrypted::Data::size)) {
 		SYSLOG("crypto", "encrypt contains invalid size (%u) or null args", size);
 		return nullptr;
 	}
@@ -107,24 +107,24 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 		return nullptr;
 	}
 
-	size -= offsetof(Encrypted, enc);
+	auto encSize = static_cast<uint32_t>(size - offsetof(Encrypted, enc));
 
-	auto decBuf = Buffer::create<uint8_t>(size);
+	auto decBuf = Buffer::create<uint8_t>(encSize);
 	if (decBuf) {
 		aes_decrypt_ctx ctx;
 		auto ret = aes_decrypt_key(key, BlockSize, &ctx);
 		if (ret == aes_good) {
 			auto enc = reinterpret_cast<const Encrypted *>(src);
-			ret = aes_decrypt_cbc(enc->buf, enc->iv, size / BlockSize, decBuf, &ctx);
+			ret = aes_decrypt_cbc(enc->buf, enc->iv, encSize / BlockSize, decBuf, &ctx);
 			if (ret == aes_good) {
 				auto data = reinterpret_cast<Encrypted::Data *>(decBuf);
-				if (size - sizeof(Encrypted::Data::size) >= data->size) {
+				if (data->size > 0 && data->size <= encSize - sizeof(Encrypted::Data::size)) {
 					size = data->size;
 					lilu_os_memmove(decBuf, data->buf, size);
-					zeroMemory(sizeof(Encrypted::Data::size), decBuf + size);
+					zeroMemory(encSize - size, decBuf + size);
 					Buffer::resize(decBuf, size);
 				} else {
-					SYSLOG("crypto", "decrypt found invalid size (%u with %u source)", data->size, size);
+					SYSLOG("crypto", "decrypt found invalid size (%u with %u source)", data->size, encSize);
 					ret = aes_error;
 				}
 			} else {
@@ -136,7 +136,7 @@ uint8_t *Crypto::decrypt(const uint8_t *key, const uint8_t *src, uint32_t &size)
 
 		zeroMemory(sizeof(ctx), &ctx);
 		if (ret != aes_good) {
-			zeroMemory(size, decBuf);
+			zeroMemory(encSize, decBuf);
 			Buffer::deleter(decBuf);
 			decBuf = nullptr;
 		}

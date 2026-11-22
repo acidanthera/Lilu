@@ -14,29 +14,33 @@
 #include <sys/fcntl.h>
 
 uint8_t *FileIO::readFileToBuffer(const char *path, size_t &size) {
+	size = 0;
 	vnode_t vnode = NULLVP;
 	vfs_context_t ctxt = vfs_context_create(nullptr);
+	if (!ctxt)
+		return nullptr;
 	uint8_t *buf = nullptr;
 
 	errno_t err = vnode_lookup(path, 0, &vnode, ctxt);
 	if(!err) {
-		size = readFileSize(vnode, ctxt);
-		if(size > 0) {
-			buf = Buffer::create<uint8_t>(size+1);
+		auto fileSize = readFileSize(vnode, ctxt);
+		if (fileSize > 0 && fileSize < Buffer::BufferMax) {
+			buf = Buffer::create<uint8_t>(fileSize + 1);
 			if (buf) {
-				if (readFileData(buf, 0, size, vnode, ctxt)) {
-					SYSLOG("file", "failed to read %s file of %lu size", path, size);
+				if (readFileData(buf, 0, fileSize, vnode, ctxt)) {
+					SYSLOG("file", "failed to read %s file of %lu size", path, fileSize);
 					Buffer::deleter(buf);
 					buf = nullptr;
 				} else {
 					// Guarantee null termination
-					buf[size] = 0x00;
+					buf[fileSize] = 0x00;
+					size = fileSize;
 				}
 			} else {
-				SYSLOG("file", "failed to allocate memory for reading %s file of %lu size", path, size);
+				SYSLOG("file", "failed to allocate memory for reading %s file of %lu size", path, fileSize);
 			}
 		} else {
-			SYSLOG("file", "failed to obtain %s size", path);
+			SYSLOG("file", "invalid size %lu for %s", fileSize, path);
 		}
 		vnode_put(vnode);
 	} else {
@@ -58,23 +62,31 @@ size_t FileIO::readFileSize(vnode_t vnode, vfs_context_t ctxt) {
 	vnode_attr va;
 	VATTR_INIT(&va);
 	VATTR_WANTED(&va, va_data_size);
-	return vnode_getattr(vnode, &va, ctxt) ? 0 : (size_t)va.va_data_size;
+	if (vnode_getattr(vnode, &va, ctxt) || !VATTR_IS_SUPPORTED(&va, va_data_size))
+		return 0;
+#ifdef __i386__
+	if (va.va_data_size > SIZE_MAX)
+		return 0;
+#endif
+	return static_cast<size_t>(va.va_data_size);
 }
 
 int FileIO::writeBufferToFile(const char *path, void *buffer, size_t size, int fmode, int cmode) {
 	vnode_t vnode = NULLVP;
 	vfs_context_t ctxt = vfs_context_create(nullptr);
+	if (!ctxt)
+		return ENOMEM;
 
 	errno_t err = vnode_open(path, fmode, cmode, VNODE_LOOKUP_NOFOLLOW, &vnode, ctxt);
 	if (!err) {
 		err = writeFileData(buffer, 0, size, vnode, ctxt);
-		if (!err) {
-			err = vnode_close(vnode, FWASWRITTEN, ctxt);
-			if (err)
-				SYSLOG("file", "vnode_close(%s) failed with error %d!", path, err);
-		} else {
+		if (err)
 			SYSLOG("file", "failed to write %s file of %lu size", path, size);
-		}
+		auto closeErr = vnode_close(vnode, fmode | (err ? 0 : FWASWRITTEN), ctxt);
+		if (closeErr)
+			SYSLOG("file", "vnode_close(%s) failed with error %d!", path, closeErr);
+		if (!err)
+			err = closeErr;
 	} else {
 		SYSLOG("file", "failed to create file %s with error %d", path, err);
 	}
@@ -95,26 +107,19 @@ int FileIO::performFileIO(void *buffer, off_t off, size_t size, vnode_t vnode, v
 		return EINVAL;
 	}
 
-	// imitate the kernel and read a single page from the file
 	int error = uio_addiov(uio, CAST_USER_ADDR_T(buffer), size);
 	if (error) {
 		SYSLOG("file", "uio_addiov returned error %d!", error);
-		return error;
+	} else {
+		error = write ? VNOP_WRITE(vnode, uio, 0, ctxt) : VNOP_READ(vnode, uio, 0, ctxt);
+		if (error) {
+			SYSLOG("file", "%s failed %d!", write ? "VNOP_WRITE" : "VNOP_READ", error);
+		} else if (uio_resid(uio)) {
+			SYSLOG("file", "uio_resid returned non-null!");
+			error = EINVAL;
+		}
 	}
 
-	if (write)
-		error = VNOP_WRITE(vnode, uio, 0, ctxt);
-	else
-		error = VNOP_READ(vnode, uio, 0, ctxt);
-	if (error) {
-		SYSLOG("file", "%s failed %d!", write ? "VNOP_WRITE" : "VNOP_READ", error);
-		return error;
-	}
-
-	if (uio_resid(uio)) {
-		SYSLOG("file", "uio_resid returned non-null!");
-		return EINVAL;
-	}
-
-	return 0;
+	uio_free(uio);
+	return error;
 }

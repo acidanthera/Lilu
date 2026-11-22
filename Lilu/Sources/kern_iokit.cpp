@@ -23,6 +23,8 @@ namespace WIOKit {
 		auto value = entry->getProperty(property);
 		if (value) {
 			auto s = OSSerialize::withCapacity(PAGE_SIZE);
+			if (!s)
+				return nullptr;
 			if (value->serialize(s)) {
 				return s;
 			} else {
@@ -87,7 +89,7 @@ namespace WIOKit {
 			case kIOPCIConfigRevisionID:
 				return read8(service, space, reg);
 			case kIOPCIConfigClassCode:
-				return read32(service, space, reg);
+				return read32(service, space, kIOPCIConfigRevisionID) >> 8;
 			case kIOPCIConfigCacheLineSize:
 				return read8(service, space, reg);
 			case kIOPCIConfigLatencyTimer:
@@ -117,7 +119,7 @@ namespace WIOKit {
 			case kIOPCIConfigExpansionROMBase:
 				return read32(service, space, reg);
 			case kIOPCIConfigCapabilitiesPtr:
-				return read32(service, space, reg);
+				return read8(service, space, reg);
 			case kIOPCIConfigInterruptLine:
 				return read8(service, space, reg);
 			case kIOPCIConfigInterruptPin:
@@ -181,8 +183,8 @@ namespace WIOKit {
 					const char *resname = res->getName();
 
 					if (resname && !strncmp(prefix, resname, len)) {
-						found = proc ? proc(user, res) : true;
-						if (found) {
+						if (!proc || proc(user, res)) {
+							found = true;
 							if (bruteCount > 1)
 								DBGLOG("iokit", "bruted %s value in %lu attempts", prefix, bruteCount);
 							if (!proc) {
@@ -235,41 +237,33 @@ namespace WIOKit {
 		if (!compatibleProp)
 			return true;
 
-		uint32_t compatibleSz = compatibleProp->getLength();
-		auto compatibleStr = static_cast<const char *>(compatibleProp->getBytesNoCopy());
-		DBGLOG("iokit", "compatible property starts with %s and is %u bytes", compatibleStr ? compatibleStr : "(null)", compatibleSz);
-
-		if (compatibleStr) {
-			for (uint32_t i = 0; i < compatibleSz; i++) {
-				if (!strcmp(&compatibleStr[i], name)) {
-					DBGLOG("iokit", "found %s in compatible, ignoring", name);
-					return true;
-				}
-
-				i += strlen(&compatibleStr[i]);
-			}
-
-			uint32_t nameSize = static_cast<uint32_t>(strlen(name)+1);
-			uint32_t compatibleBufSz = compatibleSz + nameSize;
-			uint8_t *compatibleBuf = Buffer::create<uint8_t>(compatibleBufSz);
-			if (compatibleBuf) {
-				DBGLOG("iokit", "fixing compatible to have %s", name);
-				lilu_os_memcpy(&compatibleBuf[0], compatibleStr, compatibleSz);
-				lilu_os_memcpy(&compatibleBuf[compatibleSz], name, nameSize);
-				auto compatibleData = OSData::withBytes(compatibleBuf, compatibleBufSz);
-				Buffer::deleter(compatibleBuf);
-				if (compatibleData) {
-					entry->setProperty("compatible", compatibleData);
-					compatibleData->release();
-					return true;
-				} else {
-					SYSLOG("iokit", "compatible property memory alloc failure %u for %s", compatibleBufSz, name);
-				}
-			} else {
-				SYSLOG("iokit", "compatible buffer memory alloc failure %u for %s", compatibleBufSz, name);
-			}
+		auto size = compatibleProp->getLength();
+		auto bytes = static_cast<const char *>(compatibleProp->getBytesNoCopy());
+		auto nameLength = strlen(name);
+		for (size_t pos = 0; pos < size;) {
+			auto item = bytes + pos;
+			auto end = static_cast<const char *>(lilu_os_memchr(item, 0, size - pos));
+			size_t length = end ? static_cast<size_t>(end - item) : size - pos;
+			if (length == nameLength && !memcmp(item, name, length))
+				return true;
+			if (!end)
+				break;
+			pos += length + 1;
 		}
 
-		return false;
+		// Some firmware omits the last string's NUL separator.
+		bool needsSeparator = size && bytes[size - 1] != '\0';
+		size_t terminators = needsSeparator ? 2 : 1;
+		if (size > Buffer::BufferMax - terminators || nameLength > Buffer::BufferMax - terminators - size)
+			return false;
+		auto data = OSData::withCapacity(static_cast<uint32_t>(size + nameLength + terminators));
+		if (!data)
+			return false;
+		bool ok = (!size || data->appendBytes(bytes, size)) &&
+			(!needsSeparator || data->appendBytes("", 1)) &&
+			data->appendBytes(name, static_cast<uint32_t>(nameLength + 1)) &&
+			entry->setProperty("compatible", data);
+		data->release();
+		return ok;
 	}
 }

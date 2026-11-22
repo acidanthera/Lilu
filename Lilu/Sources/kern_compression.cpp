@@ -24,48 +24,17 @@
 #include <libkern/zlib.h>
 #include <libkern/crypto/sha1.h>
 
-extern "C" {
-	static void* z_alloc(void*, u_int items, u_int size);
-	static void z_free(void*, void *ptr);
-	
-	typedef struct z_mem {
-		UInt32 alloc_size;
-		UInt8 data[0];
-	} z_mem;
+static void *z_alloc(void *, u_int items, u_int size) {
+	return kern_os_calloc(items, size);
+}
 
-	/*
-	 * Space allocation and freeing routines for use by zlib routines.
-	 */
-	void* z_alloc(void* notused __unused, u_int num_items, u_int size)
-	{
-		void* result = NULL;
-		z_mem* zmem = NULL;
-		UInt32 total = num_items * size;
-		UInt32 allocSize =  total + sizeof(zmem);
+static void z_free(void *, void *ptr) {
+	lilu_os_free(ptr);
+}
 
-		zmem = (z_mem*)IOMalloc(allocSize);
-
-		if (zmem)
-		{
-			zmem->alloc_size = allocSize;
-			result = (void*)&(zmem->data);
-		}
-
-		return result;
-	}
-
-	void z_free(void* notused __unused, void* ptr)
-	{
-		UInt32* skipper = (UInt32 *)ptr - 1;
-		z_mem* zmem = (z_mem*)skipper;
-		IOFree((void*)zmem, zmem->alloc_size);
-	}
-};
-
-static size_t decompress_zlib(uint8_t *dst, uint32_t dstlen, const uint8_t *src, uint32_t srclen) {
+static bool decompress_zlib(uint8_t *dst, uint32_t dstlen, const uint8_t *src, uint32_t srclen, size_t &size) {
 	z_stream zstream;
 	int zlib_result;
-	size_t result = 0;
 
 	bzero(&zstream, sizeof(zstream));
 
@@ -81,18 +50,14 @@ static size_t decompress_zlib(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	zlib_result = inflateInit(&zstream);
 
 	if (zlib_result != Z_OK)
-	{
-		return 0;
-	}
+		return false;
 
 	zlib_result = inflate(&zstream, Z_FINISH);
 
-	if (zlib_result == Z_STREAM_END || zlib_result == Z_OK) {
-		result = zstream.total_out;
-	}
+	size = zstream.total_out;
 
 	inflateEnd(&zstream);
-	return result;
+	return zlib_result == Z_STREAM_END;
 }
 
 // Taken from kext_tools/compression.c
@@ -128,8 +93,8 @@ static size_t decompress_lzss(uint8_t *dst, uint32_t dstlen, const uint8_t *src,
 	unsigned int flags;
 
 	dst = dststart;
-	for (i = 0; i < static_cast<int>(RBSIZE - UPLIM); i++)
-		text_buf[i] = ' ';
+	memset(text_buf, ' ', RBSIZE - UPLIM);
+	memset(text_buf + RBSIZE - UPLIM, 0, UPLIM);
 	r = RBSIZE - UPLIM;
 	flags = 0;
 	for ( ; ; ) {
@@ -394,6 +359,7 @@ static uint8_t *decompressInternal(uint32_t compression, uint32_t *dstlen, const
 	auto decompressedBuf = buffer ? buffer : Buffer::create<uint8_t>(*dstlen);
 	if (decompressedBuf) {
 		size_t size {0};
+		bool decoded = true;
 		switch (compression) {
 			case Compression::ModeLZSS:
 				size = decompress_lzss(decompressedBuf, *dstlen, src, srclen);
@@ -402,13 +368,14 @@ static uint8_t *decompressInternal(uint32_t compression, uint32_t *dstlen, const
 				size = lzvn_decode_buffer(decompressedBuf, *dstlen, src, srclen);
 				break;
 			case Compression::ModeZLIB:
-				size = decompress_zlib(decompressedBuf, *dstlen, src, srclen);
+				decoded = decompress_zlib(decompressedBuf, *dstlen, src, srclen, size);
 				break;
 			default:
+				decoded = false;
 				SYSLOG("comp", "unsupported decompression format %X", compression);
 		}
 
-		if (!checkResult || size == *dstlen) {
+		if (decoded && (!checkResult || size == *dstlen)) {
 			*dstlen = (uint32_t) size;
 			return decompressedBuf;
 		} else {

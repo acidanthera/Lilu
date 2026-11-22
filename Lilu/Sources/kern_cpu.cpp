@@ -49,7 +49,7 @@ void CPUInfo::init() {
 	if (bdi.cpuFamily == 15) bdi.cpuFamily += ver.fmt.extendedFamily;
 
 	bdi.cpuModel = ver.fmt.model;
-	if (bdi.cpuFamily == 15 || bdi.cpuFamily == 6)
+	if (ver.fmt.family == 15 || ver.fmt.family == 6)
 		bdi.cpuModel |= ver.fmt.extendedModel << 4;
 	bdi.cpuStepping = ver.fmt.stepping;
 
@@ -183,18 +183,23 @@ bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 		return false;
 	}
 
+	CpuTopology result {};
 	while (pkg) {
+		if (result.packageCount >= MaxCpus)
+			return false;
 		auto core = pkg->cores;
 		// Set physcal core mapping based on first virtual core
 		while (core) {
 			// I think lcpus could be null when the core is disabled and the topology is partially constructed
 			auto lcpu = core->lcpus;
 			if (lcpu) {
-				topology.numberToPackage[lcpu->cpu_num] = topology.packageCount;
-				topology.numberToPhysical[lcpu->cpu_num] = topology.physicalCount[topology.packageCount];
-				topology.numberToLogical[lcpu->cpu_num] = topology.logicalCount[topology.packageCount];
-				topology.physicalCount[topology.packageCount]++;
-				topology.logicalCount[topology.packageCount]++;
+				if (lcpu->cpu_num >= MaxCpus)
+					return false;
+				result.numberToPackage[lcpu->cpu_num] = result.packageCount;
+				result.numberToPhysical[lcpu->cpu_num] = result.physicalCount[result.packageCount];
+				result.numberToLogical[lcpu->cpu_num] = result.logicalCount[result.packageCount];
+				result.physicalCount[result.packageCount]++;
+				result.logicalCount[result.packageCount]++;
 			}
 			core = core->next_in_pkg;
 		}
@@ -205,19 +210,22 @@ bool CPUInfo::getCpuTopology(CpuTopology &topology) {
 			auto first_lcpu = core->lcpus;
 			auto lcpu = first_lcpu ? first_lcpu->next_in_core : nullptr;
 			while (lcpu) {
-				topology.numberToPackage[lcpu->cpu_num] = topology.packageCount;
-				topology.numberToPhysical[lcpu->cpu_num] = topology.numberToPhysical[first_lcpu->cpu_num];
-				topology.numberToLogical[lcpu->cpu_num] = topology.logicalCount[topology.packageCount];
-				topology.logicalCount[topology.packageCount]++;
+				if (lcpu->cpu_num >= MaxCpus)
+					return false;
+				result.numberToPackage[lcpu->cpu_num] = result.packageCount;
+				result.numberToPhysical[lcpu->cpu_num] = result.numberToPhysical[first_lcpu->cpu_num];
+				result.numberToLogical[lcpu->cpu_num] = result.logicalCount[result.packageCount];
+				result.logicalCount[result.packageCount]++;
 				lcpu = lcpu->next_in_core;
 			}
 			core = core->next_in_pkg;
 		}
 
-		topology.packageCount++;
+		result.packageCount++;
 		pkg = pkg->next;
 	}
 
+	topology = result;
 	return true;
 #else
 	SYSLOG("cpu", "cannot use pmKextRegister on this platform");

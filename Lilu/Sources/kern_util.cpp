@@ -55,19 +55,15 @@ const char *strstr(const char *stack, const char *needle, size_t len) {
 		if (len == 0) return stack;
 	}
 
-	const char *i = needle;
-
-	while (*stack) {
-		if (*stack == *i) {
-			i++;
-			if (static_cast<size_t>(i - needle) == len)
-				return stack - len + 1;
-		} else {
-			i = needle;
-		}
-		stack++;
+	for (; *stack; ++stack) {
+		size_t matched = 0;
+		while (matched < len && stack[matched] && stack[matched] == needle[matched])
+			++matched;
+		if (matched == len)
+			return stack;
+		if (!stack[matched])
+			break;
 	}
-
 	return nullptr;
 }
 
@@ -85,6 +81,8 @@ char *strrchr(const char *stack, int ch) {
 }
 
 extern "C" void *kern_os_calloc(size_t num, size_t size) {
+	if (size && num > SIZE_MAX / size)
+		return nullptr;
 	return kern_os_malloc(num * size); // malloc bzeroes the buffer
 }
 

@@ -17,6 +17,8 @@
 #include <Headers/kern_nvram.hpp>
 
 bool NVStorage::init() {
+	if (dtEntry)
+		return true;
 	dtEntry = IORegistryEntry::fromPath("/options", gIODTPlane);
 	if (!dtEntry) {
 		SYSLOG_COND(ADDPR(debugEnabled), "nvram", "failed to get IODeviceTree:/options");
@@ -77,7 +79,8 @@ uint8_t *NVStorage::read(const char *key, uint32_t &size, uint8_t opts, const ui
 		};
 
 		auto hdr = static_cast<const Header *>(data->getBytesNoCopy());
-		if (hdr->magic != Header::Magic || hdr->version > Header::MaxVer || (hdr->opts & opts) != opts) {
+		auto requiredOpts = opts & ~OptSensitive;
+		if (hdr->magic != Header::Magic || hdr->version > Header::MaxVer || (hdr->opts & requiredOpts) != requiredOpts) {
 			SYSLOG("nvram", "read %s contains invalid header (%X, %u, %X vs %X, %u, %X)",
 						 key, hdr->magic, hdr->version, hdr->opts, Header::Magic, Header::MaxVer, opts);
 			return nullptr;
@@ -92,7 +95,8 @@ uint8_t *NVStorage::read(const char *key, uint32_t &size, uint8_t opts, const ui
 			payloadSize -= sizeof(Header::Checksum);
 
 			auto ncrc = crc32(0, hdr, size - sizeof(Header::Checksum));
-			auto ocrc = *reinterpret_cast<const uint32_t *>(payloadBuf + payloadSize);
+			Header::Checksum ocrc;
+			lilu_os_memcpy(&ocrc, payloadBuf + payloadSize, sizeof(ocrc));
 			if (ocrc != ncrc) {
 				SYSLOG("nvram", "read %s contains invalid checksum bytes (%08X instead of %08X)", key, ncrc, ocrc);
 				return nullptr;
@@ -190,7 +194,12 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 			}
 		}
 
-		size = sizeof(Header) + payloadSize + ((opts & OptChecksum) ? sizeof(Header::Checksum) : 0);
+		auto overhead = sizeof(Header) + ((opts & OptChecksum) ? sizeof(Header::Checksum) : 0);
+		if (payloadSize > Buffer::BufferMax - overhead) {
+			replacePayload(nullptr, payloadSize);
+			return false;
+		}
+		size = static_cast<uint32_t>(overhead + payloadSize);
 		auto buf = Buffer::create<uint8_t>(size);
 		if (!buf) {
 			SYSLOG("nvram", "write %s can't alloc %u bytes", key, size);
@@ -204,7 +213,7 @@ bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_
 
 		if (opts & OptChecksum) {
 			auto ncrc = crc32(0, buf, payloadSize);
-			*reinterpret_cast<uint32_t *>(buf + payloadSize) = ncrc;
+			lilu_os_memcpy(buf + payloadSize, &ncrc, sizeof(Header::Checksum));
 			payloadSize += sizeof(Header::Checksum);
 		}
 	}
@@ -271,15 +280,17 @@ bool NVStorage::save(const char *filename, uint32_t max, bool sensitive) {
 
 	auto s = OSSerialize::withCapacity(max);
 	if (s) {
-		s->addString(PlistHeader);
-		dtEntry->serializeProperties(s);
-		s->addString(PlistFooter);
-		int error = FileIO::writeBufferToFile(filename, s->text(), s->getLength());
+		bool saved = s->addString(PlistHeader) && dtEntry->serializeProperties(s) && s->addString(PlistFooter);
+		if (saved) {
+			// OSSerialize includes the trailing NUL in its length.
+			auto length = s->getLength() - 1;
+			saved = length <= max && FileIO::writeBufferToFile(filename, s->text(), length) == 0;
+		}
 		if (sensitive)
 			Crypto::zeroMemory(s->getLength(), s->text());
 		s->release();
 
-		return error == 0;
+		return saved;
 	} else {
 		SYSLOG("nvram", "failed to allocate serialization buffer of %u bytes", max);
 	}
@@ -289,13 +300,19 @@ bool NVStorage::save(const char *filename, uint32_t max, bool sensitive) {
 
 uint8_t *NVStorage::compress(const uint8_t *src, uint32_t &size, bool sensitive) {
 #ifdef LILU_COMPRESSION_SUPPORT
-	uint32_t dstSize = size + 1024;
-	auto buf = Buffer::create<uint8_t>(dstSize);
+	if (!src || !size || size > Buffer::BufferMax)
+		return nullptr;
+	// At most one flag byte per eight literal bytes, plus the stored input size.
+	uint32_t dstSize = size + (size + 7) / 8;
+	constexpr uint32_t maxPayload = Buffer::BufferMax - sizeof(uint32_t);
+	if (dstSize > maxPayload)
+		dstSize = maxPayload;
+	auto capacity = sizeof(uint32_t) + dstSize;
+	auto buf = Buffer::create<uint8_t>(capacity);
 	if (buf) {
 		*reinterpret_cast<uint32_t *>(buf) = size;
 		DBGLOG("nvram", "compress saves dstSize = %u, srcSize = %u", dstSize, size);
 		if (Compression::compress(Compression::ModeLZSS, dstSize, src, size, buf + sizeof(uint32_t))) {
-			// Buffer was already resized by compress
 			size = dstSize + sizeof(uint32_t);
 			DBGLOG("nvram", "compress result size = %u", size);
 			Buffer::resize(buf, size);
@@ -303,7 +320,7 @@ uint8_t *NVStorage::compress(const uint8_t *src, uint32_t &size, bool sensitive)
 		}
 
 		if (sensitive)
-			Crypto::zeroMemory(dstSize, buf);
+			Crypto::zeroMemory(capacity, buf);
 		Buffer::deleter(buf);
 	} else {
 		SYSLOG("nvram", "failed to allocate %u bytes", dstSize);
@@ -314,17 +331,17 @@ uint8_t *NVStorage::compress(const uint8_t *src, uint32_t &size, bool sensitive)
 
 uint8_t *NVStorage::decompress(const uint8_t *src, uint32_t &size, bool sensitive) {
 #ifdef LILU_COMPRESSION_SUPPORT
-	if (size <= sizeof(uint32_t)) {
+	if (!src || size <= sizeof(uint32_t)) {
 		SYSLOG("nvram", "decompress too few bytes %u", size);
 		return nullptr;
 	}
 
-	auto dstSize = *reinterpret_cast<const uint32_t *>(src);
+	uint32_t dstSize;
+	lilu_os_memcpy(&dstSize, src, sizeof(dstSize));
 	auto buf = Buffer::create<uint8_t>(dstSize);
 	if (buf) {
-		size -= sizeof(uint32_t);
 		DBGLOG("nvram", "decompress restores dstSize = %u, srcSize = %u", dstSize, size);
-		if (Compression::decompress(Compression::ModeLZSS, dstSize, src + sizeof(uint32_t), size, buf)) {
+		if (Compression::decompress(Compression::ModeLZSS, dstSize, src + sizeof(uint32_t), size - sizeof(uint32_t), buf)) {
 			size = dstSize;
 			DBGLOG("nvram", "decompress result size = %u", size);
 			return buf;
