@@ -33,7 +33,9 @@ uint8_t *Crypto::genUniqueKey(uint32_t size) {
 }
 
 uint8_t *Crypto::encrypt(const uint8_t *key, const uint8_t *src, uint32_t &size) {
-	if (!src || size == 0 || size > Buffer::BufferMax - BlockSize - sizeof(Encrypted::Data::size)) {
+	// The result is the size field plus data, padded to BlockSize, plus the IV block.
+	// Bound it so that the full encrypted buffer still fits into Buffer::BufferMax.
+	if (!src || size == 0 || size > Buffer::BufferMax - 2 * BlockSize - sizeof(Encrypted::Data::size)) {
 		SYSLOG("crypto", "encrypt contains invalid size (%u) or null args", size);
 		return nullptr;
 	}

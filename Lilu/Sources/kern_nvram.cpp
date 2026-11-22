@@ -43,6 +43,11 @@ void NVStorage::deinit() {
 }
 
 uint8_t *NVStorage::read(const char *key, uint32_t &size, uint8_t opts, const uint8_t *enckey) {
+	if (!dtEntry || !key) {
+		SYSLOG("nvram", "read called without initialised storage or key");
+		return nullptr;
+	}
+
 	auto data = OSDynamicCast(OSData, dtEntry->getProperty(key));
 	if (!data) {
 		DBGLOG("nvram", "read %s is missing", key);
@@ -151,6 +156,11 @@ OSData *NVStorage::read(const char *key, uint8_t opts, const uint8_t *enckey) {
 }
 
 bool NVStorage::write(const char *key, const uint8_t *src, uint32_t size, uint8_t opts, const uint8_t *enckey) {
+	if (!dtEntry || !key) {
+		SYSLOG("nvram", "write called without initialised storage or key");
+		return false;
+	}
+
 	if (!src || size == 0) {
 		SYSLOG("nvram", "write invalid size %u", size);
 		return false;
@@ -244,6 +254,9 @@ bool NVStorage::write(const char *key, const OSData *data, uint8_t opts, const u
 }
 
 bool NVStorage::remove(const char *key, bool sensitive) {
+	if (!dtEntry || !key)
+		return false;
+
 	if (sensitive) {
 		auto data = OSDynamicCast(OSData, dtEntry->getProperty(key));
 		if (data && data->getLength() > 0) {
@@ -277,6 +290,9 @@ bool NVStorage::save(const char *filename, uint32_t max, bool sensitive) {
 	static const char *PlistFooter {
 		"\n</plist>\n"
 	};
+
+	if (!dtEntry || !filename)
+		return false;
 
 	auto s = OSSerialize::withCapacity(max);
 	if (s) {
@@ -359,5 +375,5 @@ uint8_t *NVStorage::decompress(const uint8_t *src, uint32_t &size, bool sensitiv
 
 bool NVStorage::exists(const char *key)
 {
-	return OSDynamicCast(OSData, dtEntry->getProperty(key)) != nullptr;
+	return dtEntry && key && OSDynamicCast(OSData, dtEntry->getProperty(key)) != nullptr;
 }
