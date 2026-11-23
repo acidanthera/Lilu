@@ -140,6 +140,9 @@ void CPUInfo::init() {
 			case CPU_MODEL_RAPTORLAKE_HX:
 				bdi.cpuGeneration = CpuGeneration::RaptorLake;
 				break;
+			case CPU_MODEL_TWINLAKE:
+				bdi.cpuGeneration = CpuGeneration::TwinLake;
+				break;		
 			case CPU_MODEL_ARROWLAKE_S:
 			case CPU_MODEL_ARROWLAKE_HX:
 			case CPU_MODEL_ARROWLAKE_U:
