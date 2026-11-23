@@ -96,6 +96,7 @@ namespace CPUInfo {
 		CPU_MODEL_TIGERLAKE_H    =  0x8D,
 		CPU_MODEL_ALDERLAKE_S    =  0x97,
 		CPU_MODEL_RAPTORLAKE_S   =  0xB7, /* Raptor Lake B0 stepping */
+		CPU_MODEL_TWINLAKE		 =  0xBE,
 		CPU_MODEL_RAPTORLAKE_HX  =  0xBF, /* Raptor Lake C0 stepping */
 		CPU_MODEL_ARROWLAKE_HX   =  0xC5,
 		CPU_MODEL_ARROWLAKE_S    =  0xC6, /* desktop ArrowLake */
