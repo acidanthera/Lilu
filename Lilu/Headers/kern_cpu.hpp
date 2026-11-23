@@ -135,6 +135,7 @@ namespace CPUInfo {
 		TigerLake,
 		AlderLake,
 		RaptorLake,
+		TwinLake,
 		ArrowLake,
 		MaxGeneration
 	};
